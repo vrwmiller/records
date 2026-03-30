@@ -43,8 +43,14 @@ source $VENV_DIR/bin/activate
 # Upgrade pip and install requirements if not already installed
 if [ ! -f "$VENV_DIR/installed_requirements" ]; then
     echo "Installing required Python packages..."
-    pip install --upgrade pip
-    pip install -r requirements.txt
+    if ! pip install --upgrade pip; then
+        echo "ERROR: Failed to upgrade pip."
+        return 1
+    fi
+    if ! pip install -r requirements.txt; then
+        echo "ERROR: Failed to install requirements."
+        return 1
+    fi
     touch "$VENV_DIR/installed_requirements"
     echo "Requirements installed."
 fi
