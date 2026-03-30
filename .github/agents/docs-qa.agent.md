@@ -34,7 +34,7 @@ Always apply:
 - Allow test deferral only with explicit rationale and a linked follow-up issue
 - Report findings by severity and evidence
 - Identify residual risks when no defect is found
-- Report lint/test gate status for touched scope and explicitly flag missing gate targets as findings/testing gaps
+- Report lint/test gate status for touched scope and explicitly flag missing lint/unit test targets as findings/testing gaps
 
 ## Constraints
 
