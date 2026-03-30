@@ -1,0 +1,13 @@
+repos:
+  - repo: local
+    hooks:
+      - id: detect-secrets
+        name: Detect secrets
+        language: python
+        additional_dependencies: ['detect-secrets>=1.5']
+        # If baseline does not exist yet, create and stage it.
+        # Exit code 3 means only baseline line numbers changed; stage and allow commit.
+        # "bash" at the end is required so $@ contains staged filenames.
+        entry: bash -c 'if [ ! -f .secrets.baseline ]; then detect-secrets scan > .secrets.baseline; git add .secrets.baseline; fi; detect-secrets-hook --baseline .secrets.baseline -- "$@"; code=$?; if [ $code -eq 3 ]; then git add .secrets.baseline; exit 0; fi; exit $code' bash
+        exclude: (\.secrets\.baseline|\.env\.example)$
+        pass_filenames: true
