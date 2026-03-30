@@ -33,6 +33,7 @@ The system is designed to support a dual-collection inventory with auditability,
   - `POST /inventory/bulk/update`
   - `POST /inventory/bulk/delete`
   - `GET /inventory?collection=PERSONAL|DISTRIBUTION`
+  - `GET /inventory/summary`
   - `GET /transactions`
   - `POST /imports/access/validate`
   - `POST /imports/access/commit`
@@ -44,6 +45,7 @@ The system is designed to support a dual-collection inventory with auditability,
 - React or Vue (TBD)
 - Unauthenticated users see a login prompt on landing
 - Authenticated users start in read mode with a default search form
+- Logged-in landing view surfaces inventory totals grouped by collection
 - Read mode exposes transfer/update/delete item actions through buttons or menus
 - Read mode supports bulk transfer/update/delete workflows on selected results
 - Bulk selection supports per-row checkboxes plus select-all-current-page/select-all-results controls

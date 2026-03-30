@@ -196,6 +196,7 @@ POST /inventory/bulk/transfer
 POST /inventory/bulk/update
 POST /inventory/bulk/delete
 GET  /inventory?collection=PERSONAL|DISTRIBUTION
+GET  /inventory/summary
 GET  /transactions
 POST /imports/access/validate
 POST /imports/access/commit
@@ -223,7 +224,9 @@ GET  /imports/{id}/errors
 
 - If user is not authenticated, the landing page presents a login prompt
 - After users are authenticated, the landing page defaults to read mode
+- The logged-in landing page displays total inventory counts grouped by collection
 - In read mode, a search form is presented by default
+- Collection counts at minimum include PERSONAL and DISTRIBUTION totals
 - Inventory results expose controls to invoke transfer, update, and delete actions
 - Transfer, update, and delete controls may be presented as buttons or menus
 - Search-result actions assume operator intent to manage item lifecycle after lookup
