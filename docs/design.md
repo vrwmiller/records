@@ -142,6 +142,12 @@ POST /imports/access/commit
 GET  /imports/{id}
 GET  /imports/{id}/errors
 
+### Auth & Authorization for Import Endpoints
+
+- All `/imports/*` endpoints MUST require an authenticated user.
+- `/imports` follows the same RBAC model as other state-changing inventory APIs (for example `POST /inventory/...`).
+- Implementations MUST NOT expose any unauthenticated import path; on missing or invalid auth context, `/imports` requests MUST fail closed.
+
 ---
 
 ## UI Behavior
