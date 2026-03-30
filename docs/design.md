@@ -252,6 +252,8 @@ GET  /imports/{id}/errors
 - Bulk actions are launched from read-mode controls (for example bulk action menu or toolbar)
 - Bulk endpoints operate on an explicit finite list of `inventory_item` IDs from a point-in-time selection
 - Bulk delete requires explicit confirmation before execution, including affected record count
+- `POST /inventory/bulk/delete` uses the same logical delete (soft delete) semantics as `DELETE /inventory/{id}`
+- Bulk delete must preserve per-item history and transaction/audit records for each affected item
 - Bulk operations are not available to unauthenticated users
 
 ### Market Value Signal Presentation
@@ -652,10 +654,14 @@ CREATE TABLE IF NOT EXISTS pressing_label (
 CREATE INDEX IF NOT EXISTS ix_pressing_label_pressing_id ON pressing_label (pressing_id);
 CREATE INDEX IF NOT EXISTS ix_pressing_label_label_id ON pressing_label (discogs_label_id);
 
+ALTER TABLE inventory_item
+  ADD COLUMN IF NOT EXISTS acquisition_batch_id UUID;
+
 -- Inventory-focused indexes for query and event retrieval patterns.
 CREATE INDEX IF NOT EXISTS ix_inventory_item_collection_type ON inventory_item (collection_type);
 CREATE INDEX IF NOT EXISTS ix_inventory_item_status ON inventory_item (status);
 CREATE INDEX IF NOT EXISTS ix_inventory_item_pressing_id ON inventory_item (pressing_id);
+CREATE INDEX IF NOT EXISTS ix_inventory_item_acquisition_batch_id ON inventory_item (acquisition_batch_id);
 CREATE INDEX IF NOT EXISTS ix_inventory_transaction_item_created
   ON inventory_transaction (inventory_item_id, created_at DESC);
 ```
@@ -665,6 +671,7 @@ CREATE INDEX IF NOT EXISTS ix_inventory_transaction_item_created
 Phase A: core Discogs linkage
 
 - Add core columns to `pressing`
+- Add `acquisition_batch_id` to `inventory_item` for quantity-assisted acquisition grouping
 - Add unique/indexed keys for `discogs_release_id` and common filters
 - Start storing `raw_payload_json`, `last_synced_at`, and `sync_status`
 
