@@ -17,14 +17,18 @@ export UVICORN_HOST=127.0.0.1
 # --- Python venv setup ---
 VENV_DIR="./venv"
 
+fail() {
+    echo "ERROR: $1"
+    return 1 2>/dev/null || exit 1
+}
+
 # Detect Homebrew Python
 if [ -x "/opt/homebrew/bin/python3" ]; then
     PYTHON_BIN="/opt/homebrew/bin/python3"
 elif command -v python3 >/dev/null 2>&1; then
     PYTHON_BIN=$(command -v python3)
 else
-    echo "ERROR: No python3 found. Install via Homebrew: brew install python"
-    return 1
+    fail "No python3 found. Install via Homebrew: brew install python"
 fi
 
 echo "Using Python: $($PYTHON_BIN --version)"
@@ -44,12 +48,10 @@ source $VENV_DIR/bin/activate
 if [ ! -f "$VENV_DIR/installed_requirements" ]; then
     echo "Installing required Python packages..."
     if ! pip install --upgrade pip; then
-        echo "ERROR: Failed to upgrade pip."
-        return 1
+        fail "Failed to upgrade pip."
     fi
     if ! pip install -r requirements.txt; then
-        echo "ERROR: Failed to install requirements."
-        return 1
+        fail "Failed to install requirements."
     fi
     touch "$VENV_DIR/installed_requirements"
     echo "Requirements installed."
