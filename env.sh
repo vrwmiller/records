@@ -17,12 +17,12 @@ export UVICORN_HOST=127.0.0.1
 # --- Python venv setup ---
 VENV_DIR="./venv"
 
+is_sourced() {
+    [ "${BASH_SOURCE[0]}" != "$0" ]
+}
+
 fail() {
     echo "ERROR: $1" >&2
-    if [ "${BASH_SOURCE[0]}" != "$0" ]; then
-        return 1
-    fi
-    exit 1
 }
 
 # Detect Homebrew Python
@@ -32,6 +32,10 @@ elif command -v python3 >/dev/null 2>&1; then
     PYTHON_BIN=$(command -v python3)
 else
     fail "No python3 found. Install via Homebrew: brew install python"
+    if is_sourced; then
+        return 1
+    fi
+    exit 1
 fi
 
 echo "Using Python: $($PYTHON_BIN --version)"
@@ -52,9 +56,17 @@ if [ ! -f "$VENV_DIR/installed_requirements" ]; then
     echo "Installing required Python packages..."
     if ! pip install --upgrade pip; then
         fail "Failed to upgrade pip."
+        if is_sourced; then
+            return 1
+        fi
+        exit 1
     fi
     if ! pip install -r requirements.txt; then
         fail "Failed to install requirements."
+        if is_sourced; then
+            return 1
+        fi
+        exit 1
     fi
     touch "$VENV_DIR/installed_requirements"
     echo "Requirements installed."
