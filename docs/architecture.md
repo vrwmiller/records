@@ -25,6 +25,8 @@ The system is designed to support a dual-collection inventory with auditability,
 - FastAPI
 - Endpoints:
   - `POST /inventory/acquire`
+  - `PATCH /inventory/{id}`
+  - `DELETE /inventory/{id}`
   - `POST /inventory/{id}/sell`
   - `POST /inventory/{id}/transfer`
   - `POST /inventory/bulk/transfer`

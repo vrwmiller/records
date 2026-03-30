@@ -103,19 +103,21 @@ The system supports fast entry for duplicate copies while preserving per-item tr
 
 Request contract additions:
 
-- `quantity` (integer, optional, default `1`, minimum `1`)
+- `quantity` (integer, optional, default `1`, minimum `1`, maximum `100`)
+- Requests above the maximum are rejected by validation and must be split across multiple acquisition requests
 - Shared fields apply to all generated copies by default
 - Optional per-copy overrides are allowed in a later phase
 
 Behavior:
 
-- Create `quantity` number of `inventory_item` rows in a single operation
+- Create `quantity` number of `inventory_item` rows in a single operation (bounded by the documented maximum)
 - Assign a shared `acquisition_batch_id` to all rows created from that request
 - Create one `inventory_transaction` per created item with `transaction_type = acquisition`
 
 Failure mode:
 
 - Default behavior is atomic: if any row fails validation/persistence, the full acquisition request is rolled back
+- Quantity-above-maximum is treated as a validation error and creates no rows
 
 ### Rationale
 
@@ -206,6 +208,13 @@ GET  /imports/{id}/errors
 - `/imports` follows the same RBAC model as other state-changing inventory APIs (for example `POST /inventory/...`).
 - Implementations MUST NOT expose any unauthenticated import path; on missing or invalid auth context, `/imports` requests MUST fail closed.
 
+### Auth & Authorization for Inventory State-Changing Endpoints
+
+- All state-changing `/inventory/*` endpoints MUST require authenticated and authorized (RBAC) access.
+- This includes single-item and bulk routes, including `POST`, `PATCH`, and `DELETE` inventory operations.
+- UI visibility controls are convenience only and MUST NOT be treated as authorization controls.
+- On missing or invalid auth context, inventory state-changing requests MUST fail closed.
+
 ---
 
 ## UI Behavior
@@ -215,16 +224,17 @@ GET  /imports/{id}/errors
 - If user is not authenticated, the landing page presents a login prompt
 - After users are authenticated, the landing page defaults to read mode
 - In read mode, a search form is presented by default
-- Inventory results expose controls to invoke transfer, update, and delete/remove actions
-- Transfer, update, and delete/remove controls may be presented as buttons or menus
+- Inventory results expose controls to invoke transfer, update, and delete actions
+- Transfer, update, and delete controls may be presented as buttons or menus
 - Search-result actions assume operator intent to manage item lifecycle after lookup
 
 ### Inventory Row Actions
 
 - Transfer action opens collection-transfer workflow for the selected item
 - Update action opens edit workflow for the selected item
-- Delete/remove action opens delete confirmation for the selected item
-- Transfer, update, and delete/remove actions are not shown to unauthenticated users
+- Delete action opens delete confirmation for the selected item
+- Transfer, update, and delete actions are not shown to unauthenticated users
+- `DELETE /inventory/{id}` represents a logical delete (soft delete) for auditability; item history remains preserved
 
 ### Bulk Operations
 
@@ -232,10 +242,16 @@ GET  /imports/{id}/errors
 - Search results support multi-select so operators can apply actions to multiple records
 - Selection controls include:
   - select all records on the current page
-  - select all records returned by the current search
-- Bulk workflows include transfer, update, and delete/remove for selected items
+  - select all records returned by the current search (bounded by guardrails below)
+- Search results are paginated; "current search" refers to a bounded, filtered result set
+- Bulk selection guardrails:
+  - the UI must display both total matched count and selected count
+  - a maximum of 5,000 inventory items may be selected in one bulk operation
+  - client and server both enforce the selection maximum
+- Bulk workflows include transfer, update, and delete for selected items
 - Bulk actions are launched from read-mode controls (for example bulk action menu or toolbar)
-- Bulk delete/remove requires explicit confirmation before execution
+- Bulk endpoints operate on an explicit finite list of `inventory_item` IDs from a point-in-time selection
+- Bulk delete requires explicit confirmation before execution, including affected record count
 - Bulk operations are not available to unauthenticated users
 
 ### Market Value Signal Presentation
