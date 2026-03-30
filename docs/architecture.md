@@ -52,6 +52,12 @@ The system is designed to support a dual-collection inventory with auditability,
 - S3 snapshots for optional record images
 - Logical backups exported periodically
 
+### 6. Legacy Import Boundary
+
+- Web app supports importing legacy Microsoft Access inventory exports
+- Import is staged, validated, and then mapped into local inventory and metadata tables
+- Import behavior details and field mappings are defined in design
+
 ---
 
 ## Data Flow
@@ -65,6 +71,9 @@ The system is designed to support a dual-collection inventory with auditability,
 3. **Sale**
    - `inventory_transaction` recorded
    - Inventory updated
+4. **Legacy Import**
+  - User uploads Access exports via web workflow
+  - System validates and stages rows before writing canonical inventory records
 
 ### Data Flow Diagram
 

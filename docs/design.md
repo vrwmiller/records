@@ -133,6 +133,10 @@ POST /inventory/{id}/sell
 POST /inventory/{id}/transfer
 GET  /inventory?collection=PERSONAL|DISTRIBUTION
 GET  /transactions
+POST /imports/access/validate
+POST /imports/access/commit
+GET  /imports/{id}
+GET  /imports/{id}/errors
 
 ---
 
@@ -177,6 +181,144 @@ Unchanged:
 - RDS PITR
 - S3 snapshot export
 - logical backups
+
+---
+
+## Legacy Microsoft Access Import Design
+
+### Source Model (Observed)
+
+The legacy Access database centers on an `Albums` table with lookup relationships to:
+
+- `Artists`
+- `Labels`
+- `Channel`
+- `Cover Conditions`
+- `Record Conditions`
+
+Observed `Albums` fields include:
+
+- Artist
+- ArtistSort
+- Title
+- Label
+- Number (catalog number)
+- Discogs#
+- Year
+- Value
+- SortOrder
+- LabelDesc
+- Channel
+- CoverCond
+- RecordCond
+- CoverStyle
+- CutoutMark
+- Remarks
+- Bonuses
+- Country/Club
+
+### Import Goals
+
+- Preserve historical inventory without manual re-entry
+- Keep provenance for every imported row
+- Normalize into canonical local schema while retaining long-tail legacy attributes
+- Produce deterministic, repeatable imports (idempotent by source key)
+
+### Import File Contract
+
+Initial supported import format:
+
+- CSV exports from Access tables
+- Required file: `albums.csv`
+- Optional lookup files:
+  - `artists.csv`
+  - `labels.csv`
+  - `channel.csv`
+  - `cover_conditions.csv`
+  - `record_conditions.csv`
+
+### Staging Strategy
+
+- Parse uploads into staging tables keyed by:
+  - `import_batch_id`
+  - `source_row_number`
+  - `source_hash`
+- Validate all rows before commit
+- No direct writes from uploaded files into canonical inventory tables
+
+### Canonical Mapping Strategy
+
+Use a two-pass mapping process.
+
+Pass A: metadata and pressing resolution
+
+- Prefer `Discogs#` as external identity key when present
+- Map metadata into `pressing` (title, artist sort, label, catalog number, year, country)
+- Retain legacy-only fields in import metadata for traceability
+
+Pass B: inventory item and transaction creation
+
+- Create `inventory_item` with mapped condition and status fields
+- Default `collection_type` to `PERSONAL` unless import options explicitly specify otherwise
+- Create one `inventory_transaction` per imported item:
+  - `transaction_type = acquisition`
+  - notes include import batch id and source reference
+
+### Field Mapping (Initial)
+
+| Access `Albums` field | Local target | Notes |
+|-----|-----------|------|
+| Artist | `pressing` artist display field(s) | normalize whitespace and casing |
+| ArtistSort | `pressing.artists_sort` | preferred sort key |
+| Title | `pressing.title` | required for canonical display |
+| Label | `pressing_label.name` or `pressing` label field | normalize against lookup |
+| Number | catalog number field | source says include prefix |
+| Discogs# | `pressing.discogs_release_id` | primary external key if valid |
+| Year | `pressing.year` | integer coercion with validation |
+| Value | import transaction metadata | estimated value, not guaranteed cost basis |
+| Channel | imported as legacy attribute initially | candidate enum later |
+| CoverCond | `inventory_item.condition_sleeve` | map via condition lookup |
+| RecordCond | `inventory_item.condition_media` | map via condition lookup |
+| CoverStyle | legacy attributes | preserve until canonicalized |
+| CutoutMark | legacy attributes | preserve |
+| Remarks | notes/legacy attributes | long text preservation |
+| Bonuses | legacy attributes | preserve |
+| Country/Club | `pressing.country` plus import flag | may contain combined semantics |
+
+### Validation Rules
+
+- Reject commit when required columns are missing
+- Warn (not fail) on optional lookup mismatches
+- Fail rows with irrecoverable key problems:
+  - empty Title with no Discogs#
+  - invalid numeric coercion for Year when provided
+- Normalize known text fields before dedupe
+
+### Dedupe Rules
+
+Primary key path:
+
+- `discogs_release_id` when present and valid
+
+Fallback key path:
+
+- normalized `(ArtistSort, Title, Label, Number, Year)` composite
+
+### Auditability Requirements
+
+- Every import run has a durable batch record
+- Every created or updated inventory item is traceable to:
+  - import batch id
+  - source file
+  - source row number
+- Import summary includes inserted, updated, skipped, and failed counts
+
+### UI Requirements for Import
+
+- Upload step with file-level validation status
+- Dry-run preview before commit
+- Error export for failed rows
+- Commit confirmation with summary report
 
 ---
 
