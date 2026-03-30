@@ -29,6 +29,10 @@ The system is designed to support a dual-collection inventory with auditability,
   - `POST /inventory/{id}/transfer`
   - `GET /inventory?collection=PERSONAL|DISTRIBUTION`
   - `GET /transactions`
+  - `POST /imports/access/validate`
+  - `POST /imports/access/commit`
+  - `GET /imports/{id}`
+  - `GET /imports/{id}/errors`
 
 ### 3. Web UI
 
@@ -52,6 +56,12 @@ The system is designed to support a dual-collection inventory with auditability,
 - S3 snapshots for optional record images
 - Logical backups exported periodically
 
+### 6. Legacy Import Boundary
+
+- Web app supports importing legacy Microsoft Access inventory exports
+- Import is staged, validated, and then mapped into local inventory and metadata tables
+- Import behavior details and field mappings are defined in design
+
 ---
 
 ## Data Flow
@@ -65,6 +75,13 @@ The system is designed to support a dual-collection inventory with auditability,
 3. **Sale**
    - `inventory_transaction` recorded
    - Inventory updated
+4. **Legacy Import**
+  - User uploads Access exports via web workflow
+  - System validates and stages rows before writing canonical inventory records
+
+Data Flow Diagram scope note:
+- The Mermaid diagram below visualizes core inventory lifecycle actions (acquire, transfer, sell).
+- Legacy import flow is documented in design and represented as a separate import pipeline.
 
 ### Data Flow Diagram
 

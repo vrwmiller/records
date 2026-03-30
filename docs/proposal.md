@@ -27,7 +27,8 @@ Current inventory processes are:
 2. Track all inventory actions as transactions
 3. Provide APIs for acquisition, transfer, and sale
 4. Develop UI workflows aligned with collection rules
-5. Enable developer-friendly environment setup
+5. Support import of existing Microsoft Access inventory data
+6. Enable developer-friendly environment setup
 
 ---
 
@@ -35,6 +36,7 @@ Current inventory processes are:
 
 - Core inventory and transaction model
 - Discogs metadata integration for cataloging and enrichment
+- Import pipeline for existing Microsoft Access inventory data and lookup tables
 - UI for adding, selling, and transferring records
 - Developer environment and workflows
 - Backup and audit processes
@@ -53,6 +55,7 @@ Current inventory processes are:
 - Reduced risk of accidental sales
 - Audit trail for compliance or personal tracking
 - Easier onboarding for new developers
+- Faster migration from legacy tooling without re-keying historical inventory
 
 ---
 
@@ -61,6 +64,7 @@ Current inventory processes are:
 - Database schema with updated transaction and item models
 - FastAPI backend with required endpoints
 - Web-based UI for inventory management
+- Legacy import workflow for Microsoft Access export files (CSV-based)
 - Documentation: design, architecture, and developer workflow
 
 ---
