@@ -45,7 +45,7 @@ Use lowercase and hyphen-separated words.
 - If that test is missing, treat it as a blocking finding.
 - Deferral is allowed only with explicit rationale and a linked follow-up issue.
 - Pure docs/process/license-only changes are exempt from the unit test requirement.
-- If lint or test targets do not exist for touched scope, report that as an explicit review finding/testing gap instead of treating gates as satisfied.
+- If lint or unit test targets do not exist for touched scope, report that as an explicit review finding/testing gap instead of treating gates as satisfied.
 
 ## Pre-Commit
 
