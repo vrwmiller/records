@@ -29,6 +29,10 @@ The system is designed to support a dual-collection inventory with auditability,
   - `POST /inventory/{id}/transfer`
   - `GET /inventory?collection=PERSONAL|DISTRIBUTION`
   - `GET /transactions`
+  - `POST /imports/access/validate`
+  - `POST /imports/access/commit`
+  - `GET /imports/{id}`
+  - `GET /imports/{id}/errors`
 
 ### 3. Web UI
 

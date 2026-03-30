@@ -268,11 +268,11 @@ Pass B: inventory item and transaction creation
 
 | Access `Albums` field | Local target | Notes |
 |-----|-----------|------|
-| Artist | `pressing` artist display field(s) | normalize whitespace and casing |
+| Artist | `pressing.raw_payload_json` and/or `pressing_credit.name` | retain exact source artist text; canonical artist normalization is a later phase |
 | ArtistSort | `pressing.artists_sort` | preferred sort key |
 | Title | `pressing.title` | required for canonical display |
-| Label | `pressing_label.name` or `pressing` label field | normalize against lookup |
-| Number | catalog number field | source says include prefix |
+| Label | `pressing_label.name` | normalize against lookup |
+| Number | `pressing_label.catno` | source says include prefix |
 | Discogs# | `pressing.discogs_release_id` | primary external key if valid |
 | Year | `pressing.year` | integer coercion with validation |
 | Value | import transaction metadata | estimated value, not guaranteed cost basis |
