@@ -18,8 +18,11 @@ export UVICORN_HOST=127.0.0.1
 VENV_DIR="./venv"
 
 fail() {
-    echo "ERROR: $1"
-    return 1 2>/dev/null || exit 1
+    echo "ERROR: $1" >&2
+    if [ "${BASH_SOURCE[0]}" != "$0" ]; then
+        return 1
+    fi
+    exit 1
 }
 
 # Detect Homebrew Python
