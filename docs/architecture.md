@@ -77,8 +77,8 @@ The system is designed to support a dual-collection inventory with auditability,
    - Inventory updated
 
 4. **Legacy Import**
-  User uploads Access exports via web workflow. The system validates and stages
-  rows before writing canonical inventory records.
+   - User uploads Access exports via web workflow. The system validates and stages
+    rows before writing canonical inventory records.
 
 Data Flow Diagram scope note:
 
