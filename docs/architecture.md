@@ -25,8 +25,13 @@ The system is designed to support a dual-collection inventory with auditability,
 - FastAPI
 - Endpoints:
   - `POST /inventory/acquire`
+  - `PATCH /inventory/{id}`
+  - `DELETE /inventory/{id}`
   - `POST /inventory/{id}/sell`
   - `POST /inventory/{id}/transfer`
+  - `POST /inventory/bulk/transfer`
+  - `POST /inventory/bulk/update`
+  - `POST /inventory/bulk/delete`
   - `GET /inventory?collection=PERSONAL|DISTRIBUTION`
   - `GET /transactions`
   - `POST /imports/access/validate`
@@ -37,6 +42,12 @@ The system is designed to support a dual-collection inventory with auditability,
 ### 3. Web UI
 
 - React or Vue (TBD)
+- Unauthenticated users see a login prompt on landing
+- Authenticated users start in read mode with a default search form
+- Read mode exposes transfer/update/delete item actions through buttons or menus
+- Read mode supports bulk transfer/update/delete workflows on selected results
+- Bulk selection supports per-row checkboxes plus select-all-current-page/select-all-results controls
+- Read mode surfaces Discogs market/value signals when available for user decision support
 - Distinguishes PERSONAL vs DISTRIBUTION visually
 - Sale confirmation for personal items
 - Listing optimized for quick sales workflows

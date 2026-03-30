@@ -29,6 +29,7 @@ Each inventory item belongs to one of:
 inventory_item (
   id PK,
   pressing_id FK,
+  acquisition_batch_id UUID NULL,
   collection_type TEXT CHECK (collection_type IN ('PERSONAL','DISTRIBUTION')),
   condition_media,
   condition_sleeve,
@@ -85,6 +86,57 @@ inventory_transaction (
 
 ---
 
+## Duplicate-Copy Entry Model
+
+The system supports fast entry for duplicate copies while preserving per-item traceability.
+
+### Storage of Duplicates
+
+- Canonical storage remains one row per physical copy in `inventory_item`
+- No global `quantity` column is stored on `inventory_item`
+- Multiple copies of the same release share the same `pressing_id`
+- Each created copy retains independent lifecycle and condition history
+
+### Quantity-Assisted Acquisition
+
+`POST /inventory/acquire` supports a quantity input for UX efficiency.
+
+Request contract additions:
+
+- `quantity` (integer, optional, default `1`, minimum `1`, maximum `100`)
+- Requests above the maximum are rejected by validation and must be split across multiple acquisition requests
+- Shared fields apply to all generated copies by default
+- Optional per-copy overrides are allowed in a later phase
+
+Behavior:
+
+- Create `quantity` number of `inventory_item` rows in a single operation (bounded by the documented maximum)
+- Assign a shared `acquisition_batch_id` to all rows created from that request
+- Create one `inventory_transaction` per created item with `transaction_type = acquisition`
+
+Failure mode:
+
+- Default behavior is atomic: if any row fails validation/persistence, the full acquisition request is rolled back
+- Quantity-above-maximum is treated as a validation error and creates no rows
+
+### Rationale
+
+- Preserves copy-level condition, status, and transaction history
+- Supports independent later sale/transfer of any one copy
+- Reduces operator friction for collectors entering near-identical duplicates
+
+### Example (Conceptual)
+
+Input: quantity `5` for one selected pressing
+
+Result:
+
+- 5 `inventory_item` rows (same `pressing_id`, same `acquisition_batch_id`)
+- 5 acquisition transactions (one per item)
+- Inventory list can group by `acquisition_batch_id` for review, then show item-level detail
+
+---
+
 ## Transfer Workflow (Critical)
 
 ### PERSONAL → DISTRIBUTION
@@ -135,9 +187,14 @@ flowchart TD
 
 ## API Updates
 
-POST /inventory/acquire
+POST /inventory/acquire (supports quantity-assisted creation)
+PATCH /inventory/{id}
+DELETE /inventory/{id}
 POST /inventory/{id}/sell
 POST /inventory/{id}/transfer
+POST /inventory/bulk/transfer
+POST /inventory/bulk/update
+POST /inventory/bulk/delete
 GET  /inventory?collection=PERSONAL|DISTRIBUTION
 GET  /transactions
 POST /imports/access/validate
@@ -151,9 +208,64 @@ GET  /imports/{id}/errors
 - `/imports` follows the same RBAC model as other state-changing inventory APIs (for example `POST /inventory/...`).
 - Implementations MUST NOT expose any unauthenticated import path; on missing or invalid auth context, `/imports` requests MUST fail closed.
 
+### Auth & Authorization for Inventory State-Changing Endpoints
+
+- All state-changing `/inventory/*` endpoints MUST require authenticated and authorized (RBAC) access.
+- This includes single-item and bulk routes, including `POST`, `PATCH`, and `DELETE` inventory operations.
+- UI visibility controls are convenience only and MUST NOT be treated as authorization controls.
+- On missing or invalid auth context, inventory state-changing requests MUST fail closed.
+
 ---
 
 ## UI Behavior
+
+### Landing Page and Default Mode
+
+- If user is not authenticated, the landing page presents a login prompt
+- After users are authenticated, the landing page defaults to read mode
+- In read mode, a search form is presented by default
+- Inventory results expose controls to invoke transfer, update, and delete actions
+- Transfer, update, and delete controls may be presented as buttons or menus
+- Search-result actions assume operator intent to manage item lifecycle after lookup
+
+### Inventory Row Actions
+
+- Transfer action opens collection-transfer workflow for the selected item
+- Update action opens edit workflow for the selected item
+- Delete action opens delete confirmation for the selected item
+- Transfer, update, and delete actions are not shown to unauthenticated users
+- `DELETE /inventory/{id}` represents a logical delete (soft delete) for auditability; item history remains preserved
+
+### Bulk Operations
+
+- Search results are presented in a list/table with a checkbox next to each record
+- Search results support multi-select so operators can apply actions to multiple records
+- Selection controls include:
+  - select all records on the current page
+  - select all records returned by the current search (bounded by guardrails below)
+- Search results are paginated; "current search" refers to a bounded, filtered result set
+- Bulk selection guardrails:
+  - the UI must display both total matched count and selected count
+  - a maximum of 5,000 inventory items may be selected in one bulk operation
+  - client and server both enforce the selection maximum
+- Bulk workflows include transfer, update, and delete for selected items
+- Bulk actions are launched from read-mode controls (for example bulk action menu or toolbar)
+- Bulk endpoints operate on an explicit finite list of `inventory_item` IDs from a point-in-time selection
+- Bulk delete requires explicit confirmation before execution, including affected record count
+- `POST /inventory/bulk/delete` uses the same logical delete (soft delete) semantics as `DELETE /inventory/{id}`
+- Bulk delete must preserve per-item history and transaction/audit records for each affected item
+- Bulk operations are not available to unauthenticated users
+
+### Market Value Signal Presentation
+
+- Search results and item-detail views should present Discogs market/value signals when available
+- Initial displayed signals include:
+  - lowest price
+  - number for sale
+  - have/want counts
+  - last synced timestamp
+- The interface must label these as market signals for decision support, not authoritative local valuation
+- If Discogs market data is unavailable for an item, the interface should display an explicit unavailable state
 
 ### Personal Collection Pricing
 
@@ -178,6 +290,7 @@ GET  /imports/{id}/errors
 ### Distribution
 
 - Market-based pricing (Discogs integration later)
+- Discogs market/value signals should be visible in distribution workflows to inform operator pricing decisions
 
 ---
 
@@ -185,6 +298,7 @@ GET  /imports/{id}/errors
 
 - All collection changes recorded as transactions
 - No silent reclassification
+- Bulk transfer and bulk update operations must retain per-item audit records
 
 ---
 
@@ -540,10 +654,14 @@ CREATE TABLE IF NOT EXISTS pressing_label (
 CREATE INDEX IF NOT EXISTS ix_pressing_label_pressing_id ON pressing_label (pressing_id);
 CREATE INDEX IF NOT EXISTS ix_pressing_label_label_id ON pressing_label (discogs_label_id);
 
+ALTER TABLE inventory_item
+  ADD COLUMN IF NOT EXISTS acquisition_batch_id UUID;
+
 -- Inventory-focused indexes for query and event retrieval patterns.
 CREATE INDEX IF NOT EXISTS ix_inventory_item_collection_type ON inventory_item (collection_type);
 CREATE INDEX IF NOT EXISTS ix_inventory_item_status ON inventory_item (status);
 CREATE INDEX IF NOT EXISTS ix_inventory_item_pressing_id ON inventory_item (pressing_id);
+CREATE INDEX IF NOT EXISTS ix_inventory_item_acquisition_batch_id ON inventory_item (acquisition_batch_id);
 CREATE INDEX IF NOT EXISTS ix_inventory_transaction_item_created
   ON inventory_transaction (inventory_item_id, created_at DESC);
 ```
@@ -553,6 +671,7 @@ CREATE INDEX IF NOT EXISTS ix_inventory_transaction_item_created
 Phase A: core Discogs linkage
 
 - Add core columns to `pressing`
+- Add `acquisition_batch_id` to `inventory_item` for quantity-assisted acquisition grouping
 - Add unique/indexed keys for `discogs_release_id` and common filters
 - Start storing `raw_payload_json`, `last_synced_at`, and `sync_status`
 
