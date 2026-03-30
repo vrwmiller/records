@@ -41,6 +41,7 @@ Use lowercase and hyphen-separated words.
 - Fix valid issues in focused commits.
 - Reject incorrect comments with factual, documented rationale.
 - Re-run tests/lint for touched scope before final push.
+- If lint or test targets do not exist for touched scope, report that as an explicit review finding/testing gap instead of treating gates as satisfied.
 
 ## Pre-Commit
 

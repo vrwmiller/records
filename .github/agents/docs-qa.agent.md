@@ -32,6 +32,7 @@ Always apply:
 - Ensure changed behavior is tested
 - Report findings by severity and evidence
 - Identify residual risks when no defect is found
+- Report lint/test gate status for touched scope and explicitly flag missing gate targets as findings/testing gaps
 
 ## Constraints
 
@@ -51,4 +52,5 @@ Always apply:
 1. Read changed files and relevant docs.
 2. Check for behavioral/documentation alignment.
 3. Run or recommend lint/tests by touched scope.
+3a. If lint/test targets are unavailable, report `not-available` explicitly as a finding/testing gap.
 4. Report findings with clear references and next steps.

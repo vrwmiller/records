@@ -43,6 +43,7 @@ Follow these steps exactly.
 - Run lint/test checks for touched scope.
 - Perform security-focused review for sensitive files.
 - Address high-severity issues before push.
+- If lint or unit-test targets are unavailable for touched scope, record this explicitly as a finding/testing gap (do not silently pass gates).
 
 8. Push and resolve threads.
 - Push once all batches and checks are complete.
@@ -55,3 +56,4 @@ Response style requirements:
 - Findings first, ordered by severity.
 - Include file references and concise rationale.
 - If no findings, state that explicitly and mention residual risks/testing gaps.
+- Always include a concise gate status line for touched scope: lint `passed|failed|not-available`; tests `passed|failed|not-available`.
