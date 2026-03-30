@@ -334,6 +334,11 @@ Fallback key path:
 
 ## Discogs Integration Design
 
+### Implementation Reference
+
+- Python client reference: https://github.com/joalla/discogs_client
+- Use as an optional integration accelerator; keep local API/domain contracts authoritative per this design.
+
 ### API Contract
 
 - Required headers:
