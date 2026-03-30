@@ -90,9 +90,11 @@ inventory_transaction (
 ### PERSONAL → DISTRIBUTION
 
 Use case:
+
 - Collector decides to sell
 
 Action:
+
 - Create transaction:
   - type: transfer_collection
 - Update:
@@ -103,6 +105,7 @@ Action:
 ### DISTRIBUTION → PERSONAL
 
 Use case:
+
 - Collector retains item
 
 Same transaction model
@@ -152,7 +155,7 @@ GET  /imports/{id}/errors
 
 ## UI Behavior
 
-### Personal Collection
+### Personal Collection Pricing
 
 - Visually distinct (badge/label)
 - Sale action requires confirmation
@@ -188,6 +191,7 @@ GET  /imports/{id}/errors
 ## Backup Strategy
 
 Unchanged:
+
 - RDS PITR
 - S3 snapshot export
 - logical backups
@@ -277,7 +281,7 @@ Pass B: inventory item and transaction creation
 ### Field Mapping (Initial)
 
 | Access `Albums` field | Local target | Notes |
-|-----|-----------|------|
+| ----- | ----------- | ----- |
 | Artist | `pressing.raw_payload_json` and/or `pressing_credit.name` | retain exact source artist text; canonical artist normalization is a later phase |
 | ArtistSort | `pressing.artists_sort` | preferred sort key |
 | Title | `pressing.title` | required for canonical display |
@@ -336,7 +340,7 @@ Fallback key path:
 
 ### Implementation Reference
 
-- Python client reference: https://github.com/joalla/discogs_client
+- Python client reference: [joalla/discogs_client](https://github.com/joalla/discogs_client)
 - Use as an optional integration accelerator; keep local API/domain contracts authoritative per this design.
 
 ### API Contract
@@ -567,7 +571,7 @@ Phase C: performance hardening
 ### Discogs-to-Local Field Mapping (Initial)
 
 | Discogs field | Local target | Notes |
-|-----|-----------|------|
+| ----- | ----------- | ----- |
 | `id` | `pressing.discogs_release_id` | Unique upsert key |
 | `master_id` | `pressing.discogs_master_id` | Nullable |
 | `resource_url` | `pressing.discogs_resource_url` | Source pointer |
@@ -629,7 +633,7 @@ Phase C: performance hardening
 ## Risks
 
 | Risk | Mitigation |
-|-----|-----------|
+| ----- | ----------- |
 | accidental sale of personal item | confirmation + UI separation |
 | incorrect classification | allow easy transfer |
 | pricing confusion | separate pricing flows |
@@ -647,15 +651,19 @@ Phase C: performance hardening
 ## Development Plan Updates
 
 ### Phase 1
+
 - acquisition + collection assignment
 
 ### Phase 2
+
 - transfer workflows
 
 ### Phase 3
+
 - pricing differentiation
 
 ### Phase 4
+
 - analytics + valuation
 
 ### Development Roadmap Diagram

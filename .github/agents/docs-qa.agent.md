@@ -41,6 +41,8 @@ Always apply:
 - No unverifiable claims
 - No silent acceptance of contract drift
 - No mixing architectural detail into architecture doc when design doc should hold it
+- For lint-only tasks, do not change logic, behavior, or technical decisions; limit edits to style/format/structure.
+- Do not accept reviewer lint suggestions without verifying the cited rule against repository instruction files.
 
 ## Coordinates with
 
@@ -53,7 +55,9 @@ Always apply:
 
 1. Read changed files and relevant docs.
 2. Check for behavioral/documentation alignment.
-3. Run or recommend lint/tests by touched scope.
-4. For executable behavior changes, require same-PR unit tests when reasonably possible; if missing, report a blocking finding.
-5. If lint/test targets are unavailable, report `not-available` explicitly as a finding/testing gap.
-6. Report findings with clear references and next steps.
+3. For linting tasks, list violations grouped by rule before editing.
+4. Apply lint fixes one file at a time and re-read edited files to verify violations are cleared.
+5. Run or recommend lint/tests by touched scope.
+6. For executable behavior changes, require same-PR unit tests when reasonably possible; if missing, report a blocking finding.
+7. If lint/test targets are unavailable, report `not-available` explicitly as a finding/testing gap.
+8. Report findings with clear references and next steps.

@@ -15,17 +15,21 @@ If an issue does not clearly fit one of these categories, do not comment.
 Before raising an issue, all conditions must be true:
 
 1. Category match
+
 - The issue is security, correctness, or blocking accessibility.
 
-2. Concrete evidence
+1. Concrete evidence
+
 - Point to specific file and line.
 - Explain execution path or failure mode.
 
-3. Deterministic impact
+1. Deterministic impact
+
 - Exploit path, runtime failure, broken core flow, or guaranteed incorrect behavior.
 - If impact is speculative, do not comment.
 
-4. Actionable fix
+1. Actionable fix
+
 - Suggest a specific, minimal change.
 
 If any condition fails, do not comment.
