@@ -54,6 +54,6 @@ Always apply:
 1. Read changed files and relevant docs.
 2. Check for behavioral/documentation alignment.
 3. Run or recommend lint/tests by touched scope.
-3a. For executable behavior changes, require same-PR unit tests when reasonably possible; if missing, report a blocking finding.
-3b. If lint/test targets are unavailable, report `not-available` explicitly as a finding/testing gap.
-4. Report findings with clear references and next steps.
+4. For executable behavior changes, require same-PR unit tests when reasonably possible; if missing, report a blocking finding.
+5. If lint/test targets are unavailable, report `not-available` explicitly as a finding/testing gap.
+6. Report findings with clear references and next steps.
