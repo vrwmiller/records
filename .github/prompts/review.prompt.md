@@ -43,6 +43,10 @@ Follow these steps exactly.
 - Run lint/test checks for touched scope.
 - Perform security-focused review for sensitive files.
 - Address high-severity issues before push.
+- If touched changes include executable behavior and a unit test is reasonably possible, require that test in the same PR.
+- If such a test is missing, classify as a blocking finding.
+- Deferral is allowed only with explicit rationale and a linked follow-up issue.
+- Pure docs/process/license-only changes are exempt from this unit-test requirement.
 - If lint or unit-test targets are unavailable for touched scope, record this explicitly as a finding/testing gap (do not silently pass gates).
 
 8. Push and resolve threads.

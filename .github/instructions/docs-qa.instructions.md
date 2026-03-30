@@ -20,6 +20,10 @@ applyTo: "docs/**/*.md, **/*.md, tests/**/*.py, **/*test*.py"
 - transfer
 - sell
 - collection filtering
+- For executable behavior changes where a unit test is reasonably possible, require the test in the same PR.
+- If such a test is missing, treat it as a blocking finding.
+- Deferral is allowed only with explicit rationale and a linked follow-up issue.
+- Pure docs/process/license-only changes are exempt from the unit-test requirement.
 
 ## Lint and Quality Gate
 

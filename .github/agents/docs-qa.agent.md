@@ -29,7 +29,9 @@ Always apply:
 ## Responsibilities
 
 - Keep docs accurate and non-contradictory
-- Ensure changed behavior is tested
+- Ensure executable behavior changes include unit tests when reasonably possible
+- Treat missing required unit tests as blocking findings
+- Allow test deferral only with explicit rationale and a linked follow-up issue
 - Report findings by severity and evidence
 - Identify residual risks when no defect is found
 - Report lint/test gate status for touched scope and explicitly flag missing gate targets as findings/testing gaps
@@ -52,5 +54,6 @@ Always apply:
 1. Read changed files and relevant docs.
 2. Check for behavioral/documentation alignment.
 3. Run or recommend lint/tests by touched scope.
-3a. If lint/test targets are unavailable, report `not-available` explicitly as a finding/testing gap.
+3a. For executable behavior changes, require same-PR unit tests when reasonably possible; if missing, report a blocking finding.
+3b. If lint/test targets are unavailable, report `not-available` explicitly as a finding/testing gap.
 4. Report findings with clear references and next steps.
