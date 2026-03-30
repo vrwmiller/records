@@ -36,6 +36,7 @@ Current inventory processes are:
 
 - Core inventory and transaction model
 - Discogs metadata integration for cataloging and enrichment
+- Presentation of Discogs market/value signal data for user consumption
 - Import pipeline for existing Microsoft Access inventory data and lookup tables
 - UI for adding, selling, and transferring records
 - Developer environment and workflows

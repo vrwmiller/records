@@ -29,6 +29,7 @@ Each inventory item belongs to one of:
 inventory_item (
   id PK,
   pressing_id FK,
+  acquisition_batch_id UUID NULL,
   collection_type TEXT CHECK (collection_type IN ('PERSONAL','DISTRIBUTION')),
   condition_media,
   condition_sleeve,
@@ -85,6 +86,55 @@ inventory_transaction (
 
 ---
 
+## Duplicate-Copy Entry Model
+
+The system supports fast entry for duplicate copies while preserving per-item traceability.
+
+### Storage of Duplicates
+
+- Canonical storage remains one row per physical copy in `inventory_item`
+- No global `quantity` column is stored on `inventory_item`
+- Multiple copies of the same release share the same `pressing_id`
+- Each created copy retains independent lifecycle and condition history
+
+### Quantity-Assisted Acquisition
+
+`POST /inventory/acquire` supports a quantity input for UX efficiency.
+
+Request contract additions:
+
+- `quantity` (integer, optional, default `1`, minimum `1`)
+- Shared fields apply to all generated copies by default
+- Optional per-copy overrides are allowed in a later phase
+
+Behavior:
+
+- Create `quantity` number of `inventory_item` rows in a single operation
+- Assign a shared `acquisition_batch_id` to all rows created from that request
+- Create one `inventory_transaction` per created item with `transaction_type = acquisition`
+
+Failure mode:
+
+- Default behavior is atomic: if any row fails validation/persistence, the full acquisition request is rolled back
+
+### Rationale
+
+- Preserves copy-level condition, status, and transaction history
+- Supports independent later sale/transfer of any one copy
+- Reduces operator friction for collectors entering near-identical duplicates
+
+### Example (Conceptual)
+
+Input: quantity `5` for one selected pressing
+
+Result:
+
+- 5 `inventory_item` rows (same `pressing_id`, same `acquisition_batch_id`)
+- 5 acquisition transactions (one per item)
+- Inventory list can group by `acquisition_batch_id` for review, then show item-level detail
+
+---
+
 ## Transfer Workflow (Critical)
 
 ### PERSONAL → DISTRIBUTION
@@ -135,9 +185,14 @@ flowchart TD
 
 ## API Updates
 
-POST /inventory/acquire
+POST /inventory/acquire (supports quantity-assisted creation)
+PATCH /inventory/{id}
+DELETE /inventory/{id}
 POST /inventory/{id}/sell
 POST /inventory/{id}/transfer
+POST /inventory/bulk/transfer
+POST /inventory/bulk/update
+POST /inventory/bulk/delete
 GET  /inventory?collection=PERSONAL|DISTRIBUTION
 GET  /transactions
 POST /imports/access/validate
@@ -154,6 +209,45 @@ GET  /imports/{id}/errors
 ---
 
 ## UI Behavior
+
+### Landing Page and Default Mode
+
+- If user is not authenticated, the landing page presents a login prompt
+- After users are authenticated, the landing page defaults to read mode
+- In read mode, a search form is presented by default
+- Inventory results expose controls to invoke transfer, update, and delete/remove actions
+- Transfer, update, and delete/remove controls may be presented as buttons or menus
+- Search-result actions assume operator intent to manage item lifecycle after lookup
+
+### Inventory Row Actions
+
+- Transfer action opens collection-transfer workflow for the selected item
+- Update action opens edit workflow for the selected item
+- Delete/remove action opens delete confirmation for the selected item
+- Transfer, update, and delete/remove actions are not shown to unauthenticated users
+
+### Bulk Operations
+
+- Search results are presented in a list/table with a checkbox next to each record
+- Search results support multi-select so operators can apply actions to multiple records
+- Selection controls include:
+  - select all records on the current page
+  - select all records returned by the current search
+- Bulk workflows include transfer, update, and delete/remove for selected items
+- Bulk actions are launched from read-mode controls (for example bulk action menu or toolbar)
+- Bulk delete/remove requires explicit confirmation before execution
+- Bulk operations are not available to unauthenticated users
+
+### Market Value Signal Presentation
+
+- Search results and item-detail views should present Discogs market/value signals when available
+- Initial displayed signals include:
+  - lowest price
+  - number for sale
+  - have/want counts
+  - last synced timestamp
+- The interface must label these as market signals for decision support, not authoritative local valuation
+- If Discogs market data is unavailable for an item, the interface should display an explicit unavailable state
 
 ### Personal Collection Pricing
 
@@ -178,6 +272,7 @@ GET  /imports/{id}/errors
 ### Distribution
 
 - Market-based pricing (Discogs integration later)
+- Discogs market/value signals should be visible in distribution workflows to inform operator pricing decisions
 
 ---
 
@@ -185,6 +280,7 @@ GET  /imports/{id}/errors
 
 - All collection changes recorded as transactions
 - No silent reclassification
+- Bulk transfer and bulk update operations must retain per-item audit records
 
 ---
 
