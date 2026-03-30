@@ -31,7 +31,7 @@ The system is designed to:
 - Proposal: [docs/proposal.md](docs/proposal.md)
 - Architecture: [docs/architecture.md](docs/architecture.md)
 - Design: [docs/design.md](docs/design.md)
-- Runbooks: [docs/runbooks](docs/runbooks)
+- Runbooks: planned (will live under docs/runbooks/)
 
 ## Notes
 
