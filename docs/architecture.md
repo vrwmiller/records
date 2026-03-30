@@ -79,6 +79,10 @@ The system is designed to support a dual-collection inventory with auditability,
   - User uploads Access exports via web workflow
   - System validates and stages rows before writing canonical inventory records
 
+Data Flow Diagram scope note:
+- The Mermaid diagram below visualizes core inventory lifecycle actions (acquire, transfer, sell).
+- Legacy import flow is documented in design and represented as a separate import pipeline.
+
 ### Data Flow Diagram
 
 ```mermaid
