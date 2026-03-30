@@ -41,7 +41,7 @@ Current inventory processes are:
 - Developer environment and workflows
 - Backup and audit processes
 
-**Out of Scope (initial version)**
+### Out of Scope (initial version)
 
 - Automated pricing rules
 - Valuation tracking
@@ -73,6 +73,6 @@ Current inventory processes are:
 
 - Secrets are scanned with the pre-commit framework using `.pre-commit-config.yaml`
 - Install once per clone:
-	- `./scripts/install-hooks.sh`
+  - `./scripts/install-hooks.sh`
 - Validate before first commit:
-	- `pre-commit run --all-files`
+  - `pre-commit run --all-files`
