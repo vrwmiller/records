@@ -25,6 +25,7 @@ Each inventory item belongs to one of:
 
 ### Inventory Item (Updated)
 
+```sql
 inventory_item (
   id PK,
   pressing_id FK,
@@ -34,11 +35,13 @@ inventory_item (
   status,
   created_at
 )
+```
 
 ---
 
 ### Inventory Transaction (Updated)
 
+```sql
 inventory_transaction (
   id PK,
   inventory_item_id FK,
@@ -48,6 +51,7 @@ inventory_transaction (
   notes TEXT,
   created_at TIMESTAMP
 )
+```
 
 ---
 
