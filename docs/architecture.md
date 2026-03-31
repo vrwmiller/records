@@ -17,8 +17,13 @@ Deployment intent:
 
 ```mermaid
 flowchart LR
-  U[Authenticated User] --> W[Web UI Microservice]
-  W --> A[API Layer]
+  U[Authenticated User] --> W
+
+  subgraph SVC[Record Ranch Microservice]
+    W[Web UI Layer]
+    W --> A[API Layer]
+  end
+
   A --> D[(PostgreSQL RDS)]
   A --> S[(S3 Storage)]
   A --> C[Discogs API]
@@ -185,7 +190,7 @@ flowchart TD
 ## Operational Priorities
 
 1. Data durability and recoverability
-2. Performance and low UI friction
+2. Performance and low UX friction
 3. Simplicity of operations for a single-user workload
 4. High availability as an optional future enhancement
 
