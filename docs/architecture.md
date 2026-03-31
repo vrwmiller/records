@@ -4,6 +4,52 @@
 
 The system is designed to support a dual-collection inventory with auditability, developer accessibility, and eventual integration with Discogs.
 
+Deployment intent:
+
+- Web application is served as an AWS-hosted microservice
+- High availability is not a primary requirement for this single-user workload
+- Backup, data durability, and restore capability are mandatory
+- Performance and low UX friction are first-class requirements
+
+---
+
+## Architecture Diagram
+
+```mermaid
+flowchart LR
+  U[Authenticated User] --> W
+
+  subgraph SVC[Record Ranch Microservice]
+    W[Web UI Layer]
+    W --> A[API Layer]
+  end
+
+  A --> D[(PostgreSQL RDS)]
+  A --> S[(S3 Storage)]
+  A --> C[Discogs API]
+
+  A --> L[CloudWatch Logs and Metrics]
+  D --> B[Automated Backups]
+```
+
+### Interaction and Priority Diagram
+
+```mermaid
+flowchart TD
+  subgraph RequestPath[Primary User Flow]
+    LP[Landing Page in Read Mode] --> SUM[GET /inventory/summary]
+    LP --> SRCH[Search Form]
+    SRCH --> ACT[Per-Item and Bulk Actions]
+  end
+
+  SUM --> PERF[Low-latency response target]
+  ACT --> PERF
+  PERF --> UX[Low-friction UX]
+
+  DURA[Durable Storage and Backups] --> REC[Restore Capability]
+  REC --> TRUST[Data Integrity Confidence]
+```
+
 ---
 
 ## Components
@@ -53,6 +99,13 @@ The system is designed to support a dual-collection inventory with auditability,
 - Distinguishes PERSONAL vs DISTRIBUTION visually
 - Sale confirmation for personal items
 - Listing optimized for quick sales workflows
+
+### 3a. AWS Microservice Profile
+
+- App/API service runs as a single microservice workload in AWS
+- Public ingress is controlled through an HTTPS endpoint and authentication
+- Data tier and object storage are managed AWS services
+- Service design favors simple operation with durable state and fast interaction paths over HA complexity
 
 ### 4. Developer Environment
 
@@ -133,6 +186,13 @@ flowchart TD
 - Audit trail for all collection changes
 - No silent reclassification
 - Encrypted backups
+
+## Operational Priorities
+
+1. Data durability and recoverability
+2. Performance and low UX friction
+3. Simplicity of operations for a single-user workload
+4. High availability as an optional future enhancement
 
 ---
 
