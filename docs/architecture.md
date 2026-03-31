@@ -103,7 +103,7 @@ flowchart TD
 ### 3a. AWS Microservice Profile
 
 - App/API service runs as a single microservice workload in AWS
-- Public ingress is controlled through HTTPS endpointing and authentication
+- Public ingress is controlled through an HTTPS endpoint and authentication
 - Data tier and object storage are managed AWS services
 - Service design favors simple operation with durable state and fast interaction paths over HA complexity
 
