@@ -8,6 +8,35 @@ A private inventory system supporting:
 - Transaction-driven lifecycle
 - Dual collection model
 
+Operational profile assumptions:
+
+- AWS-hosted web microservice deployment
+- Low-availability tolerance for single-user operation
+- Mandatory backup and restore readiness
+- Performance and low UX/UI friction as core product requirements
+
+---
+
+## Non-Functional Requirements
+
+### Performance Priorities
+
+- Landing page summary and default search interactions should feel immediate to the user
+- Inventory read endpoints must be optimized for low-latency, paginated access patterns
+- Bulk action preparation (selection, validation preview, confirmation) must remain responsive under documented selection bounds
+
+### UX Friction Priorities
+
+- Common actions (search, transfer, update, delete, bulk operations) should be executable from the default read-mode workflow with minimal navigation
+- Authenticated users should reach actionable inventory context quickly after login
+- The interface should prefer progressive disclosure over multi-step modal chains for routine actions
+
+### Availability and Durability Posture
+
+- High availability is optional and can be deferred for this workload
+- Backup and restore requirements are mandatory and must be validated operationally
+- Durability protections must apply to inventory state, transaction history, and import metadata
+
 ---
 
 ## Core Concepts
