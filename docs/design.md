@@ -11,9 +11,9 @@ A private inventory system supporting:
 Operational profile assumptions:
 
 - AWS-hosted web microservice deployment
-- Low-availability tolerance for single-user operation
+- High availability is not required for this single-user workload
 - Mandatory backup and restore readiness
-- Performance and low UX/UI friction as core product requirements
+- Performance and low UX friction as core product requirements
 
 ---
 
