@@ -64,3 +64,9 @@ variable "db_allocated_storage" {
   type        = number
   default     = 20
 }
+
+variable "postgres_major_version" {
+  description = "PostgreSQL major engine version (used for engine and parameter family)"
+  type        = string
+  default     = "16"
+}

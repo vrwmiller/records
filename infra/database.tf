@@ -3,7 +3,7 @@ resource "random_id" "db_final_snapshot_suffix" {
 
   keepers = {
     db_identifier  = "records-${var.environment}"
-    engine_version = "16"
+    engine_version = var.postgres_major_version
   }
 }
 
@@ -16,7 +16,7 @@ resource "aws_db_subnet_group" "main" {
 
 resource "aws_db_parameter_group" "main" {
   name   = "records-${var.environment}-pg16"
-  family = "postgres16"
+  family = "postgres${var.postgres_major_version}"
 
   tags = { Name = "records-${var.environment}-pg16-params" }
 }
@@ -24,7 +24,7 @@ resource "aws_db_parameter_group" "main" {
 resource "aws_db_instance" "main" {
   identifier     = "records-${var.environment}"
   engine         = "postgres"
-  engine_version = "16"
+  engine_version = var.postgres_major_version
   instance_class = var.db_instance_class
 
   db_name                     = var.db_name
