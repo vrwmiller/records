@@ -33,12 +33,12 @@ applyTo: "**/*.py, **/*.sql, **/*.yaml, **/*.yml, **/*.tf, docs/design.md, env.s
 
 ### Forbidden Patterns
 
-Do not write any of the following in Terraform (these patterns are rejected by the `scripts/check-terraform-secrets.sh` pre-commit hook):
+Do not write any of the following in Terraform:
 
-- Any `password =` attribute assignment in a `.tf` file (including but not limited to database resources)
-- Any `random_password` resource in a `.tf` file (generated secrets are persisted in Terraform state)
-- `secret_string = jsonencode({...})` where the payload includes a plaintext password or token
-- Any `aws_secretsmanager_secret_version` where `secret_string` is constructed from a variable or local that contains a real credential value
+- Any `password =` attribute assignment in a `.tf` file (including but not limited to database resources) — enforced by `scripts/check-terraform-secrets.sh` for `infra/*.tf`
+- Any `random_password` resource in a `.tf` file (generated secrets are persisted in Terraform state) — enforced by `scripts/check-terraform-secrets.sh` for `infra/*.tf`
+- `secret_string = jsonencode({...})` where the payload includes a plaintext password or token — policy rule; reviewers must enforce
+- Any `aws_secretsmanager_secret_version` where `secret_string` is built such that a plaintext credential or token would be stored in Terraform state (use a managed-secret pattern instead) — policy rule; reviewers must enforce
 
 Required pattern for RDS credentials:
 
@@ -87,4 +87,4 @@ Flag and block:
 - auth bypass risks
 - insecure secret handling
 - data exposure risks
-- Terraform state exposure of credentials or tokens
+- plaintext credentials or tokens in Terraform state
