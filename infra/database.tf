@@ -85,6 +85,14 @@ resource "aws_db_instance" "main" {
 
   tags = { Name = "records-${var.environment}-db" }
 
+  # Ensure log groups exist before the DB instance is created. RDS auto-creates
+  # these groups when enabled_cloudwatch_logs_exports is set; if Terraform races
+  # to create them at the same time, the apply fails with ResourceAlreadyExistsException.
+  depends_on = [
+    aws_cloudwatch_log_group.rds_postgresql,
+    aws_cloudwatch_log_group.rds_upgrade,
+  ]
+
   # AWS resolves engine_version to a minor version on first apply (e.g. "16" -> "16.8").
   # This block suppresses minor-version drift noise in subsequent plans.
   #
