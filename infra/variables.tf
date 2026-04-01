@@ -30,6 +30,11 @@ variable "vpc_cidr" {
   description = "CIDR block for the VPC"
   type        = string
   default     = "10.0.0.0/16"
+
+  validation {
+    condition     = can(cidrsubnet(var.vpc_cidr, 4, 0))
+    error_message = "vpc_cidr must be large enough to derive four /+4 subnets (for example /28 or larger networks like /24 or /16)"
+  }
 }
 
 variable "db_name" {
