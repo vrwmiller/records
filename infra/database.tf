@@ -1,3 +1,7 @@
+resource "random_id" "db_final_snapshot_suffix" {
+  byte_length = 4
+}
+
 resource "aws_db_subnet_group" "main" {
   name       = "records-${var.environment}"
   subnet_ids = aws_subnet.private[*].id
@@ -38,7 +42,7 @@ resource "aws_db_instance" "main" {
   copy_tags_to_snapshot     = true
   deletion_protection       = true
   skip_final_snapshot       = false
-  final_snapshot_identifier = "records-${var.environment}-final"
+  final_snapshot_identifier = "records-${var.environment}-final-${random_id.db_final_snapshot_suffix.hex}"
 
   # Performance insights for query visibility
   performance_insights_enabled = true

@@ -1,7 +1,13 @@
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
 locals {
-  azs           = ["${var.aws_region}a", "${var.aws_region}b"]
-  public_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
-  private_cidrs = ["10.0.11.0/24", "10.0.12.0/24"]
+  azs = slice(data.aws_availability_zones.available.names, 0, 2)
+
+  # Keep subnets inside the configured VPC CIDR.
+  public_cidrs  = [cidrsubnet(var.vpc_cidr, 4, 0), cidrsubnet(var.vpc_cidr, 4, 1)]
+  private_cidrs = [cidrsubnet(var.vpc_cidr, 4, 2), cidrsubnet(var.vpc_cidr, 4, 3)]
 }
 
 resource "aws_vpc" "main" {
@@ -57,15 +63,15 @@ resource "aws_route_table_association" "public" {
 
 resource "aws_security_group" "db" {
   name        = "records-${var.environment}-db"
-  description = "Allow PostgreSQL access from within VPC only"
+  description = "Allow PostgreSQL access from app security group only"
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr]
-    description = "PostgreSQL from VPC"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.app.id]
+    description     = "PostgreSQL from app security group"
   }
 
   egress {

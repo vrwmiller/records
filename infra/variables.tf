@@ -2,12 +2,17 @@ variable "aws_region" {
   description = "AWS region for all resources"
   type        = string
   default     = "us-east-1"
+
+  validation {
+    condition     = var.aws_region == "us-east-1"
+    error_message = "aws_region must be us-east-1 to match the current remote state backend"
+  }
 }
 
 variable "aws_profile" {
   description = "AWS CLI profile to use"
   type        = string
-  default     = "records"
+  default     = null
 }
 
 variable "environment" {
