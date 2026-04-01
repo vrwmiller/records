@@ -38,7 +38,6 @@ output "cognito_user_pool_id" {
 output "cognito_client_id" {
   description = "Cognito app client ID"
   value       = aws_cognito_user_pool_client.app.id
-  sensitive   = true
 }
 
 output "image_bucket_name" {

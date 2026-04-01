@@ -1,6 +1,8 @@
 resource "aws_cognito_user_pool" "main" {
   name = "records-${var.environment}"
 
+  deletion_protection = "ACTIVE"
+
   password_policy {
     minimum_length                   = 12
     require_lowercase                = true
