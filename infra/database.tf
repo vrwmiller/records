@@ -14,12 +14,20 @@ resource "aws_cloudwatch_log_group" "rds_upgrade" {
   tags = { Name = "records-${var.environment}-rds-upgrade-logs" }
 }
 
+locals {
+  # Bump this when performing a DB replacement that does not change db_identifier
+  # or postgres_major_version (e.g., instance class or storage changes), to
+  # prevent final_snapshot_identifier collision with a previously taken snapshot.
+  db_final_snapshot_generation = 1
+}
+
 resource "random_id" "db_final_snapshot_suffix" {
   byte_length = 4
 
   keepers = {
-    db_identifier  = "records-${var.environment}"
-    engine_version = var.postgres_major_version
+    db_identifier       = "records-${var.environment}"
+    engine_version      = var.postgres_major_version
+    snapshot_generation = local.db_final_snapshot_generation
   }
 }
 
