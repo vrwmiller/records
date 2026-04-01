@@ -39,6 +39,7 @@ htmlcov/
 # Terraform/OpenTofu local state and overrides
 .terraform/
 .terraform.lock.hcl
+!infra/.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 *.tfvars
