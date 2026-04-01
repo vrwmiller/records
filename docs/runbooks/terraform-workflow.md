@@ -24,7 +24,7 @@ Run all `terraform` commands from the `infra/` directory. These must be satisfie
 
 3. **`terraform.tfvars`** — Must exist at `infra/terraform.tfvars`. Copy from `infra/terraform.tfvars.example` and fill in values. This file is gitignored and must not be committed.
 
-4. **Terraform version** — Must satisfy the constraint in `infra/main.tf` (`>= 1.0`). Run `terraform version` to confirm.
+4. **Terraform version** — Must be `>= 1.10.0` (required by `use_lockfile = true` S3 native locking). Run `terraform version` to confirm.
 
 ## Standard Workflow
 
