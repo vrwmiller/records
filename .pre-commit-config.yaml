@@ -17,3 +17,17 @@ repos:
         entry: bash -c 'if [ ! -f .secrets.baseline ]; then detect-secrets scan > .secrets.baseline; git add .secrets.baseline; fi; detect-secrets-hook --baseline .secrets.baseline -- "$@"; code=$?; if [ $code -eq 3 ]; then git add .secrets.baseline; exit 0; fi; exit $code' bash
         exclude: (\.secrets\.baseline|\.env\.example)$
         pass_filenames: true
+
+      - id: terraform-secret-safety
+        name: Terraform Secret Safety
+        language: system
+        entry: bash scripts/check-terraform-secrets.sh
+        files: ^infra/.*\.tf$
+        pass_filenames: true
+
+      - id: terraform-fmt-validate
+        name: Terraform Fmt and Validate
+        language: system
+        entry: bash -c 'cd infra && terraform fmt -check && terraform validate'
+        files: ^infra/.*\.tf$
+        pass_filenames: false

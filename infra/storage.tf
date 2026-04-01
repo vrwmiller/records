@@ -1,5 +1,7 @@
+data "aws_caller_identity" "current" {}
+
 resource "aws_s3_bucket" "images" {
-  bucket = "records-images-920835814440-${var.environment}"
+  bucket = "records-images-${data.aws_caller_identity.current.account_id}-${var.environment}"
 
   tags = { Name = "records-${var.environment}-images" }
 }
