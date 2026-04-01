@@ -186,6 +186,7 @@ flowchart TD
 - Audit trail for all collection changes
 - No silent reclassification
 - Encrypted backups
+- RDS master credentials are managed by AWS and retrieved via Secrets Manager integration
 
 ## Operational Priorities
 

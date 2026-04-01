@@ -22,9 +22,9 @@ resource "aws_db_instance" "main" {
   engine_version = "16"
   instance_class = var.db_instance_class
 
-  db_name  = var.db_name
-  username = var.db_username
-  password = random_password.db.result
+  db_name                     = var.db_name
+  username                    = var.db_username
+  manage_master_user_password = true
 
   allocated_storage     = var.db_allocated_storage
   max_allocated_storage = 100
