@@ -1,6 +1,6 @@
 ---
 description: "Security requirements for API, database, and integration code in Record Ranch."
-applyTo: "**/*.py, **/*.sql, **/*.yaml, **/*.yml, docs/design.md, env.sh"
+applyTo: "**/*.py, **/*.sql, **/*.yaml, **/*.yml, **/*.tf, docs/design.md, env.sh"
 ---
 
 # Security Standards - Record Ranch
@@ -29,6 +29,57 @@ applyTo: "**/*.py, **/*.sql, **/*.yaml, **/*.yml, docs/design.md, env.sh"
 - Bound retries and handle throttling safely.
 - Do not execute or interpolate external strings into SQL.
 
+## Terraform Security
+
+### Forbidden Patterns
+
+Do not write any of the following in Terraform:
+
+- `password = ...` as a direct attribute on `aws_db_instance` or any DB resource
+- `random_password` used to supply a long-lived database credential (use managed credentials instead)
+- `secret_string = jsonencode({...})` where the payload includes a plaintext password or token
+- Any `aws_secretsmanager_secret_version` where `secret_string` is constructed from a variable or local that contains a real credential value
+
+Required pattern for RDS credentials:
+
+- Use `manage_master_user_password = true` on `aws_db_instance`
+- Reference the managed secret ARN from outputs or data sources — never construct credentials inline
+
+### Few-Shot Examples
+
+**Bad — credential in state:**
+
+```hcl
+resource "aws_db_instance" "main" {
+  password = random_password.db.result  # persists plaintext credential in Terraform state
+}
+```
+
+```hcl
+resource "aws_secretsmanager_secret_version" "db" {
+  secret_string = jsonencode({ password = var.db_password })  # plaintext in state
+}
+```
+
+**Good — managed credential, nothing in state:**
+
+```hcl
+resource "aws_db_instance" "main" {
+  manage_master_user_password = true  # AWS manages rotation; no credential in Terraform state
+}
+
+output "db_secret_arn" {
+  value = aws_db_instance.main.master_user_secret[0].secret_arn
+}
+```
+
+### Pre-Write Constraint
+
+Before writing any Terraform resource that handles credentials:
+
+1. Confirm no secret value will be persisted in Terraform state.
+2. If a secret value would enter state, stop and use a managed credential approach instead.
+
 ## Review Focus
 
 Flag and block:
@@ -36,3 +87,4 @@ Flag and block:
 - auth bypass risks
 - insecure secret handling
 - data exposure risks
+- Terraform state exposure of credentials or tokens
