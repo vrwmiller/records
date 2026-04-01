@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.10.0"
 
   required_providers {
     aws = {
@@ -13,11 +13,11 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "records-tfstate-920835814440-us-east-1"
-    key            = "records/terraform.tfstate"
-    region         = "us-east-1"
-    encrypt        = true
-    dynamodb_table = "records-tfstate-lock"
+    bucket       = "records-tfstate-920835814440-us-east-1"
+    key          = "records/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
     # IMPORTANT: The backend key is static and cannot use var.environment.
     # Each environment (dev, prod) MUST use a distinct key to avoid sharing state.
     # Override at init time: terraform init -backend-config="key=records/prod/terraform.tfstate"

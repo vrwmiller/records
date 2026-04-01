@@ -35,9 +35,9 @@ The system is designed to:
 
 ## Infrastructure Bootstrap
 
-Before running `terraform init` for the first time, two AWS resources must be created manually. These cannot be managed by the Terraform configuration they support.
+Before running `terraform init` for the first time, one AWS resource must be created manually. It cannot be managed by the Terraform configuration it supports.
 
-**1. S3 state bucket** (if it does not already exist):
+**S3 state bucket** (if it does not already exist):
 
 ```bash
 aws s3api create-bucket \
@@ -68,19 +68,7 @@ aws s3api put-bucket-policy \
   --profile records
 ```
 
-**2. DynamoDB lock table** (required for safe concurrent `terraform apply` runs):
-
-```bash
-aws dynamodb create-table \
-  --table-name records-tfstate-lock \
-  --attribute-definitions AttributeName=LockID,AttributeType=S \
-  --key-schema AttributeName=LockID,KeyType=HASH \
-  --billing-mode PAY_PER_REQUEST \
-  --region us-east-1 \
-  --profile records
-```
-
-Both resources are referenced in `infra/main.tf`. Once created, run `terraform init` inside `infra/`.
+State locking is handled by S3 native locking (`use_lockfile = true` in `infra/main.tf`) — no DynamoDB table is required. Once the bucket is created, run `terraform init` inside `infra/`.
 
 **Per-environment state keys:** Terraform backend blocks do not support variable interpolation, so the S3 key in `main.tf` is a static default for `dev`. Each environment must use a distinct key to avoid sharing state. Override at init time:
 
