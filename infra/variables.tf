@@ -65,6 +65,12 @@ variable "db_allocated_storage" {
   default     = 20
 }
 
+variable "db_max_allocated_storage" {
+  description = "Maximum allocated storage in GB for RDS autoscaling"
+  type        = number
+  default     = 100
+}
+
 variable "postgres_major_version" {
   description = "PostgreSQL major engine version (used for engine and parameter family)"
   type        = string

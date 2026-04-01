@@ -32,7 +32,7 @@ resource "aws_db_instance" "main" {
   manage_master_user_password = true
 
   allocated_storage     = var.db_allocated_storage
-  max_allocated_storage = 100
+  max_allocated_storage = var.db_max_allocated_storage
   storage_type          = "gp3"
   storage_encrypted     = true
 
@@ -52,8 +52,17 @@ resource "aws_db_instance" "main" {
   # Performance insights for query visibility
   performance_insights_enabled = true
 
+  # Emit PostgreSQL and upgrade logs to CloudWatch
+  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
+
   # Low HA tolerance: single-AZ per design decision
   multi_az = false
 
   tags = { Name = "records-${var.environment}-db" }
+
+  # AWS resolves engine_version to a minor version on first apply (e.g. "16" -> "16.8").
+  # Ignore subsequent minor-version drift; upgrades are applied through maintenance windows.
+  lifecycle {
+    ignore_changes = [engine_version]
+  }
 }
