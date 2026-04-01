@@ -32,8 +32,12 @@ variable "vpc_cidr" {
   default     = "10.0.0.0/16"
 
   validation {
-    condition     = can(cidrsubnet(var.vpc_cidr, 4, 0))
-    error_message = "vpc_cidr must be large enough to derive four /+4 subnets (for example /28 or larger networks like /24 or /16)"
+    condition = (
+      can(cidrsubnet(var.vpc_cidr, 4, 0)) &&
+      can(tonumber(split(var.vpc_cidr, "/")[1])) &&
+      tonumber(split(var.vpc_cidr, "/")[1]) <= 24
+    )
+    error_message = "vpc_cidr must be a valid CIDR with prefix length <= /24 so derived /+4 subnets are no smaller than /28 (for example /24, /20, or /16)"
   }
 }
 
