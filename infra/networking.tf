@@ -61,6 +61,18 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  tags = { Name = "records-${var.environment}-private-rt" }
+}
+
+resource "aws_route_table_association" "private" {
+  count          = length(aws_subnet.private)
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private.id
+}
+
 resource "aws_security_group" "db" {
   name        = "records-${var.environment}-db"
   description = "Allow PostgreSQL access from app security group only"
@@ -94,8 +106,8 @@ resource "aws_security_group" "app" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "HTTPS public ingress"
+    cidr_blocks = [var.vpc_cidr]
+    description = "HTTPS ingress from within VPC"
   }
 
   ingress {
