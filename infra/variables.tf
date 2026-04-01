@@ -63,12 +63,22 @@ variable "db_allocated_storage" {
   description = "Initial allocated storage in GB for RDS"
   type        = number
   default     = 20
+
+  validation {
+    condition     = var.db_allocated_storage > 0
+    error_message = "db_allocated_storage must be greater than 0."
+  }
 }
 
 variable "db_max_allocated_storage" {
-  description = "Maximum allocated storage in GB for RDS autoscaling"
+  description = "Maximum allocated storage in GB for RDS autoscaling. Must be >= db_allocated_storage; Terraform variable validation cannot enforce cross-variable constraints, so AWS will reject the configuration at apply time if this invariant is violated."
   type        = number
   default     = 100
+
+  validation {
+    condition     = var.db_max_allocated_storage > 0
+    error_message = "db_max_allocated_storage must be greater than 0."
+  }
 }
 
 variable "db_log_retention_days" {
