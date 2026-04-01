@@ -35,10 +35,12 @@ The system is designed to:
 
 ## Developer Setup
 
+All setup commands must be run from the repository root.
+
 Before running any tooling, activate the Python virtual environment:
 
 ```bash
-source env.sh
+source ./env.sh
 ```
 
 This creates the venv if it does not exist, activates it, and sets required environment variables.
