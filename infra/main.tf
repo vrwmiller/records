@@ -18,6 +18,10 @@ terraform {
     region         = "us-east-1"
     encrypt        = true
     dynamodb_table = "records-tfstate-lock"
+    # IMPORTANT: The backend key is static and cannot use var.environment.
+    # Each environment (dev, prod) MUST use a distinct key to avoid sharing state.
+    # Override at init time: terraform init -backend-config="key=records/prod/terraform.tfstate"
+    # The default key above is for the dev environment.
   }
 }
 

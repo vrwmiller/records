@@ -82,6 +82,16 @@ aws dynamodb create-table \
 
 Both resources are referenced in `infra/main.tf`. Once created, run `terraform init` inside `infra/`.
 
+**Per-environment state keys:** Terraform backend blocks do not support variable interpolation, so the S3 key in `main.tf` is a static default for `dev`. Each environment must use a distinct key to avoid sharing state. Override at init time:
+
+```bash
+# dev (default — matches key in main.tf)
+terraform init
+
+# prod
+terraform init -backend-config="key=records/prod/terraform.tfstate"
+```
+
 ## Developer Setup
 
 All setup commands must be run from the repository root.
