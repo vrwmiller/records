@@ -71,6 +71,12 @@ variable "db_max_allocated_storage" {
   default     = 100
 }
 
+variable "allow_major_version_upgrade" {
+  description = "Allow major PostgreSQL engine version upgrades. Set to true only during a planned major-version upgrade apply; restore to false after."
+  type        = bool
+  default     = false
+}
+
 variable "postgres_major_version" {
   description = "PostgreSQL major engine version (used for engine and parameter family)"
   type        = string

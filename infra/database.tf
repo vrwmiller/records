@@ -19,6 +19,13 @@ resource "aws_db_parameter_group" "main" {
   family = "postgres${var.postgres_major_version}"
 
   tags = { Name = "records-${var.environment}-pg${var.postgres_major_version}-params" }
+
+  # Required so the new parameter group (for a bumped major version) is created
+  # before the old one is destroyed, avoiding a brief window where the DB instance
+  # references a non-existent parameter group.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_db_instance" "main" {
@@ -55,13 +62,22 @@ resource "aws_db_instance" "main" {
   # Emit PostgreSQL and upgrade logs to CloudWatch
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
 
+  allow_major_version_upgrade = var.allow_major_version_upgrade
+
   # Low HA tolerance: single-AZ per design decision
   multi_az = false
 
   tags = { Name = "records-${var.environment}-db" }
 
   # AWS resolves engine_version to a minor version on first apply (e.g. "16" -> "16.8").
-  # Ignore subsequent minor-version drift; upgrades are applied through maintenance windows.
+  # This block suppresses minor-version drift noise in subsequent plans.
+  #
+  # For major version upgrades (e.g. postgres_major_version = "16" -> "17"):
+  #   1. Set var.allow_major_version_upgrade = true in tfvars.
+  #   2. Bump var.postgres_major_version.
+  #   3. Temporarily remove this lifecycle block.
+  #   4. Apply (parameter group recreates via create_before_destroy; engine upgrades).
+  #   5. Restore this lifecycle block and set allow_major_version_upgrade = false.
   lifecycle {
     ignore_changes = [engine_version]
   }

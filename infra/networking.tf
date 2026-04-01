@@ -106,6 +106,11 @@ resource "aws_security_group" "db" {
     description     = "PostgreSQL from app security group"
   }
 
+  # No egress blocks are defined. With AWS provider v5 inline-rule management,
+  # Terraform enforces zero egress rules on apply, revoking the AWS-created
+  # default allow-all egress. RDS does not initiate outbound connections for
+  # this workload, so no egress rule is required.
+
   tags = { Name = "records-${var.environment}-db-sg" }
 }
 
