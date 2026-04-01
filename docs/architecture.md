@@ -107,6 +107,32 @@ flowchart TD
 - Data tier and object storage are managed AWS services
 - Service design favors simple operation with durable state and fast interaction paths over HA complexity
 
+### 3b. Infrastructure Baseline (Terraform Scaffold)
+
+Current baseline infrastructure is defined as Terraform in `infra/` and includes:
+
+- Networking:
+  - VPC with two public and two private subnets across two AZs
+  - Internet gateway and public routing
+  - Separate security groups for app and database tiers
+- Database:
+  - Amazon RDS PostgreSQL 16
+  - Encrypted storage, automated backups, and point-in-time recovery retention
+  - Deletion protection enabled
+  - Single-AZ deployment by design for current workload profile
+- Authentication:
+  - Amazon Cognito user pool and app client
+  - Email-based sign-in with optional TOTP MFA
+- Object storage:
+  - Private S3 bucket for record images
+  - Public access blocked, versioning enabled, server-side encryption enabled
+- Secret management:
+  - Database credentials stored in AWS Secrets Manager
+
+Runtime deployment note:
+
+- Application runtime resources (for example App Runner/ECS service wiring) are intentionally deferred until the app image pipeline exists.
+
 ### 4. Developer Environment
 
 - Python 3.14 virtual environment via `env.sh`

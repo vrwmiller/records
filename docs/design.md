@@ -37,6 +37,45 @@ Operational profile assumptions:
 - Backup and restore requirements are mandatory and must be validated operationally
 - Durability protections must apply to inventory state, transaction history, and import metadata
 
+## Infrastructure Implementation Constraints
+
+### Baseline Platform Contract (Current)
+
+- Infrastructure is provisioned from Terraform under `infra/`.
+- Current baseline services are:
+  - VPC networking with public/private subnet separation
+  - RDS PostgreSQL 16 as primary transactional datastore
+  - Cognito user pool plus app client for authentication
+  - Private S3 bucket for record image assets
+  - Secrets Manager for database credentials
+
+### Backup and Restore Constraints
+
+- RDS automated backups and PITR retention are mandatory and configured in infrastructure.
+- DB deletion protection must remain enabled in non-ephemeral environments.
+- Restore validation is an explicit operations responsibility and must be exercised via runbook.
+
+### Availability Tradeoff (Explicit)
+
+- RDS is currently single-AZ by design to prioritize operational simplicity and cost for a single-user workload.
+- Multi-AZ is a planned enhancement path when availability requirements change.
+
+### Secret Management Boundary
+
+- Database credentials for all shared, dev, stage, and production environments must be sourced from secret management at runtime (for example, AWS Secrets Manager).
+- Committed files may only contain non-functional placeholders or explicitly documented local-dev example values (for example, in `env.sh`), and must never contain real credentials, tokens, or connection strings for any environment.
+- Real `DATABASE_URL` and similar values must be supplied out-of-band via secret management, git-ignored local files, or deployment-time environment configuration, never via checked-in source.
+
+### Environment Configuration Contract
+
+Application runtime must be configurable with infrastructure-produced values, including:
+
+- database endpoint and port
+- database name
+- secret identifier for credential retrieval
+- Cognito user pool and app client identifiers
+- S3 image bucket name
+
 ---
 
 ## Core Concepts
