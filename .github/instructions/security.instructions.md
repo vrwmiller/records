@@ -1,6 +1,6 @@
 ---
 description: "Security requirements for API, database, and integration code in Record Ranch."
-applyTo: "**/*.py, **/*.sql, **/*.yaml, **/*.yml, **/*.tf, docs/design.md, env.sh"
+applyTo: "**/*.py, **/*.sql, **/*.yaml, **/*.yml, **/*.tf, **/*.tfvars, **/*.auto.tfvars, **/*.tf.json, docs/design.md, env.sh"
 ---
 
 # Security Standards - Record Ranch
