@@ -62,8 +62,9 @@ Operational profile assumptions:
 
 ### Secret Management Boundary
 
-- Database credentials must be sourced from secret management at runtime.
-- No plaintext database credentials may be committed to source control or static app config.
+- Database credentials for all shared, dev, stage, and production environments must be sourced from secret management at runtime (for example, AWS Secrets Manager).
+- Committed files may only contain non-functional placeholders or explicitly documented local-dev example values (for example, in `env.sh`), and must never contain real credentials, tokens, or connection strings for any environment.
+- Real `DATABASE_URL` and similar values must be supplied out-of-band via secret management, git-ignored local files, or deployment-time environment configuration, never via checked-in source.
 
 ### Environment Configuration Contract
 
