@@ -227,11 +227,20 @@ Expected output on success:
 Destroy complete! Resources: N destroyed.
 ```
 
----
+Immediately after destroy completes, revert the teardown-only Terraform edits made in Steps 1–3:
+
+```bash
+cd infra
+git restore database.tf auth.tf
+```
+
+This prevents an accidental `terraform apply` from re-creating the stack with protections disabled.
 
 ## Step 7 — Delete Terraform State Bucket
 
 The S3 state bucket is bootstrapped outside Terraform and must be removed manually after all managed resources are destroyed.
+
+> **Important:** This bucket is designed to be shared across multiple environments using distinct backend keys (see comments in `infra/main.tf`). **Only delete the entire bucket** if you have confirmed that no other environment state keys remain inside it (i.e., this account is being fully decommissioned). If other environments still exist or may be added in the future, delete only the objects under this environment's key prefix (`records/terraform.tfstate` and its version history) rather than deleting the bucket.
 
 Delete all versioned objects and delete markers, then remove the bucket:
 
