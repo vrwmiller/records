@@ -45,7 +45,7 @@ source ./env.sh
 
 This creates the venv if it does not exist, activates it, and sets required environment variables.
 
-To install git hooks (runs markdownlint, secret scanning, and Terraform secret-safety checks on every commit):
+To install git hooks (runs markdownlint, secret scanning, and Terraform formatting/validation plus secret-safety checks on every commit):
 
 ```bash
 bash scripts/install-hooks.sh
