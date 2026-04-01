@@ -1,5 +1,10 @@
 resource "random_id" "db_final_snapshot_suffix" {
   byte_length = 4
+
+  keepers = {
+    db_identifier  = "records-${var.environment}"
+    engine_version = "16"
+  }
 }
 
 resource "aws_db_subnet_group" "main" {
