@@ -1,0 +1,8 @@
+aws_region   = "us-east-1"
+aws_profile  = "records"
+environment  = "dev"
+
+db_name              = "recordranch"
+db_username          = "recordranch"
+db_instance_class    = "db.t3.micro"
+db_allocated_storage = 20
