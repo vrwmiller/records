@@ -15,10 +15,10 @@ resource "aws_db_subnet_group" "main" {
 }
 
 resource "aws_db_parameter_group" "main" {
-  name   = "records-${var.environment}-pg16"
+  name   = "records-${var.environment}-pg${var.postgres_major_version}"
   family = "postgres${var.postgres_major_version}"
 
-  tags = { Name = "records-${var.environment}-pg16-params" }
+  tags = { Name = "records-${var.environment}-pg${var.postgres_major_version}-params" }
 }
 
 resource "aws_db_instance" "main" {
