@@ -1,13 +1,13 @@
-resource "aws_secretsmanager_secret" "db_credentials" {
-  name                    = "records/${var.environment}/db-credentials"
-  description             = "RDS master credentials for Record Ranch"
+resource "aws_secretsmanager_secret" "db_connection_info" {
+  name                    = "records/${var.environment}/db-connection-info"
+  description             = "RDS connection metadata and managed master secret reference"
   recovery_window_in_days = var.environment == "prod" ? 7 : 0
 
-  tags = { Name = "records-${var.environment}-db-credentials" }
+  tags = { Name = "records-${var.environment}-db-connection-info" }
 }
 
-resource "aws_secretsmanager_secret_version" "db_credentials" {
-  secret_id = aws_secretsmanager_secret.db_credentials.id
+resource "aws_secretsmanager_secret_version" "db_connection_info" {
+  secret_id = aws_secretsmanager_secret.db_connection_info.id
   secret_string = jsonencode({
     username               = var.db_username
     host                   = aws_db_instance.main.address

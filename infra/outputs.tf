@@ -25,8 +25,8 @@ output "db_name" {
 }
 
 output "db_secret_arn" {
-  description = "ARN of the Secrets Manager secret for DB credentials"
-  value       = aws_secretsmanager_secret.db_credentials.arn
+  description = "ARN of the Secrets Manager secret for DB connection metadata"
+  value       = aws_secretsmanager_secret.db_connection_info.arn
   sensitive   = true
 }
 
