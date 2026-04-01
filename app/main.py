@@ -21,5 +21,5 @@ app.include_router(health.router, prefix="/api")
 
 # Serve the built React app in production
 _static = Path(__file__).parent.parent / "ui" / "dist"
-if _static.exists():
+if _static.is_dir():
     app.mount("/", StaticFiles(directory=str(_static), html=True), name="static")
