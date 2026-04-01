@@ -19,10 +19,13 @@ Define the standard Terraform workflow for Record Ranch infrastructure changes.
    - `terraform fmt`
    - `terraform validate`
 3. Review plan:
-   - `terraform plan -out tfplan`
+   - `terraform plan -out /tmp/records.tfplan`
+   - Store plan artifacts outside the repository tree. If written inside the repo, ensure the filename pattern (for example `*.tfplan`) is covered by `.gitignore`.
+   - Never commit Terraform plan artifacts; they may contain sensitive values.
 4. Apply reviewed plan:
-   - `terraform apply tfplan`
-5. Remove saved plan artifact if no longer needed.
+   - `terraform apply /tmp/records.tfplan`
+5. Clean up plan artifact after apply:
+   - `rm /tmp/records.tfplan`
 
 ## State Backend Expectations
 
