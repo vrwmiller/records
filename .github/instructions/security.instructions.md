@@ -33,10 +33,10 @@ applyTo: "**/*.py, **/*.sql, **/*.yaml, **/*.yml, **/*.tf, docs/design.md, env.s
 
 ### Forbidden Patterns
 
-Do not write any of the following in Terraform:
+Do not write any of the following in Terraform (these patterns are rejected by the `scripts/check-terraform-secrets.sh` pre-commit hook):
 
-- `password = ...` as a direct attribute on `aws_db_instance` or any DB resource
-- `random_password` used to supply a long-lived database credential (use managed credentials instead)
+- Any `password =` attribute assignment in a `.tf` file (including but not limited to database resources)
+- Any `random_password` resource in a `.tf` file (generated secrets are persisted in Terraform state)
 - `secret_string = jsonencode({...})` where the payload includes a plaintext password or token
 - Any `aws_secretsmanager_secret_version` where `secret_string` is constructed from a variable or local that contains a real credential value
 
