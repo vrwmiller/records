@@ -33,6 +33,29 @@ htmlcov/
 .env
 .env.*
 !.env.example
+.envrc
+.direnv/
+
+# Terraform/OpenTofu local state and overrides
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Cloud/credential artifacts
+.aws/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
 
 # Logs and runtime files
 *.log

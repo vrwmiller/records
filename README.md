@@ -33,6 +33,24 @@ The system is designed to:
 - Design: [docs/design.md](docs/design.md)
 - Runbooks: planned (will live under docs/runbooks/)
 
+## Developer Setup
+
+All setup commands must be run from the repository root.
+
+Before running any tooling, activate the Python virtual environment:
+
+```bash
+source ./env.sh
+```
+
+This creates the venv if it does not exist, activates it, and sets required environment variables.
+
+To install git hooks (runs markdownlint and secret scanning on every commit):
+
+```bash
+bash scripts/install-hooks.sh
+```
+
 ## Notes
 
-When implementation begins, this README should be expanded with setup, local run instructions, testing commands, and deployment guidance.
+When implementation begins, this README should be expanded with full setup, local run instructions, testing commands, and deployment guidance.
