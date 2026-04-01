@@ -40,6 +40,7 @@ Current inventory processes are:
 - Import pipeline for existing Microsoft Access inventory data and lookup tables
 - UI for adding, selling, and transferring records
 - Developer environment and workflows
+- Infrastructure-as-code baseline for networking, database, auth, object storage, and secrets
 - Backup and audit processes
 
 ### Out of Scope (initial version)
@@ -66,6 +67,7 @@ Current inventory processes are:
 - FastAPI backend with required endpoints
 - Web-based UI for inventory management
 - Legacy import workflow for Microsoft Access export files (CSV-based)
+- Terraform infrastructure scaffold for AWS baseline services
 - Documentation: design, architecture, and developer workflow
 
 ---
