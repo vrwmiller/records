@@ -13,10 +13,11 @@ terraform {
   }
 
   backend "s3" {
-    bucket  = "records-tfstate-920835814440-us-east-1"
-    key     = "records/terraform.tfstate"
-    region  = "us-east-1"
-    encrypt = true
+    bucket         = "records-tfstate-920835814440-us-east-1"
+    key            = "records/terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "records-tfstate-lock"
   }
 }
 
