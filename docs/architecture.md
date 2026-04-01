@@ -88,7 +88,7 @@ flowchart TD
 
 ### 3. Web UI
 
-- React or Vue (TBD)
+- React (Vite + TypeScript)
 - Unauthenticated users see a login prompt on landing
 - Authenticated users start in read mode with a default search form
 - Logged-in landing view surfaces inventory totals grouped by collection

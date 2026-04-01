@@ -7,6 +7,8 @@ export DATABASE_URL="postgresql://username:password@localhost:5432/recordranch"
 export AWS_REGION="us-east-1"
 export COGNITO_USER_POOL_ID="your_cognito_pool_id"
 export COGNITO_CLIENT_ID="your_cognito_app_client_id"
+export DB_SECRET_ID="your_db_secret_id"
+export S3_IMAGE_BUCKET="your_s3_image_bucket"
 export DISCOGS_TOKEN="your_discogs_api_token"
 export SECRET_KEY="replace_with_random_secret_for_jwt_signing"
 
