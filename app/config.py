@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     db_secret_id: str = ""
     s3_image_bucket: str = ""
 
+    # CORS (comma-separated list of allowed origins)
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+
     # Cognito
     cognito_user_pool_id: str
     cognito_client_id: str
