@@ -61,11 +61,11 @@ resource "aws_secretsmanager_secret_version" "db" {
 }
 ```
 
-**Good — managed credential, nothing in state:**
+**Good — managed credential, no plaintext secret in state:**
 
 ```hcl
 resource "aws_db_instance" "main" {
-  manage_master_user_password = true  # AWS manages rotation; no credential in Terraform state
+  manage_master_user_password = true  # AWS stores the secret; no plaintext password in Terraform state
 }
 
 output "db_secret_arn" {
