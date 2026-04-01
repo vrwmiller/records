@@ -55,6 +55,17 @@ aws s3api put-bucket-encryption \
   --server-side-encryption-configuration \
     '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}' \
   --profile records
+
+aws s3api put-public-access-block \
+  --bucket records-tfstate-920835814440-us-east-1 \
+  --public-access-block-configuration \
+    'BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true' \
+  --profile records
+
+aws s3api put-bucket-policy \
+  --bucket records-tfstate-920835814440-us-east-1 \
+  --policy '{"Version":"2012-10-17","Statement":[{"Sid":"DenyInsecureTransport","Effect":"Deny","Principal":"*","Action":"s3:*","Resource":["arn:aws:s3:::records-tfstate-920835814440-us-east-1","arn:aws:s3:::records-tfstate-920835814440-us-east-1/*"],"Condition":{"Bool":{"aws:SecureTransport":"false"}}}]}' \
+  --profile records
 ```
 
 **2. DynamoDB lock table** (required for safe concurrent `terraform apply` runs):
