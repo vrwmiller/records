@@ -6,10 +6,14 @@ Patch a vulnerable or outdated Python dependency in the FastAPI backend, validat
 
 ## Preconditions
 
-1. **Virtual environment active** — all commands assume the venv is active:
+1. **Virtual environment active** — all commands assume the venv is active. Use the repo helper (preferred, sets all required env vars) or activate directly if the venv already exists:
 
    ```bash
-   source venv/bin/activate
+   # Preferred: sources env vars and activates venv/
+   source env.sh
+
+   # Or, activate directly if already set up:
+   source ./venv/bin/activate
    python --version
    ```
 
