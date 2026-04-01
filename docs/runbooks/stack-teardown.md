@@ -79,39 +79,102 @@ If you want to skip the snapshot entirely:
 Apply the change:
 
 ```bash
+cd infra
+terraform init
 terraform apply -target=aws_db_instance.main
 ```
 
 ---
 
-## Step 3 — Empty the S3 Images Bucket
+## Step 3 — Disable Cognito User Pool Deletion Protection
 
-Terraform cannot destroy a non-empty S3 bucket (even with `force_destroy`). Empty it first:
+`infra/auth.tf` sets `deletion_protection = "ACTIVE"` on the `aws_cognito_user_pool.main` resource. Terraform destroy will fail with an `InvalidParameterException` unless this is cleared first.
+
+Edit the Terraform config:
+
+```bash
+# In infra/auth.tf, change:
+#   deletion_protection = "ACTIVE"
+# to:
+#   deletion_protection = "INACTIVE"
+```
+
+Apply the change:
+
+```bash
+cd infra
+terraform init
+terraform apply -target=aws_cognito_user_pool.main
+```
+
+Confirm the apply completes before continuing.
+
+---
+
+## Step 4 — Delete Cognito Users (Optional Pre-Destroy Audit)
+
+Terraform will destroy the Cognito user pool (and all users within it) as part of Step 6. This step is optional but recommended for auditability — it produces an explicit record of which users were deleted before the pool is removed.
+
+Get the pool ID from Terraform state:
+
+```bash
+cd infra
+POOL_ID=$(terraform output -raw cognito_user_pool_id)
+```
+
+Delete all users:
+
+```bash
+aws cognito-idp list-users \
+  --user-pool-id "$POOL_ID" \
+  --profile records \
+  --query 'Users[].Username' \
+  --output text \
+| tr '\t' '\n' \
+| while read -r username; do
+  echo "Deleting user: $username"
+  aws cognito-idp admin-delete-user \
+    --user-pool-id "$POOL_ID" \
+    --username "$username" \
+    --profile records
+done
+```
+
+---
+
+## Step 5 — Empty the S3 Images Bucket
+
+By default, Terraform will not destroy a non-empty S3 bucket. In this stack, `infra/storage.tf` does not set `force_destroy` for the images bucket, so you must empty it first (or enable `force_destroy` before running `terraform destroy`).
+
+Delete current objects:
 
 ```bash
 aws s3 rm s3://records-images-920835814440-dev --recursive --profile records
 ```
 
-If versioning is enabled (it is, per `infra/storage.tf`), also delete all version markers:
+Delete all versioned objects and delete markers (versioning is enabled, per `infra/storage.tf`):
 
-```bash
-aws s3api list-object-versions \
-  --bucket records-images-920835814440-dev \
-  --profile records \
-  --output json \
-  | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-versions = data.get('Versions', []) + data.get('DeleteMarkers', [])
-for v in versions:
-    print(v['Key'], v['VersionId'])
-" | while read key vid; do
-  aws s3api delete-object \
-    --bucket records-images-920835814440-dev \
-    --key \"\$key\" \
-    --version-id \"\$vid\" \
-    --profile records
-done
+```python
+# Save as /tmp/purge-versions.py and run: python3 /tmp/purge-versions.py
+import subprocess, json
+
+BUCKET = "records-images-920835814440-dev"
+PROFILE = "records"
+
+out = subprocess.check_output([
+    "aws", "s3api", "list-object-versions",
+    "--bucket", BUCKET, "--profile", PROFILE, "--output", "json"
+])
+data = json.loads(out)
+for entry in data.get("Versions", []) + data.get("DeleteMarkers", []):
+    subprocess.check_call([
+        "aws", "s3api", "delete-object",
+        "--bucket", BUCKET,
+        "--key", entry["Key"],
+        "--version-id", entry["VersionId"],
+        "--profile", PROFILE
+    ])
+    print(f"Deleted {entry['Key']} @ {entry['VersionId']}")
 ```
 
 Verify the bucket is empty:
@@ -124,7 +187,7 @@ No output means the bucket is empty and safe to destroy.
 
 ---
 
-## Step 4 — Run Terraform Destroy
+## Step 6 — Run Terraform Destroy
 
 All commands run from `infra/`:
 
@@ -150,64 +213,47 @@ Destroy complete! Resources: N destroyed.
 
 ---
 
-## Step 5 — Delete Cognito Users
-
-Cognito users are not managed by Terraform. Delete them manually:
-
-```bash
-aws cognito-idp list-users \
-  --user-pool-id us-east-1_iM5s8RRVn \
-  --profile records \
-  --query 'Users[].Username' \
-  --output text \
-| tr '\t' '\n' \
-| while read username; do
-  echo "Deleting user: $username"
-  aws cognito-idp admin-delete-user \
-    --user-pool-id us-east-1_iM5s8RRVn \
-    --username "$username" \
-    --profile records
-done
-```
-
-The Cognito user pool itself is destroyed by Terraform in Step 4. This step removes its users first to ensure a clean state.
-
----
-
-## Step 6 — Delete Terraform State Bucket
+## Step 7 — Delete Terraform State Bucket
 
 The S3 state bucket is bootstrapped outside Terraform and must be removed manually after all managed resources are destroyed.
 
-```bash
-# Empty the bucket (including all state file versions)
-aws s3api list-object-versions \
-  --bucket records-tfstate-920835814440-us-east-1 \
-  --profile records \
-  --output json \
-  | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-versions = data.get('Versions', []) + data.get('DeleteMarkers', [])
-for v in versions:
-    print(v['Key'], v['VersionId'])
-" | while read key vid; do
-  aws s3api delete-object \
-    --bucket records-tfstate-920835814440-us-east-1 \
-    --key \"\$key\" \
-    --version-id \"\$vid\" \
-    --profile records
-done
+Delete all versioned objects and delete markers, then remove the bucket:
 
-# Delete the bucket
-aws s3api delete-bucket \
-  --bucket records-tfstate-920835814440-us-east-1 \
-  --region us-east-1 \
-  --profile records
+```python
+# Save as /tmp/purge-state-bucket.py and run: python3 /tmp/purge-state-bucket.py
+import subprocess, json
+
+BUCKET = "records-tfstate-920835814440-us-east-1"
+PROFILE = "records"
+REGION = "us-east-1"
+
+out = subprocess.check_output([
+    "aws", "s3api", "list-object-versions",
+    "--bucket", BUCKET, "--profile", PROFILE, "--output", "json"
+])
+data = json.loads(out)
+for entry in data.get("Versions", []) + data.get("DeleteMarkers", []):
+    subprocess.check_call([
+        "aws", "s3api", "delete-object",
+        "--bucket", BUCKET,
+        "--key", entry["Key"],
+        "--version-id", entry["VersionId"],
+        "--profile", PROFILE
+    ])
+    print(f"Deleted {entry['Key']} @ {entry['VersionId']}")
+
+subprocess.check_call([
+    "aws", "s3api", "delete-bucket",
+    "--bucket", BUCKET,
+    "--region", REGION,
+    "--profile", PROFILE
+])
+print(f"Bucket {BUCKET} deleted.")
 ```
 
 ---
 
-## Step 7 — Delete the DynamoDB Lock Table (If Present)
+## Step 8 — Delete the DynamoDB Lock Table (If Present)
 
 A DynamoDB table `records-tfstate-lock` was provisioned during the original bootstrap phase. It is no longer used for locking (S3 native locking replaced it in PR #16) but may still exist in the account.
 
@@ -233,7 +279,7 @@ aws dynamodb delete-table \
 
 ---
 
-## Step 8 — Verify No Remaining Resources
+## Step 9 — Verify No Remaining Resources
 
 Spot-check that no billable resources remain:
 
@@ -266,7 +312,7 @@ All queries should return empty results. If any resources remain, investigate an
 
 ---
 
-## Step 9 — Revoke AWS IAM Access (Optional)
+## Step 10 — Revoke AWS IAM Access (Optional)
 
 If the `records` IAM user and `admins` group are no longer needed:
 
@@ -291,7 +337,7 @@ aws iam delete-user --user-name records --profile records
 
 ## Post-Teardown
 
-- [ ] Confirm no remaining resources in Step 8
+- [ ] Confirm no remaining resources in Step 9
 - [ ] Delete or archive the local repository if the project is fully retired
 - [ ] Remove `ui/.env.local` from the local machine (contains Cognito credentials)
 - [ ] Remove `infra/terraform.tfvars` from the local machine (contains environment configuration)
