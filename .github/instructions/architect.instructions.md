@@ -47,3 +47,29 @@ These rules apply across all agents and all files unless explicitly overridden b
 - .github/instructions/security.instructions.md: secure coding and threat checks
 - .github/instructions/pr.instructions.md: branch, commit, and PR workflow
 - .github/instructions/values.instructions.md: global engineering values
+
+## Instruction File Authoring Standards
+
+Apply these rules when creating or editing any `.instructions.md`, `.prompt.md`, or `.agent.md` file.
+
+### Read enforcement code before writing claims about it
+
+If the instruction references a hook, pre-commit entry, or script (for example `scripts/check-terraform-secrets.sh`):
+
+1. Read the script source and `.pre-commit-config.yaml` before drafting.
+2. Confirm the instruction text matches the actual patterns checked, file scope (`files:` glob), and enforcement boundary.
+3. Do not describe behaviors the hook does not currently implement; annotate those as policy rules that require human enforcement.
+
+### Verify every factual claim before committing
+
+Before committing an instruction file that makes technical assertions (for example "AWS manages rotation", "nothing in state", "hook blocks X"):
+
+- Ask: is this literally true given the current code and AWS documentation?
+- If uncertain, reword to describe the concrete outcome and omit claims about side effects or implied behaviors.
+
+### Complete `applyTo` coverage in one pass
+
+When adding a new file class to `applyTo`:
+
+- Enumerate all related extensions at once (for example `.tf`, `.tfvars`, `.auto.tfvars`, `.tf.json` for Terraform).
+- Do not add one extension and rely on a later review round to catch the rest.
