@@ -43,6 +43,8 @@ Follow these steps exactly.
 - Run lint/test checks for touched scope.
 - Perform security-focused review for sensitive files.
 - Address high-severity issues before push.
+- For Terraform files: classify any exposure of plaintext credentials or tokens in Terraform state as a high-severity security finding.
+- Block changes that introduce plaintext credential or token material into Terraform state, even if detect-secrets passes.
 - If touched changes include executable behavior and a unit test is reasonably possible, require that test in the same PR.
 - If such a test is missing, classify as a blocking finding.
 - Deferral is allowed only with explicit rationale and a linked follow-up issue.
