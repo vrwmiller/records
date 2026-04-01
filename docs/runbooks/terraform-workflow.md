@@ -101,13 +101,13 @@ If `terraform apply` is interrupted mid-run:
    terraform force-unlock -force <LOCK-ID>
    ```
 
-2. **Re-plan to identify drift** between Terraform state and actual AWS resources:
+2. **Re-plan to identify drift** between Terraform configuration, state, and actual AWS resources:
 
    ```bash
    terraform plan
    ```
 
-   Resources that exist in AWS but not in state will appear as `will be created`. Resources that exist in state but not in AWS will appear as `will be destroyed`.
+   Resources defined in configuration but missing from state or AWS will generally appear as `will be created` or `must be replaced`. Resources that exist only in AWS and are not represented in configuration or state typically do not appear in the plan. Unexpected `will be destroyed` actions usually indicate that configuration or state is requesting removal (for example, the resource was removed from the `.tf` files) and must be investigated before applying.
 
 3. **Import orphaned resources** rather than recreating them. Use the format required by each resource type. Common examples:
 
