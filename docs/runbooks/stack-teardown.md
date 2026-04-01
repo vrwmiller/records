@@ -38,6 +38,8 @@ Complete all items before proceeding.
 
 `infra/database.tf` sets `deletion_protection = true`. Terraform destroy will fail against a protected instance.
 
+> **Important:** Steps 1–3 require editing local Terraform files before applying. These are teardown-only changes — **do not commit or push them**. They exist only to clear AWS safeguards so the destroy can proceed.
+
 Disable it by editing the Terraform config:
 
 ```bash
@@ -146,19 +148,27 @@ done
 
 By default, Terraform will not destroy a non-empty S3 bucket. In this stack, `infra/storage.tf` does not set `force_destroy` for the images bucket, so you must empty it first (or enable `force_destroy` before running `terraform destroy`).
 
+Get the bucket name from Terraform state:
+
+```bash
+cd infra
+BUCKET=$(terraform output -raw image_bucket_name)
+echo "Bucket: $BUCKET"
+```
+
 Delete current objects:
 
 ```bash
-aws s3 rm s3://records-images-920835814440-dev --recursive --profile records
+aws s3 rm "s3://${BUCKET}" --recursive --profile records
 ```
 
 Delete all versioned objects and delete markers (versioning is enabled, per `infra/storage.tf`):
 
 ```python
-# Save as /tmp/purge-versions.py and run: python3 /tmp/purge-versions.py
-import subprocess, json
+# Save as /tmp/purge-versions.py and run: BUCKET=<name> python3 /tmp/purge-versions.py
+import subprocess, json, os
 
-BUCKET = "records-images-920835814440-dev"
+BUCKET = os.environ["BUCKET"]
 PROFILE = "records"
 
 out = subprocess.check_output([
@@ -177,10 +187,16 @@ for entry in data.get("Versions", []) + data.get("DeleteMarkers", []):
     print(f"Deleted {entry['Key']} @ {entry['VersionId']}")
 ```
 
+Run it:
+
+```bash
+BUCKET=$BUCKET python3 /tmp/purge-versions.py
+```
+
 Verify the bucket is empty:
 
 ```bash
-aws s3 ls s3://records-images-920835814440-dev --profile records
+aws s3 ls "s3://${BUCKET}" --profile records
 ```
 
 No output means the bucket is empty and safe to destroy.
@@ -316,19 +332,21 @@ All queries should return empty results. If any resources remain, investigate an
 
 If the `records` IAM user and `admins` group are no longer needed:
 
+> **Important:** Use an administrator credential that is **not** backed by the `records` IAM user (for example, the root account or a separate admin profile). Using the `records` profile to delete its own access key will revoke your credentials mid-step and can leave cleanup incomplete. Also note that `aws iam delete-user` will fail if the user still has attached policies, inline policies, or MFA devices — resolve those first.
+
 ```bash
-# Remove user from group
+# Remove user from group (use a separate admin profile, not 'records')
 aws iam remove-user-from-group \
   --user-name records \
   --group-name admins \
-  --profile records
+  --profile <admin-profile>
 
-# Delete access keys (list first)
-aws iam list-access-keys --user-name records --profile records
-aws iam delete-access-key --user-name records --access-key-id <KEY_ID> --profile records
+# List and delete all access keys
+aws iam list-access-keys --user-name records --profile <admin-profile>
+aws iam delete-access-key --user-name records --access-key-id <KEY_ID> --profile <admin-profile>
 
 # Delete the user
-aws iam delete-user --user-name records --profile records
+aws iam delete-user --user-name records --profile <admin-profile>
 ```
 
 > This step is irreversible and removes the AWS credentials used throughout this project. Only proceed if the entire AWS account usage for this project is ending.
