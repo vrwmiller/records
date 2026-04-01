@@ -1,3 +1,19 @@
+# Explicitly manage RDS CloudWatch log groups so retention is enforced.
+# Without these, AWS auto-creates the groups with infinite retention.
+resource "aws_cloudwatch_log_group" "rds_postgresql" {
+  name              = "/aws/rds/instance/records-${var.environment}/postgresql"
+  retention_in_days = var.db_log_retention_days
+
+  tags = { Name = "records-${var.environment}-rds-postgresql-logs" }
+}
+
+resource "aws_cloudwatch_log_group" "rds_upgrade" {
+  name              = "/aws/rds/instance/records-${var.environment}/upgrade"
+  retention_in_days = var.db_log_retention_days
+
+  tags = { Name = "records-${var.environment}-rds-upgrade-logs" }
+}
+
 resource "random_id" "db_final_snapshot_suffix" {
   byte_length = 4
 

@@ -71,6 +71,12 @@ variable "db_max_allocated_storage" {
   default     = 100
 }
 
+variable "db_log_retention_days" {
+  description = "Retention period in days for RDS CloudWatch log groups (postgresql and upgrade)"
+  type        = number
+  default     = 30
+}
+
 variable "allow_major_version_upgrade" {
   description = "Allow major PostgreSQL engine version upgrades. Set to true only during a planned major-version upgrade apply; restore to false after."
   type        = bool

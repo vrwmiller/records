@@ -17,7 +17,7 @@ for file in "$@"; do
         continue
       fi
 
-      if matches=$(grep -nE '^\s*password\s*=' "$file"); then
+      if matches=$(grep -nE '^[[:space:]]*password[[:space:]]*=' "$file"); then
         echo "[terraform-secret-safety] blocked: password assignment found in $file"
         echo "  Reason: password values assigned in Terraform are persisted in state."
         echo "  Fix: use AWS-managed credentials (for example manage_master_user_password) and secret references."
@@ -26,7 +26,7 @@ for file in "$@"; do
         fail=1
       fi
 
-      if matches=$(grep -nE '^\s*resource\s+"random_password"\s+"' "$file"); then
+      if matches=$(grep -nE '^[[:space:]]*resource[[:space:]]+"random_password"[[:space:]]+"' "$file"); then
         echo "[terraform-secret-safety] blocked: random_password resource found in $file"
         echo "  Reason: generated secrets from random_password are persisted in state."
         echo "  Fix: prefer cloud-managed secret generation/rotation and reference ARNs at runtime."
