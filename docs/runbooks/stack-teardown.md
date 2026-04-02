@@ -291,21 +291,22 @@ The S3 state bucket is bootstrapped outside Terraform and must be removed manual
 
 > **Important:** This bucket is designed to be shared across multiple environments using distinct backend keys (see comments in `infra/main.tf`). **Only delete the entire bucket** if you have confirmed that no other environment state keys remain inside it (i.e., this account is being fully decommissioned). If other environments still exist or may be added in the future, delete only the objects under this environment's backend key and its version history, rather than deleting the bucket.
 >
-> Before running the key-only script, confirm the exact backend key used for this environment. The default dev key is `records/terraform.tfstate`; other environments override it at `terraform init` time (e.g., `-backend-config="key=records/prod/terraform.tfstate"`). Export the **full, exact backend key** into `TF_STATE_KEY` before running — do not use a broader prefix like `records/` as that may match and delete multiple state objects across environments.
+> Before running the key-only script, confirm the exact backend key used for this environment. The default dev key is `records/terraform.tfstate`; other environments override it at `terraform init` time (e.g., `-backend-config="key=records/prod/terraform.tfstate"`). Export the **full, exact backend key** into `TF_STATE_KEY` before running. The script passes this value to the S3 `list-object-versions` `--prefix` filter for efficiency, but then checks each returned object key for an **exact match** before deleting — so only the precise state file key is affected.
 
 **If other environments still exist — single-key cleanup:**
 
 ```python
 # Save as /tmp/purge-state-key.py and run:
 #   TF_STATE_KEY="records/<env>/terraform.tfstate" python3 /tmp/purge-state-key.py
-# Deletes only versions under the exact backend key provided, leaving other env keys intact.
+# Deletes only versions of the exact backend key object; --prefix narrows the API query
+# but an exact equality check in the loop prevents adjacent objects from being deleted.
 import os, subprocess, json
 
 BUCKET = "records-tfstate-920835814440-us-east-1"
 PROFILE = "records"
-PREFIX = os.environ.get("TF_STATE_KEY")
+KEY = os.environ.get("TF_STATE_KEY")
 
-if not PREFIX:
+if not KEY:
     raise SystemExit(
         "TF_STATE_KEY is not set. Set it to the exact Terraform backend key "
         "for this environment (e.g., 'records/terraform.tfstate' for dev, "
@@ -319,7 +320,7 @@ while True:
     cmd = [
         "aws", "s3api", "list-object-versions",
         "--bucket", BUCKET, "--profile", PROFILE, "--output", "json",
-        "--prefix", PREFIX,
+        "--prefix", KEY,
     ]
     if key_marker is not None:
         cmd.extend(["--key-marker", key_marker])
@@ -328,6 +329,9 @@ while True:
 
     data = json.loads(subprocess.check_output(cmd))
     for entry in data.get("Versions", []) + data.get("DeleteMarkers", []):
+        if entry["Key"] != KEY:
+            print(f"Skipping non-matching key: {entry['Key']}")
+            continue
         subprocess.check_call([
             "aws", "s3api", "delete-object",
             "--bucket", BUCKET,
