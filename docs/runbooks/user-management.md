@@ -30,7 +30,7 @@ aws cognito-idp admin-create-user \
 unset TEMP_PASSWORD
 ```
 
-> **Note:** `read -rs` prompts silently and keeps the password out of shell history and the process list.
+> **Note:** `read -rs` prompts silently and keeps the password out of shell history, but the value is still passed to `aws` as a command-line argument and may be visible in process listings while the command runs.
 
 - `--message-action SUPPRESS` skips the Cognito welcome email. Remove it if you want Cognito to send the invite automatically.
 - The user will be required to set a permanent password on first sign-in.
@@ -75,7 +75,7 @@ aws cognito-idp admin-set-user-password \
 unset NEW_PASSWORD
 ```
 
-> **Note:** `read -rs` prompts silently and keeps the password out of shell history and the process list.
+> **Note:** `read -rs` prompts silently and keeps the password out of shell history, but the value is still passed to `aws` as a command-line argument and may be visible in process listings while the command runs.
 
 ---
 
