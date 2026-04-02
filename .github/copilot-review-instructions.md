@@ -48,7 +48,20 @@ An issue may be reported **only if all conditions are met**:
    - If uncertain, do not comment
 
 ---
+## Operator Failure Test (Docs/Runbooks)
 
+For documentation and runbook PRs, apply this additional gate before reporting:
+
+> Would a careful, competent operator fail to complete the procedure correctly without this fix?
+
+If the answer is no — the current wording is unambiguous, the command works, the operator reaches the right outcome — do not comment. This explicitly excludes:
+
+- Rewording prose that is imprecise but unambiguous in context
+- Defensive improvements to manually-executed scripts for edge cases not plausible in this environment
+- Consistency suggestions (naming, style, format) with no failure consequence
+- Observations that are technically accurate but have no operator impact
+
+---
 ## Explicit Prohibitions
 
 Do NOT comment if the issue involves:
