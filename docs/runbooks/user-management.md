@@ -20,13 +20,17 @@ export AWS_REGION=us-east-1
 ## Add a User
 
 ```bash
+read -rs TEMP_PASSWORD
 aws cognito-idp admin-create-user \
   --user-pool-id "$COGNITO_USER_POOL_ID" \
   --username "<email>" \
   --user-attributes Name=email,Value="<email>" Name=email_verified,Value=true \
-  --temporary-password "<TempPass1234!>" \
+  --temporary-password "$TEMP_PASSWORD" \
   --message-action SUPPRESS
+unset TEMP_PASSWORD
 ```
+
+> **Note:** `read -rs` prompts silently and keeps the password out of shell history and the process list.
 
 - `--message-action SUPPRESS` skips the Cognito welcome email. Remove it if you want Cognito to send the invite automatically.
 - The user will be required to set a permanent password on first sign-in.
@@ -50,22 +54,28 @@ aws cognito-idp list-users \
 Force a new temporary password (user must change it on next sign-in):
 
 ```bash
+read -rs NEW_PASSWORD
 aws cognito-idp admin-set-user-password \
   --user-pool-id "$COGNITO_USER_POOL_ID" \
   --username "<email>" \
-  --password "<TempPass1234!>" \
+  --password "$NEW_PASSWORD" \
   --no-permanent
+unset NEW_PASSWORD
 ```
 
 Set a permanent password directly (bypasses change-on-first-login):
 
 ```bash
+read -rs NEW_PASSWORD
 aws cognito-idp admin-set-user-password \
   --user-pool-id "$COGNITO_USER_POOL_ID" \
   --username "<email>" \
-  --password "<PermanentPass1234!>" \
+  --password "$NEW_PASSWORD" \
   --permanent
+unset NEW_PASSWORD
 ```
+
+> **Note:** `read -rs` prompts silently and keeps the password out of shell history and the process list.
 
 ---
 
