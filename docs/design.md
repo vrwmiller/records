@@ -96,7 +96,7 @@ Each inventory item belongs to one of:
 ```sql
 inventory_item (
   id                   UUID PK,
-  pressing_id          UUID FK NULL,
+  pressing_id          UUID NULL,           -- future FK to pressing (deferred to Discogs integration phase)
   acquisition_batch_id UUID NULL,          -- shared across batch-acquired copies
   collection_type      TEXT NOT NULL CHECK (collection_type IN ('PERSONAL','DISTRIBUTION')),
   condition_media      TEXT NULL,
