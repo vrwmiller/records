@@ -24,13 +24,13 @@ aws cognito-idp admin-create-user \
   --user-pool-id "$COGNITO_USER_POOL_ID" \
   --username "<email>" \
   --user-attributes Name=email,Value="<email>" Name=email_verified,Value=true \
-  --temporary-password "<TempPass1!>" \
+  --temporary-password "<TempPass1234!>" \
   --message-action SUPPRESS
 ```
 
 - `--message-action SUPPRESS` skips the Cognito welcome email. Remove it if you want Cognito to send the invite automatically.
 - The user will be required to set a permanent password on first sign-in.
-- Passwords must meet the user pool policy (minimum length, mixed case, digits, symbols).
+- Passwords must meet the user pool policy: minimum 12 characters, mixed case, digits, and symbols (configured in `infra/auth.tf`).
 
 ---
 
@@ -53,7 +53,7 @@ Force a new temporary password (user must change it on next sign-in):
 aws cognito-idp admin-set-user-password \
   --user-pool-id "$COGNITO_USER_POOL_ID" \
   --username "<email>" \
-  --password "<TempPass1!>" \
+  --password "<TempPass1234!>" \
   --no-permanent
 ```
 
@@ -63,7 +63,7 @@ Set a permanent password directly (bypasses change-on-first-login):
 aws cognito-idp admin-set-user-password \
   --user-pool-id "$COGNITO_USER_POOL_ID" \
   --username "<email>" \
-  --password "<PermanentPass1!>" \
+  --password "<PermanentPass1234!>" \
   --permanent
 ```
 
@@ -115,6 +115,6 @@ aws cognito-idp admin-user-global-sign-out \
 
 ## Notes
 
-- Self-registration is disabled in the UI via `hideSignUp` on the Amplify Authenticator component. Cognito user pool self-signup may also be disabled at the pool level in Terraform (`allow_user_registration = false`) for defense in depth.
+- Self-registration is disabled in the UI via `hideSignUp` on the Amplify Authenticator component. Cognito user pool self-signup may also be disabled at the pool level in Terraform via `admin_create_user_config { allow_admin_create_user_only = true }` for defense in depth.
 - Usernames are email addresses by default in this pool configuration.
 - All user management operations are available in the AWS Console under Cognito → User pools → `<pool>` → Users, but CLI is preferred for auditability.
