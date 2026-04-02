@@ -104,6 +104,9 @@ class TestInventoryItemConstraints:
     def test_status_check_present(self) -> None:
         assert "ck_inventory_item_status" in _check_names(self.t)
 
+    def test_pk_constraint_named(self) -> None:
+        assert self.t.primary_key.name == "pk_inventory_item"
+
 
 # ---------------------------------------------------------------------------
 # inventory_transaction columns
@@ -147,12 +150,23 @@ class TestInventoryTransactionConstraints:
     def test_transaction_type_check_present(self) -> None:
         assert "ck_inventory_transaction_type" in _check_names(self.t)
 
+    def test_pk_constraint_named(self) -> None:
+        assert self.t.primary_key.name == "pk_inventory_transaction"
+
     def test_fk_to_inventory_item_exists(self) -> None:
         fk_targets = {
             list(fk.constraint.elements)[0].target_fullname
             for fk in self.t.c["inventory_item_id"].foreign_keys
         }
         assert "inventory_item.id" in fk_targets
+
+    def test_fk_constraint_named(self) -> None:
+        for fk_constraint in self.t.foreign_key_constraints:
+            col_names = [c.name for c in fk_constraint.columns]
+            if "inventory_item_id" in col_names:
+                assert fk_constraint.name == "fk_inventory_transaction_item"
+                return
+        pytest.fail("FK constraint for inventory_item_id not found")
 
     def test_fk_uses_restrict_on_delete(self) -> None:
         for fk_constraint in self.t.foreign_key_constraints:

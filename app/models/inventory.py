@@ -8,6 +8,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Numeric,
+    PrimaryKeyConstraint,
     Text,
     Uuid,
     func,
@@ -49,6 +50,7 @@ class InventoryItem(Base):
             "status IN ('active', 'sold', 'lost', 'deleted')",
             name="ck_inventory_item_status",
         ),
+        PrimaryKeyConstraint("id", name="pk_inventory_item"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -90,13 +92,17 @@ class InventoryTransaction(Base):
             "transaction_type IN ('acquisition','sale','transfer_collection','trade','loss','adjustment')",
             name="ck_inventory_transaction_type",
         ),
+        PrimaryKeyConstraint("id", name="pk_inventory_transaction"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid, primary_key=True, default=uuid.uuid4
     )
     inventory_item_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("inventory_item.id", ondelete="RESTRICT"), nullable=False, index=True
+        Uuid,
+        ForeignKey("inventory_item.id", ondelete="RESTRICT", name="fk_inventory_transaction_item"),
+        nullable=False,
+        index=True,
     )
     transaction_type: Mapped[str] = mapped_column(
         Text,
