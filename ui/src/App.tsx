@@ -6,7 +6,7 @@ import { InventoryPage } from './pages/InventoryPage'
 
 function App() {
   return (
-    <Authenticator>
+    <Authenticator hideSignUp>
       {({ signOut, user }) => (
         <BrowserRouter>
           <Routes>
