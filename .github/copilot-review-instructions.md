@@ -1,75 +1,132 @@
-# Copilot Code Review Instructions - Record Ranch
+# Copilot Code Review Instructions — Record Ranch (Strict)
 
 ## Primary Objective
 
-Report only high-confidence, actionable issues in these categories:
+Report only **high-confidence, reproducible, blocking issues** in:
 
 - Security vulnerabilities
-- Correctness bugs
-- Accessibility blockers that prevent core workflow completion
+- Deterministic correctness bugs
+- Accessibility issues that block core workflow completion
 
-If an issue does not clearly fit one of these categories, do not comment.
+---
 
-## Mandatory Decision Gate
+## Scope Constraint (Hard)
 
-Before raising an issue, all conditions must be true:
+- Review **only code changed in this PR**
+- Or code **directly executed by the changed lines**
 
-1. Category match
-   - The issue is security, correctness, or blocking accessibility.
+Do not review unrelated or pre-existing code.
 
-2. Concrete evidence
-   - Point to specific file and line.
-   - Explain execution path or failure mode.
+---
 
-3. Deterministic impact
-   - Exploit path, runtime failure, broken core flow, or guaranteed incorrect behavior.
-   - If impact is speculative, do not comment.
+## Mandatory Decision Gate (ALL required)
 
-4. Actionable fix
-   - Suggest a specific, minimal change.
+An issue may be reported **only if all conditions are met**:
 
-If any condition fails, do not comment.
+1. **Category match**
+   - Security, deterministic correctness, or blocking accessibility
 
-## Hard Exclusions
+2. **Concrete location**
+   - Exact file and line number
 
-Do not comment on:
+3. **Reproducible failure**
+   Must include:
+   - Specific input or state
+   - Execution path
+   - Observable failure (error, incorrect output, blocked flow)
 
-- Pure style or formatting
-- Naming-only preferences
-- Broad refactor suggestions without a demonstrated bug
-- Architecture choices already documented in docs/design.md or docs/architecture.md
-- Features outside PR scope
+4. **Deterministic impact**
+   - Must occur reliably under stated conditions
+   - Not hypothetical or edge-case speculation
 
-## De-duplication Rules
+5. **Minimal patch fix**
+   - Provide a specific code-level fix (diff or snippet)
+   - No vague suggestions
 
-- Do not repeat previously raised issues.
-- Do not re-flag already resolved issues unless the underlying defect still exists and passes the decision gate.
+6. **High confidence threshold**
+   - ≥ 90% certainty
+   - If uncertain, do not comment
 
-## Severity Threshold
+---
+## Operator Failure Test (Docs/Runbooks)
 
-Report only when at least one is true:
+For documentation and runbook PRs, apply this additional gate before reporting:
 
-- Plausible security exploit
-- Runtime crash/failure path
-- Data corruption/loss risk
-- User cannot complete a primary flow
+> Would a careful, competent operator fail to complete the procedure correctly without this fix?
 
-If minor or non-blocking, do not comment.
+If the answer is no — the current wording is unambiguous, the command works, the operator reaches the right outcome — do not comment. This explicitly excludes:
 
-## Output Format
+- Rewording prose that is imprecise but unambiguous in context
+- Defensive improvements to manually-executed scripts for edge cases not plausible in this environment
+- Consistency suggestions (naming, style, format) with no failure consequence
+- Observations that are technically accurate but have no operator impact
 
-For each issue include:
+---
+## Explicit Prohibitions
 
-- Category
-- Location (file and line)
-- Problem
-- Impact
-- Fix
+Do NOT comment if the issue involves:
 
-If no qualifying issues:
+- Hypothetical scenarios (“could”, “might”, “potentially”)
+- Edge cases without demonstrated failure
+- Missing best practices without a bug
+- Style, naming, formatting
+- Refactoring suggestions
+- Architecture disagreements
+- Code outside PR scope
+- Pre-existing issues not introduced or modified here
 
-- No blocking issues found in scope.
+---
 
-## Meta Rule
+## Severity Threshold (ALL must qualify)
 
-Silence is preferred over low-confidence feedback.
+Only report if it results in:
+
+- Proven exploit path
+- Runtime crash or exception
+- Data corruption or loss
+- Inability to complete a core user workflow
+
+---
+
+## De-duplication
+
+- Do not repeat prior comments
+- Do not re-raise resolved issues
+- Do not restate the same root cause across multiple locations
+
+---
+
+## Output Limit
+
+- Report **maximum 5 issues**
+- Prioritize highest impact only
+- If more exist, report the top 5 only
+
+---
+
+## Output Format (Strict)
+
+For each issue:
+
+- Category  
+- Location (file:line)  
+- Reproduction (input + execution path)  
+- Problem  
+- Impact  
+- Fix (code-level patch)  
+
+---
+
+## Zero-Issue Condition
+
+If no issues meet ALL criteria:
+
+> No blocking issues found in scope.
+
+---
+
+## Meta Rules
+
+- Silence is preferred over low-confidence feedback  
+- Do not iterate or expand on this review unless explicitly requested  
+- Do not speculate beyond the provided code and diff

@@ -25,9 +25,14 @@ Follow these steps exactly.
 - Build comment-id to thread-id mapping using GraphQL reviewThreads pagination.
 
 4. Classify every comment.
-- Valid: comment matches code/docs and requires change.
-- Rejected: claim contradicts current code or documented project decisions.
+- Valid: the claim is accurate AND the fix prevents a realistic failure — a wrong result, a broken command, data loss, a security breach, or an operator being blocked from completing the procedure. The bar is "would a careful operator fail without this fix?"
+- Rejected: claim is factually wrong, contradicts current code or documented project decisions, OR is technically accurate but does not prevent a realistic operator failure (e.g. wording preferences, hypothetical edge cases in manually-executed runbooks, style inconsistencies, defensive improvements without a demonstrated failure path).
 - Ambiguous: cannot be resolved from available evidence; pause and ask user.
+
+For docs-only PRs, additionally reject:
+- Observations about prose style or word choice where the current wording is unambiguous in context
+- Defensive code improvements in runbook scripts where the failure mode requires conditions not documented or plausible for this project
+- Suggestions that duplicate information already present elsewhere in the same document
 
 5. Process valid comments in small batches.
 - Apply focused fixes.
