@@ -13,7 +13,7 @@ Follow every step in order. Do not skip the pre-teardown checklist.
 Complete all items before proceeding.
 
 - [ ] **Confirm intent** — This is irreversible. All inventory data, transaction history, and image assets will be permanently deleted.
-- [ ] **Take a final RDS snapshot** — Even if data recovery is not expected, a snapshot preserves the option. See the [backup-restore-drill runbook](backup-restore-drill.md) for snapshot procedure.
+- [ ] **Take a manual pre-teardown RDS snapshot** — This is an operator-initiated snapshot taken before starting teardown, and is separate from the destroy-time final snapshot controlled by Terraform's `skip_final_snapshot` setting (see Step 2). Even if data recovery is not expected, this manual snapshot preserves the option. See the [backup-restore-drill runbook](backup-restore-drill.md) for snapshot procedure.
 - [ ] **Export S3 image assets** if needed — Download any images you want to retain before the bucket is destroyed.
 - [ ] **Revoke active sessions** — Sign out of the application and invalidate all active Cognito tokens if other sessions may be open.
 - [ ] **Confirm AWS account and region** — Verify you are targeting the correct account and region:
@@ -126,24 +126,51 @@ cd infra
 POOL_ID=$(terraform output -raw cognito_user_pool_id)
 ```
 
-Delete all users:
+Delete all users (paginated — loops until all users are deleted):
+
+```python
+# Save as /tmp/delete-cognito-users.py and run:
+#   POOL_ID=<pool-id> python3 /tmp/delete-cognito-users.py
+import os, subprocess, json
+
+POOL_ID = os.environ["POOL_ID"]
+PROFILE = "records"
+REGION = "us-east-1"
+
+pagination_token = None
+
+while True:
+    cmd = [
+        "aws", "cognito-idp", "list-users",
+        "--user-pool-id", POOL_ID,
+        "--region", REGION,
+        "--profile", PROFILE,
+        "--output", "json",
+    ]
+    if pagination_token:
+        cmd.extend(["--pagination-token", pagination_token])
+
+    data = json.loads(subprocess.check_output(cmd))
+    for user in data.get("Users", []):
+        username = user["Username"]
+        print(f"Deleting user: {username}")
+        subprocess.check_call([
+            "aws", "cognito-idp", "admin-delete-user",
+            "--user-pool-id", POOL_ID,
+            "--username", username,
+            "--region", REGION,
+            "--profile", PROFILE,
+        ])
+
+    pagination_token = data.get("PaginationToken")
+    if not pagination_token:
+        break
+```
+
+Run it:
 
 ```bash
-aws cognito-idp list-users \
-  --user-pool-id "$POOL_ID" \
-  --region us-east-1 \
-  --profile records \
-  --query 'Users[].Username' \
-  --output text \
-| tr '	' '\n' \
-| while read -r username; do
-  echo "Deleting user: $username"
-  aws cognito-idp admin-delete-user \
-    --user-pool-id "$POOL_ID" \
-    --username "$username" \
-    --region us-east-1 \
-    --profile records
-done
+POOL_ID=$POOL_ID python3 /tmp/delete-cognito-users.py
 ```
 
 ---
@@ -264,23 +291,23 @@ The S3 state bucket is bootstrapped outside Terraform and must be removed manual
 
 > **Important:** This bucket is designed to be shared across multiple environments using distinct backend keys (see comments in `infra/main.tf`). **Only delete the entire bucket** if you have confirmed that no other environment state keys remain inside it (i.e., this account is being fully decommissioned). If other environments still exist or may be added in the future, delete only the objects under this environment's backend key and its version history, rather than deleting the bucket.
 >
-> Before running the prefix-only script, confirm the exact backend key used for this environment. The default dev key is `records/terraform.tfstate`; other environments override it at `terraform init` time (e.g., `-backend-config="key=records/prod/terraform.tfstate"`). Export the correct key into `TF_STATE_KEY_PREFIX` before running.
+> Before running the key-only script, confirm the exact backend key used for this environment. The default dev key is `records/terraform.tfstate`; other environments override it at `terraform init` time (e.g., `-backend-config="key=records/prod/terraform.tfstate"`). Export the **full, exact backend key** into `TF_STATE_KEY` before running — do not use a broader prefix like `records/` as that may match and delete multiple state objects across environments.
 
-**If other environments still exist — prefix-only cleanup:**
+**If other environments still exist — single-key cleanup:**
 
 ```python
-# Save as /tmp/purge-state-prefix.py and run:
-#   TF_STATE_KEY_PREFIX="records/<env>/terraform.tfstate" python3 /tmp/purge-state-prefix.py
-# Deletes only versions under the backend key provided, leaving other env keys intact.
+# Save as /tmp/purge-state-key.py and run:
+#   TF_STATE_KEY="records/<env>/terraform.tfstate" python3 /tmp/purge-state-key.py
+# Deletes only versions under the exact backend key provided, leaving other env keys intact.
 import os, subprocess, json
 
 BUCKET = "records-tfstate-920835814440-us-east-1"
 PROFILE = "records"
-PREFIX = os.environ.get("TF_STATE_KEY_PREFIX")
+PREFIX = os.environ.get("TF_STATE_KEY")
 
 if not PREFIX:
     raise SystemExit(
-        "TF_STATE_KEY_PREFIX is not set. Set it to the exact Terraform backend key "
+        "TF_STATE_KEY is not set. Set it to the exact Terraform backend key "
         "for this environment (e.g., 'records/terraform.tfstate' for dev, "
         "'records/prod/terraform.tfstate' for prod) before running."
     )
