@@ -171,20 +171,38 @@ import subprocess, json, os
 BUCKET = os.environ["BUCKET"]
 PROFILE = "records"
 
-out = subprocess.check_output([
-    "aws", "s3api", "list-object-versions",
-    "--bucket", BUCKET, "--profile", PROFILE, "--output", "json"
-])
-data = json.loads(out)
-for entry in data.get("Versions", []) + data.get("DeleteMarkers", []):
-    subprocess.check_call([
-        "aws", "s3api", "delete-object",
-        "--bucket", BUCKET,
-        "--key", entry["Key"],
-        "--version-id", entry["VersionId"],
-        "--profile", PROFILE
-    ])
-    print(f"Deleted {entry['Key']} @ {entry['VersionId']}")
+key_marker = None
+version_id_marker = None
+
+while True:
+    cmd = [
+        "aws", "s3api", "list-object-versions",
+        "--bucket", BUCKET, "--profile", PROFILE, "--output", "json",
+    ]
+    if key_marker is not None:
+        cmd.extend(["--key-marker", key_marker])
+    if version_id_marker is not None:
+        cmd.extend(["--version-id-marker", version_id_marker])
+
+    data = json.loads(subprocess.check_output(cmd))
+    for entry in data.get("Versions", []) + data.get("DeleteMarkers", []):
+        subprocess.check_call([
+            "aws", "s3api", "delete-object",
+            "--bucket", BUCKET,
+            "--key", entry["Key"],
+            "--version-id", entry["VersionId"],
+            "--profile", PROFILE,
+        ])
+        print(f"Deleted {entry['Key']} @ {entry['VersionId']}")
+
+    if not data.get("IsTruncated"):
+        break
+
+    key_marker = data.get("NextKeyMarker")
+    version_id_marker = data.get("NextVersionIdMarker")
+    if not key_marker and not version_id_marker:
+        print("Listing truncated but continuation markers missing; stopping early.")
+        break
 ```
 
 Run it:
@@ -242,7 +260,53 @@ The S3 state bucket is bootstrapped outside Terraform and must be removed manual
 
 > **Important:** This bucket is designed to be shared across multiple environments using distinct backend keys (see comments in `infra/main.tf`). **Only delete the entire bucket** if you have confirmed that no other environment state keys remain inside it (i.e., this account is being fully decommissioned). If other environments still exist or may be added in the future, delete only the objects under this environment's key prefix (`records/terraform.tfstate` and its version history) rather than deleting the bucket.
 
-Delete all versioned objects and delete markers, then remove the bucket:
+**If other environments still exist — prefix-only cleanup:**
+
+```python
+# Save as /tmp/purge-state-prefix.py and run: python3 /tmp/purge-state-prefix.py
+# Deletes only versions of 'records/terraform.tfstate', leaving other env keys intact.
+import subprocess, json
+
+BUCKET = "records-tfstate-920835814440-us-east-1"
+PROFILE = "records"
+PREFIX = "records/terraform.tfstate"
+
+key_marker = None
+version_id_marker = None
+
+while True:
+    cmd = [
+        "aws", "s3api", "list-object-versions",
+        "--bucket", BUCKET, "--profile", PROFILE, "--output", "json",
+        "--prefix", PREFIX,
+    ]
+    if key_marker is not None:
+        cmd.extend(["--key-marker", key_marker])
+    if version_id_marker is not None:
+        cmd.extend(["--version-id-marker", version_id_marker])
+
+    data = json.loads(subprocess.check_output(cmd))
+    for entry in data.get("Versions", []) + data.get("DeleteMarkers", []):
+        subprocess.check_call([
+            "aws", "s3api", "delete-object",
+            "--bucket", BUCKET,
+            "--key", entry["Key"],
+            "--version-id", entry["VersionId"],
+            "--profile", PROFILE,
+        ])
+        print(f"Deleted {entry['Key']} @ {entry['VersionId']}")
+
+    if not data.get("IsTruncated"):
+        break
+
+    key_marker = data.get("NextKeyMarker")
+    version_id_marker = data.get("NextVersionIdMarker")
+    if not key_marker and not version_id_marker:
+        print("Listing truncated but continuation markers missing; stopping early.")
+        break
+```
+
+**If fully decommissioning — delete all versions then remove the bucket:**
 
 ```python
 # Save as /tmp/purge-state-bucket.py and run: python3 /tmp/purge-state-bucket.py
@@ -252,26 +316,44 @@ BUCKET = "records-tfstate-920835814440-us-east-1"
 PROFILE = "records"
 REGION = "us-east-1"
 
-out = subprocess.check_output([
-    "aws", "s3api", "list-object-versions",
-    "--bucket", BUCKET, "--profile", PROFILE, "--output", "json"
-])
-data = json.loads(out)
-for entry in data.get("Versions", []) + data.get("DeleteMarkers", []):
-    subprocess.check_call([
-        "aws", "s3api", "delete-object",
-        "--bucket", BUCKET,
-        "--key", entry["Key"],
-        "--version-id", entry["VersionId"],
-        "--profile", PROFILE
-    ])
-    print(f"Deleted {entry['Key']} @ {entry['VersionId']}")
+key_marker = None
+version_id_marker = None
+
+while True:
+    cmd = [
+        "aws", "s3api", "list-object-versions",
+        "--bucket", BUCKET, "--profile", PROFILE, "--output", "json",
+    ]
+    if key_marker is not None:
+        cmd.extend(["--key-marker", key_marker])
+    if version_id_marker is not None:
+        cmd.extend(["--version-id-marker", version_id_marker])
+
+    data = json.loads(subprocess.check_output(cmd))
+    for entry in data.get("Versions", []) + data.get("DeleteMarkers", []):
+        subprocess.check_call([
+            "aws", "s3api", "delete-object",
+            "--bucket", BUCKET,
+            "--key", entry["Key"],
+            "--version-id", entry["VersionId"],
+            "--profile", PROFILE,
+        ])
+        print(f"Deleted {entry['Key']} @ {entry['VersionId']}")
+
+    if not data.get("IsTruncated"):
+        break
+
+    key_marker = data.get("NextKeyMarker")
+    version_id_marker = data.get("NextVersionIdMarker")
+    if not key_marker and not version_id_marker:
+        print("Listing truncated but continuation markers missing; stopping early.")
+        break
 
 subprocess.check_call([
     "aws", "s3api", "delete-bucket",
     "--bucket", BUCKET,
     "--region", REGION,
-    "--profile", PROFILE
+    "--profile", PROFILE,
 ])
 print(f"Bucket {BUCKET} deleted.")
 ```
