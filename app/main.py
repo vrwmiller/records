@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.routers import health
+from app.routers import health, inventory
 
 app = FastAPI(title="Record Ranch", version="0.1.0")
 
@@ -24,6 +24,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/api")
+app.include_router(inventory.router, prefix="/api")
 
 # Serve the built React app in production
 _static = Path(__file__).parent.parent / "ui" / "dist"
