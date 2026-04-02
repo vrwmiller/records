@@ -242,13 +242,16 @@ Run it:
 BUCKET=$BUCKET python3 /tmp/purge-versions.py
 ```
 
-Verify the bucket is empty:
+Verify no versions or delete markers remain:
 
 ```bash
-aws s3 ls "s3://${BUCKET}" --profile records
+aws s3api list-object-versions \
+  --bucket "${BUCKET}" \
+  --profile records \
+  --query '{Versions: Versions, DeleteMarkers: DeleteMarkers}'
 ```
 
-No output means the bucket is empty and safe to destroy.
+Both `Versions` and `DeleteMarkers` should be `null` or absent. If any entries remain, re-run the purge script.
 
 ---
 
@@ -285,7 +288,7 @@ git restore database.tf auth.tf
 
 This prevents an accidental `terraform apply` from re-creating the stack with protections disabled.
 
-## Step 7 — Delete Terraform State Bucket
+## Step 7 — Clean Up Terraform State (Key-Only or Full Bucket)
 
 The S3 state bucket is bootstrapped outside Terraform and must be removed manually after all managed resources are destroyed.
 
@@ -298,8 +301,9 @@ The S3 state bucket is bootstrapped outside Terraform and must be removed manual
 ```python
 # Save as /tmp/purge-state-key.py and run:
 #   TF_STATE_KEY="records/<env>/terraform.tfstate" python3 /tmp/purge-state-key.py
-# Deletes only versions of the exact backend key object; --prefix narrows the API query
-# but an exact equality check in the loop prevents adjacent objects from being deleted.
+# Deletes all versions of the exact state object key and its corresponding .tflock key
+# (created by use_lockfile = true). --prefix narrows the API query but an exact equality
+# check in the loop prevents adjacent objects from being deleted.
 import os, subprocess, json
 
 BUCKET = "records-tfstate-920835814440-us-east-1"
@@ -313,42 +317,46 @@ if not KEY:
         "'records/prod/terraform.tfstate' for prod) before running."
     )
 
-key_marker = None
-version_id_marker = None
+LOCKFILE_KEY = KEY + ".tflock"
+TARGET_KEYS = {KEY, LOCKFILE_KEY}
 
-while True:
-    cmd = [
-        "aws", "s3api", "list-object-versions",
-        "--bucket", BUCKET, "--profile", PROFILE, "--output", "json",
-        "--prefix", KEY,
-    ]
-    if key_marker is not None:
-        cmd.extend(["--key-marker", key_marker])
-    if version_id_marker is not None:
-        cmd.extend(["--version-id-marker", version_id_marker])
+for target_key in sorted(TARGET_KEYS):
+    key_marker = None
+    version_id_marker = None
 
-    data = json.loads(subprocess.check_output(cmd))
-    for entry in data.get("Versions", []) + data.get("DeleteMarkers", []):
-        if entry["Key"] != KEY:
-            print(f"Skipping non-matching key: {entry['Key']}")
-            continue
-        subprocess.check_call([
-            "aws", "s3api", "delete-object",
-            "--bucket", BUCKET,
-            "--key", entry["Key"],
-            "--version-id", entry["VersionId"],
-            "--profile", PROFILE,
-        ])
-        print(f"Deleted {entry['Key']} @ {entry['VersionId']}")
+    while True:
+        cmd = [
+            "aws", "s3api", "list-object-versions",
+            "--bucket", BUCKET, "--profile", PROFILE, "--output", "json",
+            "--prefix", target_key,
+        ]
+        if key_marker is not None:
+            cmd.extend(["--key-marker", key_marker])
+        if version_id_marker is not None:
+            cmd.extend(["--version-id-marker", version_id_marker])
 
-    if not data.get("IsTruncated"):
-        break
+        data = json.loads(subprocess.check_output(cmd))
+        for entry in data.get("Versions", []) + data.get("DeleteMarkers", []):
+            if entry["Key"] != target_key:
+                print(f"Skipping non-matching key: {entry['Key']}")
+                continue
+            subprocess.check_call([
+                "aws", "s3api", "delete-object",
+                "--bucket", BUCKET,
+                "--key", entry["Key"],
+                "--version-id", entry["VersionId"],
+                "--profile", PROFILE,
+            ])
+            print(f"Deleted {entry['Key']} @ {entry['VersionId']}")
 
-    key_marker = data.get("NextKeyMarker")
-    version_id_marker = data.get("NextVersionIdMarker")
-    if not key_marker and not version_id_marker:
-        print("Listing truncated but continuation markers missing; stopping early.")
-        break
+        if not data.get("IsTruncated"):
+            break
+
+        key_marker = data.get("NextKeyMarker")
+        version_id_marker = data.get("NextVersionIdMarker")
+        if not key_marker and not version_id_marker:
+            print("Listing truncated but continuation markers missing; stopping early.")
+            break
 ```
 
 **If fully decommissioning — delete all versions then remove the bucket:**
