@@ -20,9 +20,15 @@ def _get_jwks() -> dict[str, Any]:
         f"https://cognito-idp.{settings.aws_region}.amazonaws.com"
         f"/{settings.cognito_user_pool_id}/.well-known/jwks.json"
     )
-    response = httpx.get(url, timeout=10)
-    response.raise_for_status()
-    return response.json()
+    try:
+        response = httpx.get(url, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except httpx.HTTPError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="JWKS fetch unavailable",
+        )
 
 
 def _verify_token(token: str) -> dict[str, Any]:
@@ -50,6 +56,10 @@ def _verify_token(token: str) -> dict[str, Any]:
             detail="Token signing key not found",
         )
 
+    issuer = (
+        f"https://cognito-idp.{settings.aws_region}.amazonaws.com"
+        f"/{settings.cognito_user_pool_id}"
+    )
     try:
         public_key = jwk.construct(key_data)
         claims: dict[str, Any] = jwt.decode(
@@ -57,12 +67,19 @@ def _verify_token(token: str) -> dict[str, Any]:
             public_key,
             algorithms=["RS256"],
             audience=settings.cognito_client_id,
+            issuer=issuer,
             options={"verify_at_hash": False},
         )
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token verification failed",
+        )
+
+    if claims.get("token_use") != "id":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="ID token required",
         )
 
     return claims

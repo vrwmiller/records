@@ -9,8 +9,11 @@ import uuid
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 import app.models.inventory  # noqa: F401 — registers models on Base
 from app.auth import get_current_user
@@ -72,16 +75,20 @@ class TestAcquireRequest:
         assert r.collection_type == "DISTRIBUTION"
 
     def test_invalid_collection_type_rejected(self) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             AcquireRequest(collection_type="OTHER")
 
     def test_quantity_zero_rejected(self) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             AcquireRequest(collection_type="PERSONAL", quantity=0)
 
     def test_quantity_101_rejected(self) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             AcquireRequest(collection_type="PERSONAL", quantity=101)
+
+    def test_extra_field_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            AcquireRequest(collection_type="PERSONAL", unknown_field="oops")
 
     def test_quantity_100_accepted(self) -> None:
         r = AcquireRequest(collection_type="PERSONAL", quantity=100)
@@ -96,7 +103,7 @@ class TestAcquireRequest:
 
 class TestUpdateRequest:
     def test_extra_fields_rejected(self) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             UpdateRequest(status="sold")  # status is not patchable via this endpoint
 
     def test_empty_request_accepted(self) -> None:
@@ -392,3 +399,62 @@ class TestGetSummaryService:
         assert result["personal"] == 3
         assert result["distribution"] == 0
         assert result["total"] == 3
+
+
+# ---------------------------------------------------------------------------
+# Auth unit tests — JWKS error handling and token_use validation
+# ---------------------------------------------------------------------------
+
+class TestGetJwksError:
+    def test_httpx_error_raises_503(self) -> None:
+        from app import auth as _auth
+
+        _auth._get_jwks.cache_clear()
+        with patch("app.auth.httpx.get", side_effect=httpx.RequestError("timeout")):
+            with pytest.raises(HTTPException) as exc_info:
+                _auth._get_jwks()
+        assert exc_info.value.status_code == 503
+        _auth._get_jwks.cache_clear()
+
+    def test_http_status_error_raises_503(self) -> None:
+        from app import auth as _auth
+
+        _auth._get_jwks.cache_clear()
+        mock_response = MagicMock()
+        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "500", request=MagicMock(), response=MagicMock()
+        )
+        with patch("app.auth.httpx.get", return_value=mock_response):
+            with pytest.raises(HTTPException) as exc_info:
+                _auth._get_jwks()
+        assert exc_info.value.status_code == 503
+        _auth._get_jwks.cache_clear()
+
+
+class TestVerifyTokenUse:
+    def test_access_token_rejected_with_401(self) -> None:
+        from app.auth import _verify_token
+
+        with patch("app.auth.jwt.get_unverified_header", return_value={"kid": "k1"}):
+            with patch("app.auth._get_jwks", return_value={"keys": [{"kid": "k1"}]}):
+                with patch("app.auth.jwk.construct", return_value=MagicMock()):
+                    with patch(
+                        "app.auth.jwt.decode",
+                        return_value={"token_use": "access", "sub": "u1"},
+                    ):
+                        with pytest.raises(HTTPException) as exc_info:
+                            _verify_token("fake.token.value")
+        assert exc_info.value.status_code == 401
+        assert "ID token required" in exc_info.value.detail
+
+    def test_id_token_accepted(self) -> None:
+        from app.auth import _verify_token
+
+        claims = {"token_use": "id", "sub": "u1", "email": "a@b.com"}
+        with patch("app.auth.jwt.get_unverified_header", return_value={"kid": "k1"}):
+            with patch("app.auth._get_jwks", return_value={"keys": [{"kid": "k1"}]}):
+                with patch("app.auth.jwk.construct", return_value=MagicMock()):
+                    with patch("app.auth.jwt.decode", return_value=claims):
+                        result = _verify_token("fake.token.value")
+        assert result == claims
+

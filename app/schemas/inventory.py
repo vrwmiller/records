@@ -8,6 +8,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class AcquireRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     collection_type: str
     quantity: int = Field(default=1, ge=1, le=100)
     pressing_id: uuid.UUID | None = None
