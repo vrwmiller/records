@@ -290,7 +290,7 @@ This prevents an accidental `terraform apply` from re-creating the stack with pr
 
 ## Step 7 — Clean Up Terraform State (Key-Only or Full Bucket)
 
-The S3 state bucket is bootstrapped outside Terraform and must be removed manually after all managed resources are destroyed.
+The S3 state bucket is bootstrapped outside Terraform and must be cleaned up manually after all managed resources are destroyed.
 
 > **Important:** This bucket is designed to be shared across multiple environments using distinct backend keys (see comments in `infra/main.tf`). **Only delete the entire bucket** if you have confirmed that no other environment state keys remain inside it (i.e., this account is being fully decommissioned). If other environments still exist or may be added in the future, delete only the objects under this environment's backend key and its version history, rather than deleting the bucket.
 >
@@ -465,7 +465,10 @@ aws secretsmanager list-secrets \
   --output text
 
 # S3 buckets
-aws s3 ls --profile records | grep records
+aws s3api list-buckets \
+  --profile records \
+  --query 'Buckets[?contains(Name, `records`)].Name' \
+  --output text
 ```
 
 All queries should return empty results. If any resources remain, investigate and remove manually using the AWS Console or CLI.
