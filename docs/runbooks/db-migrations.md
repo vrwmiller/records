@@ -11,11 +11,11 @@ Config: `alembic.ini` (URL sourced from environment — not hardcoded)
 ```bash
 source venv/bin/activate        # activate Python environment
 export DATABASE_URL="postgresql+psycopg://<user>:<pass>@<host>/<db>"
-export COGNITO_USER_POOL_ID=<pool-id>   # required by app/config.py at import time
-export COGNITO_CLIENT_ID=<client-id>
 ```
 
-In production, source these values from Secrets Manager or your deployment environment. Never commit real credentials.
+`DATABASE_URL` is the only variable required to run Alembic. The Cognito and other application env vars are **not** needed for migrations — `app.config` is not imported at migration time (the import is lazy inside `get_engine()`, which Alembic does not call).
+
+In production, source `DATABASE_URL` from Secrets Manager or your deployment environment. Never commit real credentials.
 
 ---
 
