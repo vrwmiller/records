@@ -95,16 +95,29 @@ Each inventory item belongs to one of:
 
 ```sql
 inventory_item (
-  id PK,
-  pressing_id FK,
-  acquisition_batch_id UUID NULL,
-  collection_type TEXT CHECK (collection_type IN ('PERSONAL','DISTRIBUTION')),
-  condition_media,
-  condition_sleeve,
-  status,
-  created_at
+  id                   UUID PK,
+  pressing_id          UUID NULL,           -- future FK to pressing (deferred to Discogs integration phase)
+  acquisition_batch_id UUID NULL,          -- shared across batch-acquired copies
+  collection_type      TEXT NOT NULL CHECK (collection_type IN ('PERSONAL','DISTRIBUTION')),
+  condition_media      TEXT NULL,
+  condition_sleeve     TEXT NULL,
+  status               TEXT NOT NULL DEFAULT 'active'
+                            CHECK (status IN ('active','sold','lost','deleted')),
+  notes                TEXT NULL,
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at           TIMESTAMPTZ NULL     -- NULL = not deleted (soft-delete)
 )
 ```
+
+Indexes:
+
+- `ix_inventory_item_acquisition_batch_id` on `acquisition_batch_id` — supports grouping queries for batch-acquired copies
+
+Soft-delete contract:
+
+- `DELETE /inventory/{id}` sets `deleted_at = now()` and `status = 'deleted'`; the row is never physically removed
+- Read endpoints filter `deleted_at IS NULL` by default
+- Transaction and audit records for deleted items are preserved
 
 ---
 
@@ -112,15 +125,22 @@ inventory_item (
 
 ```sql
 inventory_transaction (
-  id PK,
-  inventory_item_id FK,
-  transaction_type,
-  price NUMERIC,
-  counterparty TEXT,
-  notes TEXT,
-  created_at TIMESTAMP
+  id                 UUID PK,
+  inventory_item_id  UUID FK REFERENCES inventory_item(id) ON DELETE RESTRICT,
+  transaction_type   TEXT NOT NULL CHECK (transaction_type IN
+                       ('acquisition','sale','transfer_collection','trade','loss','adjustment')),
+  price              NUMERIC(10,2) NULL,
+  counterparty       TEXT NULL,
+  notes              TEXT NULL,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 )
 ```
+
+Indexes:
+
+- `ix_inventory_transaction_inventory_item_id` on `inventory_item_id` — supports per-item history lookups
+
+FK constraint uses `ON DELETE RESTRICT`: transactions cannot be orphaned; inventory items must be soft-deleted rather than physically removed.
 
 ---
 

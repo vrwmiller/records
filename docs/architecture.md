@@ -60,11 +60,41 @@ flowchart TD
 - Tables:
   - `inventory_item`
   - `inventory_transaction`
-  - `pressing` (Discogs reference)
+  - `pressing` (Discogs reference, future)
 - Features:
   - Transaction logging
   - Collection type enforcement
   - PITR and snapshots
+
+#### 1a. ORM / Model Layer
+
+- SQLAlchemy 2.x declarative models in `app/models/`
+- `app/db.py` provides `Base` (shared metadata), `get_engine()` (lazy singleton), and `get_db()` (FastAPI session dependency)
+- Engine is initialized on first use to avoid import-time side effects
+
+#### 1b. Schema Migrations
+
+- Alembic manages all schema changes under `migrations/`
+- `DATABASE_URL` is resolved from the environment at runtime; no credentials are hardcoded in `alembic.ini`
+- New migrations must be created manually or via `alembic revision --autogenerate` after model changes
+- See `docs/runbooks/db-migrations.md` for operational procedures
+
+```mermaid
+flowchart TD
+  subgraph Backend["Backend (app/)"]
+    R[FastAPI Routers] --> SVC[Service Layer]
+    SVC --> ORM[SQLAlchemy Models]
+    ORM --> DB[(PostgreSQL RDS)]
+  end
+
+  subgraph Migrations["Schema Lifecycle (migrations/)"]
+    ALB[Alembic env.py] -->|reads| META[Base.metadata]
+    ALB -->|applies| DB
+  end
+
+  ENV[DATABASE_URL env var] -->|runtime only| ALB
+  ENV -->|runtime only| ORM
+```
 
 ### 2. API Layer
 
@@ -138,9 +168,12 @@ Runtime deployment note:
 - Python 3.14 virtual environment via `env.sh`
 - Required packages installed via `requirements.txt`
 - Workflow:
-  1. Source environment
-  2. Run server or scripts
-  3. Optional S3 upload for images
+  1. Source environment (`source venv/bin/activate` or `. env.sh`)
+  2. Set `DATABASE_URL` (and other required env vars) before running migrations or the server
+  3. Apply pending schema migrations: `alembic upgrade head`
+  4. Run server: `uvicorn app.main:app --reload`
+  5. Optional S3 upload for images
+- See `docs/runbooks/db-migrations.md` for full migration reference
 
 ### 5. Backup & Storage
 

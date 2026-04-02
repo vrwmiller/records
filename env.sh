@@ -3,7 +3,7 @@
 # Source this file to set up env variables and venv
 
 # --- Environment Variables ---
-export DATABASE_URL="postgresql://username:password@localhost:5432/recordranch"
+export DATABASE_URL="postgresql+psycopg://username:password@localhost:5432/recordranch"
 export AWS_REGION="us-east-1"
 export COGNITO_USER_POOL_ID="your_cognito_pool_id"
 export COGNITO_CLIENT_ID="your_cognito_app_client_id"
