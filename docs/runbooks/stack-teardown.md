@@ -258,18 +258,28 @@ This prevents an accidental `terraform apply` from re-creating the stack with pr
 
 The S3 state bucket is bootstrapped outside Terraform and must be removed manually after all managed resources are destroyed.
 
-> **Important:** This bucket is designed to be shared across multiple environments using distinct backend keys (see comments in `infra/main.tf`). **Only delete the entire bucket** if you have confirmed that no other environment state keys remain inside it (i.e., this account is being fully decommissioned). If other environments still exist or may be added in the future, delete only the objects under this environment's key prefix (`records/terraform.tfstate` and its version history) rather than deleting the bucket.
+> **Important:** This bucket is designed to be shared across multiple environments using distinct backend keys (see comments in `infra/main.tf`). **Only delete the entire bucket** if you have confirmed that no other environment state keys remain inside it (i.e., this account is being fully decommissioned). If other environments still exist or may be added in the future, delete only the objects under this environment's backend key and its version history, rather than deleting the bucket.
+>
+> Before running the prefix-only script, confirm the exact backend key used for this environment. The default dev key is `records/terraform.tfstate`; other environments override it at `terraform init` time (e.g., `-backend-config="key=records/prod/terraform.tfstate"`). Export the correct key into `TF_STATE_KEY_PREFIX` before running.
 
 **If other environments still exist — prefix-only cleanup:**
 
 ```python
-# Save as /tmp/purge-state-prefix.py and run: python3 /tmp/purge-state-prefix.py
-# Deletes only versions of 'records/terraform.tfstate', leaving other env keys intact.
-import subprocess, json
+# Save as /tmp/purge-state-prefix.py and run:
+#   TF_STATE_KEY_PREFIX="records/<env>/terraform.tfstate" python3 /tmp/purge-state-prefix.py
+# Deletes only versions under the backend key provided, leaving other env keys intact.
+import os, subprocess, json
 
 BUCKET = "records-tfstate-920835814440-us-east-1"
 PROFILE = "records"
-PREFIX = "records/terraform.tfstate"
+PREFIX = os.environ.get("TF_STATE_KEY_PREFIX")
+
+if not PREFIX:
+    raise SystemExit(
+        "TF_STATE_KEY_PREFIX is not set. Set it to the exact Terraform backend key "
+        "for this environment (e.g., 'records/terraform.tfstate' for dev, "
+        "'records/prod/terraform.tfstate' for prod) before running."
+    )
 
 key_marker = None
 version_id_marker = None
@@ -448,6 +458,6 @@ aws iam delete-user --user-name records --profile <admin-profile>
 
 - [ ] Confirm no remaining resources in Step 9
 - [ ] Delete or archive the local repository if the project is fully retired
-- [ ] Remove `ui/.env.local` from the local machine (contains Cognito credentials)
+- [ ] Remove `ui/.env.local` from the local machine (contains Cognito configuration / IDs)
 - [ ] Remove `infra/terraform.tfvars` from the local machine (contains environment configuration)
 - [ ] Archive or delete the `records` AWS CLI profile from `~/.aws/credentials` and `~/.aws/config`
