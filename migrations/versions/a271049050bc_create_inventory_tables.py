@@ -37,7 +37,8 @@ def upgrade() -> None:
         sa.Column("collection_type", sa.Text(), nullable=False),
         sa.Column("condition_media", sa.Text(), nullable=True),
         sa.Column("condition_sleeve", sa.Text(), nullable=True),
-        sa.Column("status", sa.Text(), nullable=False, server_default="active"),
+        sa.Column("status", sa.Text(), nullable=False, server_default=sa.text("'active'")),
+
         sa.Column("notes", sa.Text(), nullable=True),
         sa.Column(
             "created_at",

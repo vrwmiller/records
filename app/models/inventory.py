@@ -1,11 +1,11 @@
 import enum
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
-    Enum,
     ForeignKey,
     Numeric,
     Text,
@@ -59,16 +59,16 @@ class InventoryItem(Base):
         Uuid, nullable=True, index=True
     )
     collection_type: Mapped[str] = mapped_column(
-        Enum(CollectionType, name="collection_type_enum", create_type=False),
+        Text,
         nullable=False,
     )
     condition_media: Mapped[str | None] = mapped_column(Text, nullable=True)
     condition_sleeve: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(
-        Enum(ItemStatus, name="item_status_enum", create_type=False),
+        Text,
         nullable=False,
-        default=ItemStatus.ACTIVE,
-        server_default="active",
+        default="active",
+        server_default="'active'",
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -99,10 +99,10 @@ class InventoryTransaction(Base):
         Uuid, ForeignKey("inventory_item.id", ondelete="RESTRICT"), nullable=False, index=True
     )
     transaction_type: Mapped[str] = mapped_column(
-        Enum(TransactionType, name="transaction_type_enum", create_type=False),
+        Text,
         nullable=False,
     )
-    price: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
     counterparty: Mapped[str | None] = mapped_column(Text, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
