@@ -275,7 +275,7 @@ The destroy will take 15–30 minutes. RDS deletion is the longest step. If a fi
 
 Expected output on success:
 
-```
+```bash
 Destroy complete! Resources: N destroyed.
 ```
 
