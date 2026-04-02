@@ -15,6 +15,7 @@ function App() {
               path="/inventory"
               element={<InventoryPage user={user!} signOut={signOut!} />}
             />
+            <Route path="*" element={<Navigate to="/inventory" replace />} />
           </Routes>
         </BrowserRouter>
       )}
