@@ -16,13 +16,15 @@ Complete all items before proceeding.
 - [ ] **Take a final RDS snapshot** — Even if data recovery is not expected, a snapshot preserves the option. See the [backup-restore-drill runbook](backup-restore-drill.md) for snapshot procedure.
 - [ ] **Export S3 image assets** if needed — Download any images you want to retain before the bucket is destroyed.
 - [ ] **Revoke active sessions** — Sign out of the application and invalidate all active Cognito tokens if other sessions may be open.
-- [ ] **Confirm AWS credentials** — Verify you are targeting the correct account and region:
+- [ ] **Confirm AWS account and region** — Verify you are targeting the correct account and region:
 
   ```bash
   aws sts get-caller-identity --profile records
+  aws configure get region --profile records
   ```
 
-  Expected account: `920835814440`, region: `us-east-1`.
+  Expected account: `920835814440`.
+  Expected region:  `us-east-1`.
 
 - [ ] **Confirm Terraform version** — Must be >= 1.10.0:
 
@@ -129,15 +131,17 @@ Delete all users:
 ```bash
 aws cognito-idp list-users \
   --user-pool-id "$POOL_ID" \
+  --region us-east-1 \
   --profile records \
   --query 'Users[].Username' \
   --output text \
-| tr '\t' '\n' \
+| tr '	' '\n' \
 | while read -r username; do
   echo "Deleting user: $username"
   aws cognito-idp admin-delete-user \
     --user-pool-id "$POOL_ID" \
     --username "$username" \
+    --region us-east-1 \
     --profile records
 done
 ```
