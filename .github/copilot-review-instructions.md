@@ -48,6 +48,7 @@ An issue may be reported **only if all conditions are met**:
    - If uncertain, do not comment
 
 ---
+
 ## Operator Failure Test (Docs/Runbooks)
 
 For documentation and runbook PRs, apply this additional gate before reporting:
@@ -62,6 +63,7 @@ If the answer is no — the current wording is unambiguous, the command works, t
 - Observations that are technically accurate but have no operator impact
 
 ---
+
 ## Explicit Prohibitions
 
 Do NOT comment if the issue involves:

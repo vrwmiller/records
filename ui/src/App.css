@@ -31,3 +31,239 @@
 .app-content {
   padding: 2rem 1.5rem;
 }
+
+/* Toolbar */
+.inventory-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.inventory-toolbar h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.summary-counts {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: var(--color-muted, #6b7280);
+}
+
+.summary-total {
+  font-weight: 600;
+  color: var(--color-text, #111827);
+}
+
+/* Filter buttons */
+.filter-group {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.filter-btn {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  background: transparent;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  color: inherit;
+}
+
+.filter-btn.active {
+  background: #111827;
+  color: #fff;
+  border-color: #111827;
+}
+
+/* Acquire button */
+.acquire-btn {
+  padding: 0.375rem 0.875rem;
+  border-radius: 4px;
+  background: #111827;
+  color: #fff;
+  border: none;
+  font-size: 0.875rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.acquire-btn:hover {
+  background: #374151;
+}
+
+/* Acquire form */
+.acquire-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  margin-bottom: 1.25rem;
+  background: var(--color-surface, #f9fafb);
+}
+
+.acquire-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.acquire-form select,
+.acquire-form input[type='number'] {
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  min-width: 140px;
+}
+
+.acquire-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.confirm-btn {
+  padding: 0.375rem 0.875rem;
+  background: #111827;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.confirm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancel-btn {
+  padding: 0.375rem 0.875rem;
+  background: transparent;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+/* Status / error messages */
+.status-msg {
+  font-size: 0.9rem;
+  color: var(--color-muted, #6b7280);
+  padding: 2rem 0;
+}
+
+.error-msg {
+  color: #b91c1c;
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Inventory list */
+.inventory-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inventory-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.item-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 90px;
+}
+
+.collection-badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.125rem 0.4rem;
+  border-radius: 3px;
+  width: fit-content;
+}
+
+.collection-badge.personal {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.collection-badge.distribution {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-badge {
+  font-size: 0.6875rem;
+  color: var(--color-muted, #6b7280);
+  text-transform: capitalize;
+}
+
+.item-detail {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-text, #374151);
+}
+
+.item-notes {
+  color: var(--color-muted, #6b7280);
+  font-style: italic;
+}
+
+.item-date {
+  font-size: 0.8125rem;
+  color: var(--color-muted, #9ca3af);
+  margin-left: auto;
+}
+
+.delete-btn {
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--color-muted, #9ca3af);
+  cursor: pointer;
+}
+
+.delete-btn:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
