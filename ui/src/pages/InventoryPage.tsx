@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { AuthUser } from 'aws-amplify/auth'
+import { fetchAuthSession } from 'aws-amplify/auth'
 import {
   acquireItems,
   deleteItem,
@@ -28,6 +29,14 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
     collection_type: 'PERSONAL',
   })
   const [acquiring, setAcquiring] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    fetchAuthSession().then(({ tokens }) => {
+      const groups: unknown = tokens?.idToken?.payload?.['cognito:groups']
+      setIsAdmin(Array.isArray(groups) && groups.includes('admin'))
+    }).catch(() => setIsAdmin(false))
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -98,15 +107,17 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
               </div>
             )}
           </div>
-          <button
-            className="acquire-btn"
-            onClick={() => setShowAcquire(v => !v)}
-          >
-            + Acquire
-          </button>
+          {isAdmin && (
+            <button
+              className="acquire-btn"
+              onClick={() => setShowAcquire(v => !v)}
+            >
+              + Acquire
+            </button>
+          )}
         </div>
 
-        {showAcquire && (
+        {showAcquire && isAdmin && (
           <div className="acquire-form">
             <label>
               Collection
@@ -204,6 +215,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                   className="delete-btn"
                   onClick={() => void handleDelete(item.id)}
                   aria-label="Delete item"
+                  hidden={!isAdmin}
                 >
                   ×
                 </button>
