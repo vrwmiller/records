@@ -61,7 +61,9 @@ For docs-only PRs, additionally reject:
 - Resolve threads for fixed or rejected comments using thread IDs.
 
 9. Request re-review.
-- Tell user all threads are resolved and they can trigger a new reviewer pass.
+- Tell user all threads are resolved.
+- If any commits were made during this review pass, run `gh pr edit <number> --add-reviewer @copilot` to trigger a new Copilot reviewer pass.
+- If no commits were made (all comments were rejected or already addressed), do not re-request — inform the user instead.
 
 Response style requirements:
 - Findings first, ordered by severity.
