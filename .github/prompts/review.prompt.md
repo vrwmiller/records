@@ -40,6 +40,9 @@ For docs-only PRs, additionally reject:
 - Commit per batch with clear message.
 - If detect-secrets updates .secrets.baseline metadata, stage it and retry commit.
 - Reply to each comment with concise factual status.
+- Reply URL form: `repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies`
+  — the PR number is REQUIRED before `comments`; omitting it returns 404.
+  — use `--input /tmp/<file>.json` (never `-f body=`); delete the temp file after success.
 
 6. Keep docs in sync.
 - If fixes alter contracts, schema, workflow, or security behavior, update docs in same pass.
