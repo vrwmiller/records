@@ -130,9 +130,9 @@ resource "aws_apprunner_service" "app" {
           COGNITO_CLIENT_ID    = aws_cognito_user_pool_client.app.id
           DB_SECRET_ID         = aws_secretsmanager_secret.db_connection_info.name
           S3_IMAGE_BUCKET      = aws_s3_bucket.images.bucket
-          # CORS origins for local dev; same-origin production requests do not
-          # require CORS headers and are unaffected by this value.
-          CORS_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
+          # CORS_ORIGINS is intentionally omitted for production. The React UI is
+          # served from the same App Runner origin, so no cross-origin headers are
+          # needed. Set this variable in local dev (env.sh) if required.
         }
       }
     }

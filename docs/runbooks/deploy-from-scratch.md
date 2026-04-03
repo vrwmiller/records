@@ -38,13 +38,7 @@ terraform apply -target=aws_ecr_repository.app
 
 Confirm the plan and apply. Expected output: `aws_ecr_repository.app: Creation complete`.
 
-Then apply the full plan:
-
-```bash
-terraform apply
-```
-
-> App Runner will fail to create on first apply if the ECR repository has no image. If that happens, push the image (step 4) and re-run `terraform apply`.
+> Do not run the full `terraform apply` yet — App Runner requires an image in ECR before it can be created. Build and push the image first (steps 3–4), then complete the full apply in step 5.
 
 Capture outputs for use in later steps:
 
