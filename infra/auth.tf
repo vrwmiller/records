@@ -54,3 +54,9 @@ resource "aws_cognito_user_pool_client" "app" {
 
   prevent_user_existence_errors = "ENABLED"
 }
+
+resource "aws_cognito_user_group" "admin" {
+  name         = "admin"
+  user_pool_id = aws_cognito_user_pool.main.id
+  description  = "Users with write access to inventory state-changing endpoints"
+}

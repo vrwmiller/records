@@ -6,7 +6,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user
+from app.auth import get_current_user, require_role
 from app.db import get_db
 from app.schemas.inventory import (
     AcquireRequest,
@@ -19,6 +19,7 @@ from app.services import inventory as svc
 router = APIRouter(prefix="/inventory", tags=["inventory"])
 
 _Auth = Annotated[dict[str, Any], Depends(get_current_user)]
+_AdminAuth = Annotated[dict[str, Any], require_role("admin")]
 _DB = Annotated[Session, Depends(get_db)]
 
 
@@ -27,7 +28,7 @@ _DB = Annotated[Session, Depends(get_db)]
     response_model=list[InventoryItemResponse],
     status_code=status.HTTP_201_CREATED,
 )
-def acquire(body: AcquireRequest, db: _DB, _: _Auth) -> list[InventoryItemResponse]:
+def acquire(body: AcquireRequest, db: _DB, _: _AdminAuth) -> list[InventoryItemResponse]:
     items = svc.acquire(db, body)
     return [InventoryItemResponse.model_validate(i) for i in items]
 
@@ -56,7 +57,7 @@ def update_item(
     item_id: uuid.UUID,
     body: UpdateRequest,
     db: _DB,
-    _: _Auth,
+    _: _AdminAuth,
 ) -> InventoryItemResponse:
     try:
         item = svc.update_item(db, item_id, body)
@@ -66,7 +67,7 @@ def update_item(
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
-def delete_item(item_id: uuid.UUID, db: _DB, _: _Auth) -> None:
+def delete_item(item_id: uuid.UUID, db: _DB, _: _AdminAuth) -> None:
     try:
         svc.soft_delete(db, item_id)
     except svc.NotFoundError:
