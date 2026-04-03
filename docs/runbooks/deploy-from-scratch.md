@@ -49,7 +49,7 @@ Key values (update these after each fresh deploy — do not store credentials):
 | `cognito_user_pool_id` | Cognito user pool ID |
 | `cognito_client_id` | Cognito app client ID |
 | `ecr_repository_url` | ECR URL to push the image |
-| `apprunner_service_url` | Public HTTPS URL of the deployed app |
+| `apprunner_service_url` | Public HTTPS URL of the deployed app (available after step 5 only) |
 | `image_bucket_name` | S3 bucket for record images |
 | `db_secret_arn` | Secrets Manager secret for DB connection info |
 

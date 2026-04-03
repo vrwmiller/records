@@ -161,7 +161,7 @@ Current baseline infrastructure is defined as Terraform in `infra/` and includes
 
 Runtime deployment note:
 
-- Application runtime resources (for example App Runner/ECS service wiring) are intentionally deferred until the app image pipeline exists.
+- Application runtime resources: App Runner service provisioned via `infra/apprunner.tf`; ECS is not used.
 
 ### 4. Developer Environment
 

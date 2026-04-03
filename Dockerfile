@@ -26,22 +26,20 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 # Stage 2: Python application
 # ---------------------------------------------------------------------------
-FROM python:3.13-slim AS app
+FROM python:3.14-slim AS app
 
 WORKDIR /app
 
-# psycopg2-binary and psycopg[binary] are self-contained wheels that bundle
-# libpq, so no system libpq headers are needed at runtime. App Runner health
-# checks are HTTP probes at the platform level and do not require curl inside
-# the container. No additional system packages are required.
+# psycopg[binary] is a self-contained wheel that bundles libpq, so no system
+# libpq headers are needed at runtime. App Runner health checks are HTTP probes
+# at the platform level and do not require curl inside the container. No
+# additional system packages are required.
 
-# Install Python dependencies. requirements.txt installs psycopg2-binary for
-# Python < 3.14; we additionally install psycopg[binary] (psycopg3) so the
-# app and entrypoint can use the postgresql+psycopg:// DSN prefix consistently
-# across local dev (Python 3.14 + psycopg3) and this container.
+# Python 3.14 matches the documented developer environment. requirements.txt
+# selects psycopg[binary] (psycopg3) for Python >= 3.14, so only one driver
+# is installed — no psycopg2-binary.
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir 'psycopg[binary]>=3.2.1,<3.3'
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Install AWS CLI v1 via pip (awscli) for the entrypoint secret fetch.
 RUN pip install --no-cache-dir awscli
