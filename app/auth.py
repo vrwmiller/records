@@ -89,3 +89,25 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
 ) -> dict[str, Any]:
     return _verify_token(credentials.credentials)
+
+
+def require_role(role: str) -> Any:
+    """Return a FastAPI dependency that enforces membership in a Cognito group.
+
+    Raises HTTP 403 when the authenticated user's ``cognito:groups`` claim does
+    not include *role*.  Raises HTTP 403 when the ``Authorization`` header is
+    missing (via ``HTTPBearer``), and raises HTTP 401 when a presented bearer
+    token is invalid (via the ``get_current_user`` dependency).
+    """
+
+    def _check(claims: dict[str, Any] = Depends(get_current_user)) -> dict[str, Any]:
+        raw = claims.get("cognito:groups")
+        groups: list[str] = raw if isinstance(raw, list) else []
+        if role not in groups:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Role '{role}' required",
+            )
+        return claims
+
+    return Depends(_check)

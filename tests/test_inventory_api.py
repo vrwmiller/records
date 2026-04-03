@@ -35,7 +35,8 @@ from app.services.inventory import (
 # Helpers
 # ---------------------------------------------------------------------------
 
-_FAKE_USER = {"sub": "user-001", "email": "test@example.com"}
+_FAKE_USER = {"sub": "user-001", "email": "test@example.com", "cognito:groups": ["admin"]}
+_FAKE_USER_NO_ROLE = {"sub": "user-002", "email": "readonly@example.com"}
 
 
 def _fake_user() -> dict:
@@ -123,6 +124,14 @@ def mock_db() -> MagicMock:
 @pytest.fixture()
 def client(mock_db: MagicMock):  # type: ignore[no-untyped-def]
     app.dependency_overrides[get_current_user] = _fake_user
+    app.dependency_overrides[get_db] = lambda: mock_db
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture()
+def client_no_role(mock_db: MagicMock):  # type: ignore[no-untyped-def]
+    app.dependency_overrides[get_current_user] = lambda: _FAKE_USER_NO_ROLE
     app.dependency_overrides[get_db] = lambda: mock_db
     yield TestClient(app)
     app.dependency_overrides.clear()
@@ -252,6 +261,50 @@ class TestAuthRequired:
             assert response.status_code == 403
         finally:
             app.dependency_overrides.update(saved)
+
+
+class TestRoleEnforcement:
+    """Authenticated users without the admin role receive 403 on state-changing endpoints."""
+
+    def test_acquire_returns_403_without_admin_role(
+        self, client_no_role: TestClient
+    ) -> None:
+        response = client_no_role.post(
+            "/api/inventory/acquire",
+            json={"collection_type": "PERSONAL"},
+        )
+        assert response.status_code == 403
+
+    def test_update_returns_403_without_admin_role(
+        self, client_no_role: TestClient
+    ) -> None:
+        response = client_no_role.patch(
+            f"/api/inventory/{uuid.uuid4()}",
+            json={"condition_media": "VG+"},
+        )
+        assert response.status_code == 403
+
+    def test_delete_returns_403_without_admin_role(
+        self, client_no_role: TestClient
+    ) -> None:
+        response = client_no_role.delete(f"/api/inventory/{uuid.uuid4()}")
+        assert response.status_code == 403
+
+    def test_list_returns_200_without_admin_role(
+        self, client_no_role: TestClient
+    ) -> None:
+        with patch("app.routers.inventory.svc.list_items") as mock_list:
+            mock_list.return_value = []
+            response = client_no_role.get("/api/inventory")
+        assert response.status_code == 200
+
+    def test_summary_returns_200_without_admin_role(
+        self, client_no_role: TestClient
+    ) -> None:
+        with patch("app.routers.inventory.svc.get_summary") as mock_summary:
+            mock_summary.return_value = {"personal": 0, "distribution": 0, "total": 0}
+            response = client_no_role.get("/api/inventory/summary")
+        assert response.status_code == 200
 
 
 # ---------------------------------------------------------------------------

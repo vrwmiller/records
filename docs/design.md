@@ -304,6 +304,14 @@ GET  /imports/{id}/errors
 - UI visibility controls are convenience only and MUST NOT be treated as authorization controls.
 - On missing or invalid auth context, inventory state-changing requests MUST fail closed.
 
+#### Role Model
+
+- Role membership is determined by the `cognito:groups` claim in the Cognito ID token.
+- The `admin` Cognito group grants write access to all state-changing inventory endpoints.
+- Users not in the `admin` group are read-only: they may use `GET /inventory` and `GET /inventory/summary` but receive `403 Forbidden` on `POST /inventory/acquire`, `PATCH /inventory/{id}`, and `DELETE /inventory/{id}`.
+- Group membership is managed in Cognito by an administrator; it is not self-assignable.
+- The `admin` group is provisioned via Terraform (`infra/auth.tf`).
+
 ### Auth & Authorization for Inventory Read Endpoints
 
 - Inventory read endpoints exposed in authenticated UI flows MUST require authenticated access.
@@ -331,6 +339,7 @@ GET  /imports/{id}/errors
 - Update action opens edit workflow for the selected item
 - Delete action opens delete confirmation for the selected item
 - Transfer, update, and delete actions are not shown to unauthenticated users
+- Transfer, update, and delete actions are not shown to authenticated users who lack the `admin` role
 - `DELETE /inventory/{id}` represents a logical delete (soft delete) for auditability; item history remains preserved
 
 ### Bulk Operations
