@@ -37,6 +37,7 @@ Always apply:
 - Avoid speculative findings without execution path
 - Do not block on low-value style concerns
 - Do not accept insecure defaults for convenience
+- Do not commit directly to main — all changes must reach main through a merged pull request
 
 ## Coordinates with
 

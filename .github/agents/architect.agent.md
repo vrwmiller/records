@@ -39,6 +39,7 @@ Always apply:
 - Do not implement feature code when architecture/design work is the task
 - Do not allow undocumented contract changes
 - Do not weaken auditability guarantees
+- Do not commit directly to main — all changes must reach main through a merged pull request
 
 ## Coordinates with
 

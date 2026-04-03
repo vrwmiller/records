@@ -35,6 +35,8 @@ Always apply:
 
 ## Constraints
 
+- Do not commit directly to main — all changes must reach main through a merged pull request
+
 - No destructive forward migration by default
 - No schema changes without corresponding docs updates
 - No under-indexed patterns for expected query workloads

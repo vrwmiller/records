@@ -43,6 +43,7 @@ Always apply:
 - No mixing architectural detail into architecture doc when design doc should hold it
 - For lint-only tasks, do not change logic, behavior, or technical decisions; limit edits to style/format/structure.
 - Do not accept reviewer lint suggestions without verifying the cited rule against repository instruction files.
+- Do not commit directly to main — all changes must reach main through a merged pull request
 
 ## Coordinates with
 
