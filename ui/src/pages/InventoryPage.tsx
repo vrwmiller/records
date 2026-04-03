@@ -186,7 +186,9 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
         ) : error ? (
           <p className="error-msg">{error}</p>
         ) : items.length === 0 ? (
-          <p className="status-msg">No records yet. Use Acquire to add one.</p>
+          <p className="status-msg">
+            {isAdmin ? 'No records yet. Use Acquire to add one.' : 'No records yet.'}
+          </p>
         ) : (
           <ul className="inventory-list">
             {items.map(item => (
