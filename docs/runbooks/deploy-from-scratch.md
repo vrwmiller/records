@@ -141,14 +141,16 @@ See [cognito-operations.md](cognito-operations.md) for creating users and adding
 For the owner account:
 
 ```bash
+COGNITO_USER_POOL_ID=$(cd infra && terraform output -raw cognito_user_pool_id)
+
 aws cognito-idp admin-create-user \
-  --user-pool-id us-east-1_iM5s8RRVn \
+  --user-pool-id "$COGNITO_USER_POOL_ID" \
   --username records@hostileadmin.com \
   --user-attributes Name=email,Value=records@hostileadmin.com Name=email_verified,Value=true \
   --profile records --region us-east-1
 
 aws cognito-idp admin-add-user-to-group \
-  --user-pool-id us-east-1_iM5s8RRVn \
+  --user-pool-id "$COGNITO_USER_POOL_ID" \
   --username records@hostileadmin.com \
   --group-name admin \
   --profile records --region us-east-1

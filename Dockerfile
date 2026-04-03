@@ -30,9 +30,10 @@ FROM python:3.13-slim AS app
 
 WORKDIR /app
 
-# System dependencies needed by psycopg2-binary (libpq).
+# curl is used by App Runner health checks and the entrypoint. psycopg2-binary
+# and psycopg[binary] are self-contained wheels that bundle libpq — no system
+# libpq headers are needed at runtime.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
