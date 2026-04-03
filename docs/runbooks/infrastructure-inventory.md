@@ -63,3 +63,28 @@ Provide a concise reference of baseline infrastructure currently provisioned by 
 - Validation:
   - verify secret ARN output exists
   - verify secret value is present after apply
+
+## Container Registry
+
+- Resource type: Amazon ECR repository (`records-dev`)
+- Purpose: stores versioned Docker images built from the repo; App Runner pulls from here
+- Critical settings:
+  - `scan_on_push = true` — image vulnerability scanning on every push
+  - lifecycle policy retains last 10 images; older images are expired automatically
+- Validation:
+  - `aws ecr describe-repositories --profile records --region us-east-1`
+  - confirm lifecycle policy is attached after apply
+
+## Application Runtime
+
+- Resource type: AWS App Runner service (`records-dev`)
+- Purpose: runs the FastAPI backend and serves the pre-built React UI as static files
+- Critical settings:
+  - VPC connector routes egress through private subnets to reach RDS
+  - instance role grants Secrets Manager read for DB credentials and RDS master secret, plus S3 access for images
+  - `auto_deployments_enabled = false` — releases are triggered manually after pushing a new image
+  - health check: `GET /api/health` every 20 s
+- Validation:
+  - `terraform output apprunner_service_url` — open URL in browser and verify login page loads
+  - `curl <apprunner_service_url>/api/health` — expect `{"status":"ok"}`
+  - check App Runner logs: `aws logs tail /aws/apprunner/records-dev/application --profile records --region us-east-1`
