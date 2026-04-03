@@ -151,3 +151,30 @@ describe('InventoryPage — filter buttons', () => {
     await waitFor(() => expect(mockListItems).toHaveBeenCalledWith('PERSONAL'))
   })
 })
+
+describe('InventoryPage — delete flow', () => {
+  it('calls deleteItem and reloads when confirm dialog is accepted', async () => {
+    mockListItems.mockResolvedValue([sampleItem])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    renderPage()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Delete item' })).toBeInTheDocument())
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Delete item' }))
+    await waitFor(() => expect(mockDeleteItem).toHaveBeenCalledWith('item-1'))
+    expect(mockListItems).toHaveBeenCalledTimes(2) // initial + reload
+    vi.restoreAllMocks()
+  })
+
+  it('does not call deleteItem when confirm dialog is cancelled', async () => {
+    mockListItems.mockResolvedValue([sampleItem])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    renderPage()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Delete item' })).toBeInTheDocument())
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Delete item' }))
+    expect(mockDeleteItem).not.toHaveBeenCalled()
+    vi.restoreAllMocks()
+  })
+})

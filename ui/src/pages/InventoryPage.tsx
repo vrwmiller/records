@@ -130,9 +130,13 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                 min={1}
                 max={100}
                 value={acquireForm.quantity ?? 1}
-                onChange={e =>
-                  setAcquireForm(f => ({ ...f, quantity: Number(e.target.value) }))
-                }
+                onChange={e => {
+                  const n = parseInt(e.target.value, 10)
+                  setAcquireForm(f => ({
+                    ...f,
+                    quantity: isNaN(n) ? undefined : Math.min(100, Math.max(1, n)),
+                  }))
+                }}
               />
             </label>
             <div className="acquire-actions">
@@ -166,10 +170,10 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
           ))}
         </div>
 
-        {error && <p className="error-msg">{error}</p>}
-
         {loading ? (
           <p className="status-msg">Loading…</p>
+        ) : error ? (
+          <p className="error-msg">{error}</p>
         ) : items.length === 0 ? (
           <p className="status-msg">No records yet. Use Acquire to add one.</p>
         ) : (
