@@ -131,10 +131,10 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                 max={100}
                 value={acquireForm.quantity ?? 1}
                 onChange={e => {
-                  const n = parseInt(e.target.value, 10)
+                  const n = e.currentTarget.valueAsNumber
                   setAcquireForm(f => ({
                     ...f,
-                    quantity: isNaN(n) ? undefined : Math.min(100, Math.max(1, n)),
+                    quantity: Number.isNaN(n) ? undefined : Math.min(100, Math.max(1, Math.trunc(n))),
                   }))
                 }}
               />
