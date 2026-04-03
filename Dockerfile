@@ -30,12 +30,10 @@ FROM python:3.13-slim AS app
 
 WORKDIR /app
 
-# curl is used by App Runner health checks and the entrypoint. psycopg2-binary
-# and psycopg[binary] are self-contained wheels that bundle libpq — no system
-# libpq headers are needed at runtime.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# psycopg2-binary and psycopg[binary] are self-contained wheels that bundle
+# libpq, so no system libpq headers are needed at runtime. App Runner health
+# checks are HTTP probes at the platform level and do not require curl inside
+# the container. No additional system packages are required.
 
 # Install Python dependencies. requirements.txt installs psycopg2-binary for
 # Python < 3.14; we additionally install psycopg[binary] (psycopg3) so the
