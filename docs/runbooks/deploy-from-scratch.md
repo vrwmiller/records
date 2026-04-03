@@ -55,7 +55,7 @@ terraform output -json
 Key values (update these after each fresh deploy — do not store credentials):
 
 | Output | Description |
-|---|---|
+| --- | --- |
 | `cognito_user_pool_id` | Cognito user pool ID |
 | `cognito_client_id` | Cognito app client ID |
 | `ecr_repository_url` | ECR URL to push the image |
