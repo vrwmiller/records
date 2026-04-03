@@ -35,6 +35,7 @@ Use lowercase and hyphen-separated words.
 - Why
 - Validation performed
 - Risks and follow-ups
+- After opening a PR, immediately run `gh pr edit <number> --add-reviewer @copilot` to request a Copilot review.
 
 ## Review Response Rules
 
