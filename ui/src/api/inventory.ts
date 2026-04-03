@@ -39,11 +39,21 @@ async function authHeaders(): Promise<HeadersInit> {
 
 export async function listItems(collection?: string): Promise<InventoryItem[]> {
   const headers = await authHeaders()
-  const params = new URLSearchParams({ limit: '200' })
-  if (collection) params.set('collection', collection)
-  const res = await fetch(`/api/inventory?${params}`, { headers })
-  if (!res.ok) throw new Error(`Failed to fetch inventory (${res.status})`)
-  return res.json() as Promise<InventoryItem[]>
+  const PAGE_SIZE = 200
+  const MAX_ITEMS = 5000
+  const all: InventoryItem[] = []
+  let offset = 0
+  while (all.length < MAX_ITEMS) {
+    const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(offset) })
+    if (collection) params.set('collection', collection)
+    const res = await fetch(`/api/inventory?${params}`, { headers })
+    if (!res.ok) throw new Error(`Failed to fetch inventory (${res.status})`)
+    const page = (await res.json()) as InventoryItem[]
+    all.push(...page)
+    if (page.length < PAGE_SIZE) break
+    offset += PAGE_SIZE
+  }
+  return all
 }
 
 export async function getSummary(): Promise<SummaryResponse> {

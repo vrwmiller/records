@@ -46,6 +46,41 @@ describe('listItems', () => {
     mockFetch.mockReturnValue(jsonResponse({}, 500))
     await expect(listItems()).rejects.toThrow('Failed to fetch inventory (500)')
   })
+
+  it('fetches subsequent pages when a full page is returned', async () => {
+    const page1 = Array.from({ length: 200 }, (_, i) => ({ id: `item-${i}` }))
+    const page2 = [{ id: 'item-200' }, { id: 'item-201' }]
+    mockFetch
+      .mockReturnValueOnce(jsonResponse(page1))
+      .mockReturnValueOnce(jsonResponse(page2))
+    const result = await listItems()
+    expect(mockFetch).toHaveBeenCalledTimes(2)
+    const [url1] = mockFetch.mock.calls[0] as [string, RequestInit]
+    const [url2] = mockFetch.mock.calls[1] as [string, RequestInit]
+    expect(url1).toContain('offset=0')
+    expect(url2).toContain('offset=200')
+    expect(result).toHaveLength(202)
+  })
+
+  it('stops fetching when a partial page is returned', async () => {
+    const page1 = Array.from({ length: 200 }, (_, i) => ({ id: `item-${i}` }))
+    const page2 = Array.from({ length: 50 }, (_, i) => ({ id: `item-${200 + i}` }))
+    mockFetch
+      .mockReturnValueOnce(jsonResponse(page1))
+      .mockReturnValueOnce(jsonResponse(page2))
+    const result = await listItems()
+    expect(mockFetch).toHaveBeenCalledTimes(2)
+    expect(result).toHaveLength(250)
+  })
+
+  it('stops at the 5000-item guard to prevent unbounded fetches', async () => {
+    const fullPage = Array.from({ length: 200 }, (_, i) => ({ id: `item-${i}` }))
+    // always return a full page — guard must cut off after 5000 items (25 pages)
+    mockFetch.mockImplementation(() => jsonResponse(fullPage))
+    const result = await listItems()
+    expect(result).toHaveLength(5000)
+    expect(mockFetch).toHaveBeenCalledTimes(25)
+  })
 })
 
 describe('getSummary', () => {
