@@ -38,6 +38,7 @@ Always apply:
 - Do not bypass authorization or validation checks
 - Do not invent undocumented API contracts
 - Do not couple UI behavior to implicit backend assumptions
+- Do not commit directly to main — all changes must reach main through a merged pull request
 
 ## Coordinates with
 

@@ -7,7 +7,8 @@ applyTo: "**"
 
 ## Branching
 
-- Never commit directly to main.
+- **Never commit directly to main. No exceptions — not for docs, chore, hotfix, or any other reason.**
+- All changes reach main exclusively through a merged pull request.
 - Branch naming:
 - feat/<topic>
 - fix/<topic>

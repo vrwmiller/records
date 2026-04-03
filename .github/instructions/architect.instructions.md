@@ -38,6 +38,7 @@ These rules apply across all agents and all files unless explicitly overridden b
 - Schema changes must be backward-compatible and migration-safe.
 - Secrets are never committed to source control.
 - API contracts must be documented before implementation.
+- No direct commits to main — all changes reach main exclusively through a merged pull request.
 
 ## Instruction Coverage
 
