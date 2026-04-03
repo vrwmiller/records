@@ -1,11 +1,79 @@
+import { useCallback, useEffect, useState } from 'react'
 import type { AuthUser } from 'aws-amplify/auth'
+import {
+  acquireItems,
+  deleteItem,
+  getSummary,
+  listItems,
+  type AcquireRequest,
+  type InventoryItem,
+  type SummaryResponse,
+} from '../api/inventory'
 
 interface InventoryPageProps {
   user: AuthUser
   signOut: () => void
 }
 
+type CollectionFilter = 'ALL' | 'PERSONAL' | 'DISTRIBUTION'
+
 export function InventoryPage({ user, signOut }: InventoryPageProps) {
+  const [items, setItems] = useState<InventoryItem[]>([])
+  const [summary, setSummary] = useState<SummaryResponse | null>(null)
+  const [filter, setFilter] = useState<CollectionFilter>('ALL')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [showAcquire, setShowAcquire] = useState(false)
+  const [acquireForm, setAcquireForm] = useState<AcquireRequest>({
+    collection_type: 'PERSONAL',
+  })
+  const [acquiring, setAcquiring] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [itemData, summaryData] = await Promise.all([
+        listItems(filter === 'ALL' ? undefined : filter),
+        getSummary(),
+      ])
+      setItems(itemData)
+      setSummary(summaryData)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load inventory')
+    } finally {
+      setLoading(false)
+    }
+  }, [filter])
+
+  useEffect(() => { void load() }, [load])
+
+  async function handleAcquire() {
+    setAcquiring(true)
+    setError(null)
+    try {
+      await acquireItems(acquireForm)
+      setShowAcquire(false)
+      setAcquireForm({ collection_type: 'PERSONAL' })
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Acquire failed')
+    } finally {
+      setAcquiring(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!window.confirm('Delete this item? This cannot be undone.')) return
+    setError(null)
+    try {
+      await deleteItem(id)
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Delete failed')
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="app-header">
@@ -17,10 +85,128 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
           Sign out
         </button>
       </header>
+
       <section className="app-content">
-        <h2>Inventory</h2>
-        {/* TODO: fetch and render inventory items */}
-        <p>No records yet.</p>
+        <div className="inventory-toolbar">
+          <div className="toolbar-left">
+            <h2>Inventory</h2>
+            {summary && (
+              <div className="summary-counts">
+                <span>Personal: <strong>{summary.personal}</strong></span>
+                <span>Distribution: <strong>{summary.distribution}</strong></span>
+                <span className="summary-total">Total: <strong>{summary.total}</strong></span>
+              </div>
+            )}
+          </div>
+          <button
+            className="acquire-btn"
+            onClick={() => setShowAcquire(v => !v)}
+          >
+            + Acquire
+          </button>
+        </div>
+
+        {showAcquire && (
+          <div className="acquire-form">
+            <label>
+              Collection
+              <select
+                value={acquireForm.collection_type}
+                onChange={e =>
+                  setAcquireForm(f => ({
+                    ...f,
+                    collection_type: e.target.value as 'PERSONAL' | 'DISTRIBUTION',
+                  }))
+                }
+              >
+                <option value="PERSONAL">Personal</option>
+                <option value="DISTRIBUTION">Distribution</option>
+              </select>
+            </label>
+            <label>
+              Quantity
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={acquireForm.quantity ?? 1}
+                onChange={e =>
+                  setAcquireForm(f => ({ ...f, quantity: Number(e.target.value) }))
+                }
+              />
+            </label>
+            <div className="acquire-actions">
+              <button
+                className="confirm-btn"
+                onClick={() => void handleAcquire()}
+                disabled={acquiring}
+              >
+                {acquiring ? 'Acquiring…' : 'Confirm'}
+              </button>
+              <button
+                className="cancel-btn"
+                onClick={() => setShowAcquire(false)}
+                disabled={acquiring}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="filter-group">
+          {(['ALL', 'PERSONAL', 'DISTRIBUTION'] as CollectionFilter[]).map(f => (
+            <button
+              key={f}
+              className={`filter-btn${filter === f ? ' active' : ''}`}
+              onClick={() => setFilter(f)}
+            >
+              {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
+            </button>
+          ))}
+        </div>
+
+        {error && <p className="error-msg">{error}</p>}
+
+        {loading ? (
+          <p className="status-msg">Loading…</p>
+        ) : items.length === 0 ? (
+          <p className="status-msg">No records yet. Use Acquire to add one.</p>
+        ) : (
+          <ul className="inventory-list">
+            {items.map(item => (
+              <li key={item.id} className="inventory-item">
+                <div className="item-badges">
+                  <span className={`collection-badge ${item.collection_type.toLowerCase()}`}>
+                    {item.collection_type}
+                  </span>
+                  <span className="status-badge">{item.status}</span>
+                </div>
+                <div className="item-detail">
+                  {item.condition_media && (
+                    <span>Media: {item.condition_media}</span>
+                  )}
+                  {item.condition_sleeve && (
+                    <span>Sleeve: {item.condition_sleeve}</span>
+                  )}
+                  {item.notes && (
+                    <span className="item-notes">{item.notes}</span>
+                  )}
+                  <span className="item-date">
+                    Added {new Date(item.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+                <button
+                  className="delete-btn"
+                  onClick={() => void handleDelete(item.id)}
+                  aria-label="Delete item"
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </main>
   )
