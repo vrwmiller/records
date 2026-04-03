@@ -44,7 +44,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir 'psycopg[binary]>=3.2.1,<3.3'
 
-# Install AWS CLI v2 via pip (awscli) for the entrypoint secret fetch.
+# Install AWS CLI v1 via pip (awscli) for the entrypoint secret fetch.
 RUN pip install --no-cache-dir awscli
 
 # Copy application source.

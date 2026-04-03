@@ -55,7 +55,7 @@ resource "aws_iam_role_policy" "apprunner_instance" {
         Action = "secretsmanager:GetSecretValue"
         Resource = [
           aws_secretsmanager_secret.db_connection_info.arn,
-          "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:rds!*"
+          aws_db_instance.main.master_user_secret[0].secret_arn
         ]
       },
       {

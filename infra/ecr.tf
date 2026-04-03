@@ -19,7 +19,7 @@ resource "aws_ecr_lifecycle_policy" "app" {
   policy = jsonencode({
     rules = [{
       rulePriority = 1
-      description  = "Keep last 10 images; expire older untagged images"
+      description  = "Keep last 10 images regardless of tag status; expire the rest"
       selection = {
         tagStatus   = "any"
         countType   = "imageCountMoreThan"
