@@ -28,17 +28,13 @@ Expected: "Terraform has been successfully initialized."
 
 ## 2. Deploy the base infrastructure
 
-This creates networking, RDS, Cognito, S3, secrets, and ECR. App Runner is included but requires an image in ECR first (see step 3 for the correct order).
-
-Deploy ECR first so the repository exists before building the image:
+This creates networking, RDS, Cognito, S3, secrets, and ECR. App Runner is provisioned in this step, but its first deploy will fail if no image exists in ECR yet — that is expected and documented below.
 
 ```bash
-terraform apply -target=aws_ecr_repository.app
+terraform apply
 ```
 
-Confirm the plan and apply. Expected output: `aws_ecr_repository.app: Creation complete`.
-
-> Do not run the full `terraform apply` yet — App Runner requires an image in ECR before it can be created. Build and push the image first (steps 3–4), then complete the full apply in step 5.
+> **On first deploy only:** App Runner service creation will fail with an image-not-found error because ECR is empty. This is expected. All other resources (networking, Cognito, RDS, S3, secrets, ECR) are created successfully. The Terraform exit code will be non-zero; continue to step 3.
 
 Capture outputs for use in later steps:
 
@@ -96,9 +92,9 @@ Expected: `latest: digest: sha256:...` push confirmation.
 
 ---
 
-## 5. Apply remaining Terraform (creates App Runner service)
+## 5. Re-apply Terraform to create the App Runner service
 
-If App Runner was not yet created (because the image was not yet in ECR):
+With an image now in ECR, re-run apply to complete App Runner provisioning:
 
 ```bash
 cd infra/
@@ -188,7 +184,7 @@ aws apprunner describe-service \
 
 ## Known constraints
 
-- **First apply order**: ECR repo must exist and contain an image before `aws_apprunner_service` can be created. Use `-target=aws_ecr_repository.app` on first apply, then push an image, then run full `terraform apply`.
+- **First apply order**: App Runner requires an image in ECR before it can be created. On first deploy, `terraform apply` will provision all base infrastructure but fail on the App Runner service — this is expected. Push the image (steps 3–4) then re-run `terraform apply` (step 5) to complete provisioning.
 - **RDS is private**: The database is in private subnets and not directly reachable from a laptop. The container (running in the VPC via the VPC connector) reaches it normally. For direct DB access from a local machine, an SSM port-forward to the RDS host is required.
 - **Cognito IDs baked into the UI bundle**: If the Cognito user pool or client is replaced (e.g., in a new environment), rebuild and redeploy the image.
 - **No automatic redeployment**: `auto_deployments_enabled = false`. Only a pushed image plus `start-deployment` triggers a new release.

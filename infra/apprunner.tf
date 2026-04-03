@@ -102,15 +102,24 @@ resource "aws_cloudwatch_log_group" "apprunner" {
 # App Runner service
 #
 # IMPORTANT — first-deploy order:
-#   1. terraform apply -target=aws_ecr_repository.app   (create ECR repo)
-#   2. docker build + push to ECR                       (image must exist)
-#   3. terraform apply                                  (create this service)
+#   1. terraform apply         (provisions all infra; App Runner will fail — expected)
+#   2. docker build + push to ECR  (image must exist)
+#   3. terraform apply         (App Runner retries and succeeds)
 #
 # auto_deployments_enabled is false; redeploy by pushing a new image then
 # triggering a manual deployment from the console or CLI.
 # ---------------------------------------------------------------------------
 resource "aws_apprunner_service" "app" {
   service_name = "records-${var.environment}"
+
+  # Ensure the log group is managed by Terraform (with the desired retention
+  # policy) before App Runner starts and auto-creates it with default settings.
+  # Also waits for the ECR access role policy to be attached before service
+  # creation so image pulls succeed immediately.
+  depends_on = [
+    aws_cloudwatch_log_group.apprunner,
+    aws_iam_role_policy_attachment.apprunner_ecr,
+  ]
 
   source_configuration {
     authentication_configuration {
@@ -163,6 +172,4 @@ resource "aws_apprunner_service" "app" {
   }
 
   tags = { Name = "records-${var.environment}-app-runner" }
-
-  depends_on = [aws_iam_role_policy_attachment.apprunner_ecr]
 }
