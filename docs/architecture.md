@@ -158,10 +158,7 @@ Current baseline infrastructure is defined as Terraform in `infra/` and includes
   - Public access blocked, versioning enabled, server-side encryption enabled
 - Secret management:
   - Database credentials stored in AWS Secrets Manager
-
-Runtime deployment note:
-
-- Application runtime resources (for example App Runner/ECS service wiring) are intentionally deferred until the app image pipeline exists.
+- Application runtime: Lambda function (container image) behind a Lambda Function URL, provisioned via `infra/lambda.tf`; credentials fetched from Secrets Manager at cold start via `app/handler.py`
 
 ### 4. Developer Environment
 
