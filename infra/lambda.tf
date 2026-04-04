@@ -1,0 +1,140 @@
+# ---------------------------------------------------------------------------
+# IAM — Lambda execution role
+# ---------------------------------------------------------------------------
+resource "aws_iam_role" "lambda" {
+  name = "records-${var.environment}-lambda"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+
+  tags = { Name = "records-${var.environment}-lambda-role" }
+}
+
+# Grants CloudWatch Logs access and the EC2 permissions needed to attach the
+# function to the VPC (create/delete ENIs in the private subnets).
+resource "aws_iam_role_policy_attachment" "lambda_vpc" {
+  role       = aws_iam_role.lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}
+
+resource "aws_iam_role_policy" "lambda" {
+  name = "records-${var.environment}-lambda"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        # Allow the handler to fetch DB connection info and the RDS-managed
+        # master password at cold start. The managed master secret ARN starts
+        # with "rds!" and is not known until the DB instance is created.
+        Sid    = "SecretsManagerRead"
+        Effect = "Allow"
+        Action = "secretsmanager:GetSecretValue"
+        Resource = [
+          aws_secretsmanager_secret.db_connection_info.arn,
+          aws_db_instance.main.master_user_secret[0].secret_arn
+        ]
+      },
+      {
+        Sid    = "S3Images"
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.images.arn,
+          "${aws_s3_bucket.images.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+
+# ---------------------------------------------------------------------------
+# CloudWatch log group for Lambda
+#
+# Manage explicitly so retention is enforced. Without this, Lambda auto-creates
+# the group with infinite retention on first invocation.
+# ---------------------------------------------------------------------------
+resource "aws_cloudwatch_log_group" "lambda" {
+  name              = "/aws/lambda/records-${var.environment}"
+  retention_in_days = var.app_log_retention_days
+
+  tags = { Name = "records-${var.environment}-lambda-logs" }
+}
+
+# ---------------------------------------------------------------------------
+# Lambda function (container image)
+#
+# IMPORTANT — first-deploy order:
+#   1. terraform apply   (provisions all infra; Lambda creation will fail if
+#                         ECR is empty — that is expected)
+#   2. docker build + push to ECR  (image must exist before Lambda can start)
+#   3. terraform apply   (Lambda creation succeeds on retry)
+#
+# To redeploy after pushing a new image:
+#   aws lambda update-function-code \
+#     --function-name records-<environment> \
+#     --image-uri <ecr_repository_url>:latest \
+#     --profile records --region us-east-1
+# ---------------------------------------------------------------------------
+resource "aws_lambda_function" "app" {
+  function_name = "records-${var.environment}"
+  package_type  = "Image"
+  image_uri     = "${aws_ecr_repository.app.repository_url}:latest"
+  role          = aws_iam_role.lambda.arn
+
+  timeout     = 30
+  memory_size = 512
+
+  vpc_config {
+    subnet_ids         = aws_subnet.private[*].id
+    security_group_ids = [aws_security_group.app.id]
+  }
+
+  environment {
+    variables = {
+      # AWS_REGION is a reserved Lambda env var set automatically by the runtime;
+      # it must not be set explicitly here.
+      COGNITO_USER_POOL_ID = aws_cognito_user_pool.main.id
+      COGNITO_CLIENT_ID    = aws_cognito_user_pool_client.app.id
+      DB_SECRET_ID         = aws_secretsmanager_secret.db_connection_info.name
+      S3_IMAGE_BUCKET      = aws_s3_bucket.images.bucket
+      # Empty string overrides the app default (localhost origins) so no
+      # cross-origin requests are allowed in production. The React UI is
+      # served from the same Function URL origin and does not need CORS.
+      CORS_ORIGINS = ""
+    }
+  }
+
+  depends_on = [
+    aws_cloudwatch_log_group.lambda,
+    aws_iam_role_policy_attachment.lambda_vpc,
+    aws_iam_role_policy.lambda,
+  ]
+
+  tags = { Name = "records-${var.environment}-lambda" }
+}
+
+# ---------------------------------------------------------------------------
+# Lambda Function URL — public HTTPS endpoint, no AWS-level auth
+#
+# Cognito authentication is enforced at the application layer. The Function
+# URL CORS block is intentionally omitted; FastAPI's CORSMiddleware manages
+# all CORS response headers, and configuring both would produce duplicate
+# headers that break browsers.
+# ---------------------------------------------------------------------------
+resource "aws_lambda_function_url" "app" {
+  function_name      = aws_lambda_function.app.function_name
+  authorization_type = "NONE"
+}

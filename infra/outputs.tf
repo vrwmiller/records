@@ -44,3 +44,13 @@ output "image_bucket_name" {
   description = "S3 bucket name for record images"
   value       = aws_s3_bucket.images.bucket
 }
+
+output "ecr_repository_url" {
+  description = "ECR repository URL for the app image"
+  value       = aws_ecr_repository.app.repository_url
+}
+
+output "lambda_function_url" {
+  description = "Public HTTPS URL for the Lambda Function URL (null until second terraform apply)"
+  value       = try(aws_lambda_function_url.app.function_url, null)
+}

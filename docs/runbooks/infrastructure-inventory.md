@@ -6,12 +6,12 @@ Provide a concise reference of baseline infrastructure currently provisioned by 
 
 ## Networking
 
-- Resource type: VPC, subnets, route table, internet gateway, security groups
+- Resource type: VPC, subnets, route table, internet gateway, NAT gateway, security groups
 - Purpose: isolate app and data tiers while providing controlled ingress and egress
 - Critical settings:
   - private and public subnet split
   - DB ingress restricted to app security group
-  - app ingress allows HTTPS
+  - NAT gateway provides internet egress from private subnets (required for Lambda VPC access to Secrets Manager and external APIs)
 - Validation:
   - `terraform validate`
   - `terraform plan`
@@ -59,7 +59,34 @@ Provide a concise reference of baseline infrastructure currently provisioned by 
 - Purpose: central secret source for runtime DB authentication
 - Critical settings:
   - credentials are generated and stored as structured JSON
-  - app must retrieve credentials at runtime
+  - app fetches credentials at Lambda cold start via `app/handler.py`
 - Validation:
   - verify secret ARN output exists
   - verify secret value is present after apply
+
+## Container Registry
+
+- Resource type: Amazon ECR repository (`records-dev`)
+- Purpose: stores versioned Docker images built from the repo; Lambda pulls from here
+- Critical settings:
+  - `scan_on_push = true` — image vulnerability scanning on every push
+  - lifecycle policy retains last 10 images; older images are expired automatically
+- Validation:
+  - `aws ecr describe-repositories --profile records --region us-east-1`
+  - confirm lifecycle policy is attached after apply
+
+## Application Runtime
+
+- Resource type: AWS Lambda function (`records-dev`) + Lambda Function URL
+- Purpose: runs the FastAPI backend and serves the pre-built React UI as static files
+- Critical settings:
+  - VPC-attached to private subnets via the app security group so the function can reach the private RDS instance
+  - execution role grants Secrets Manager read for DB credentials and RDS master secret, plus S3 access for images
+  - DB credentials are fetched from Secrets Manager at cold start; `DATABASE_URL` is not stored as a Lambda env var
+  - Function URL `authorization_type = "NONE"` — authentication is enforced at the application layer by Cognito JWT validation
+  - migrations are **not** run at startup; run `alembic upgrade head` manually before any schema-bearing deploy
+- Validation:
+  - `URL=$(terraform -chdir=infra output -raw lambda_function_url)` — retrieve the Function URL from repo root
+  - open `$URL` in a browser and verify the login page loads
+  - `curl "${URL}api/health"` — expect `{"status":"ok"}`
+  - check Lambda logs: `aws logs tail /aws/lambda/records-dev --profile records --region us-east-1`

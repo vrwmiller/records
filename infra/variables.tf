@@ -87,6 +87,12 @@ variable "db_log_retention_days" {
   default     = 30
 }
 
+variable "app_log_retention_days" {
+  description = "Retention period in days for the Lambda function CloudWatch log group"
+  type        = number
+  default     = 30
+}
+
 variable "allow_major_version_upgrade" {
   description = "Allow major PostgreSQL engine version upgrades. Set to true only during a planned major-version upgrade apply; restore to false after."
   type        = bool
