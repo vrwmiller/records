@@ -17,14 +17,16 @@ The React UI is served as static files by FastAPI from the same container (`ui/d
 **Scaling**: Minimum 1 instance always running. Scales up under load, back to 1 at idle. Never
 reaches zero automatically.
 
-**Pros**
+#### Pros
+
 - No cold starts — instance is always warm, requests are served immediately
 - Simplest operational model — point at an ECR image, done
 - TLS and health checks built in
 - VPC connector provides private-subnet egress to RDS with no extra components
 - Manual pause is available (explicit action, ~30s to resume) for extended idle periods
 
-**Cons**
+#### Cons
+
 - Continuous compute cost even at zero traffic (~$25–30/month for 512 CPU / 1024 MB)
 - No automatic idle scale-down
 
@@ -37,12 +39,14 @@ is practical; S3 + CloudFront is the correct pairing).
 
 **Scaling**: True scale-to-zero. No requests = no instances = no compute cost.
 
-**Pros**
+#### Pros
+
 - Near-zero compute cost at low traffic (Lambda free tier: 1M requests/month, 400k GB-seconds)
 - No idle cost — baseline is only RDS (~$13–15/month)
 - Scales per-request automatically
 
-**Cons**
+#### Cons
+
 - **Cold starts**: 2–5 seconds on first request after an idle period. Unavoidable without a
   warming strategy (scheduled pings, Provisioned Concurrency at extra cost)
 - **DB connection management**: Lambda's stateless per-invocation model conflicts with
@@ -62,7 +66,7 @@ is practical; S3 + CloudFront is the correct pairing).
 ## Cost Comparison (estimated monthly, single-user workload)
 
 | Option | Compute | RDS | RDS Proxy | Total |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | App Runner | ~$25–30 | ~$13–15 | — | **~$40–45** |
 | Lambda (no proxy) | ~$0 | ~$13–15 | — | **~$13–15** |
 | Lambda + RDS Proxy | ~$0 | ~$13–15 | ~$11 | **~$25** |
@@ -106,7 +110,7 @@ single-environment project.
 **Decision: switch to zip-based deployment.**
 
 | | Container image | Zip |
-|---|---|---|
+| --- | --- | --- |
 | Local tooling required | Docker | None (pip + zip) |
 | Runtime | Any (custom image) | AWS managed runtime |
 | Python version | 3.14 (matches local venv) | 3.13 (latest managed) |
