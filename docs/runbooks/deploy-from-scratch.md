@@ -69,6 +69,7 @@ Build the multi-stage Docker image from the repo root:
 
 ```bash
 docker build \
+  --platform linux/amd64 \
   --build-arg VITE_COGNITO_USER_POOL_ID="$COGNITO_USER_POOL_ID" \
   --build-arg VITE_COGNITO_CLIENT_ID="$COGNITO_CLIENT_ID" \
   -t records-app:latest .
@@ -128,7 +129,11 @@ PASSWORD=$(aws secretsmanager get-secret-value \
   --profile records --region us-east-1 \
   --query SecretString --output text | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['password'])")
 
-export DATABASE_URL="postgresql+psycopg://${USERNAME}:${PASSWORD}@${HOST}:${PORT}/${DBNAME}"
+# URL-encode credentials — AWS-generated passwords routinely contain @, :, /
+ENCODED_USERNAME=$(printf '%s' "$USERNAME" | python3 -c "import sys,urllib.parse; print(urllib.parse.quote_plus(sys.stdin.read().strip()))")
+ENCODED_PASSWORD=$(printf '%s' "$PASSWORD" | python3 -c "import sys,urllib.parse; print(urllib.parse.quote_plus(sys.stdin.read().strip()))")
+
+export DATABASE_URL="postgresql+psycopg://${ENCODED_USERNAME}:${ENCODED_PASSWORD}@${HOST}:${PORT}/${DBNAME}"
 alembic upgrade head
 ```
 
@@ -175,8 +180,8 @@ aws cognito-idp admin-add-user-to-group \
 ## 9. Redeploy after code changes
 
 1. Build a new image (step 3 above).
-2. Push to ECR (step 4).
-3. Update the Lambda function code:
+1. Push to ECR (step 4).
+1. Update the Lambda function code:
 
 ```bash
 ECR_URL=$(cd infra && terraform output -raw ecr_repository_url)
@@ -187,7 +192,7 @@ aws lambda update-function-code \
   --profile records --region us-east-1
 ```
 
-4. If the deploy includes schema changes, run migrations (step 6) **before** updating the function code.
+1. If the deploy includes schema changes, run migrations (step 6) **before** updating the function code.
 
 ---
 
