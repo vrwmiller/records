@@ -92,9 +92,9 @@ resource "aws_lambda_function" "app" {
   runtime       = "python3.13"
   handler       = "app.handler.handler"
   filename      = "${path.module}/../lambda.zip"
-  # try() allows terraform validate to pass when lambda.zip has not been built yet.
+  # Guard the hash calculation so validate/plan succeed before lambda.zip exists.
   # Build lambda.zip before running terraform apply (see deploy-from-scratch.md).
-  source_code_hash = try(filebase64sha256("${path.module}/../lambda.zip"), "")
+  source_code_hash = fileexists("${path.module}/../lambda.zip") ? filebase64sha256("${path.module}/../lambda.zip") : null
   role             = aws_iam_role.lambda.arn
 
   timeout     = 30
