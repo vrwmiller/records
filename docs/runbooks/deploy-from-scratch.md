@@ -18,8 +18,7 @@ Step-by-step procedure to deploy the full Record Ranch application stack to AWS 
 ## 1. Initialize Terraform (first time only, or after provider changes)
 
 ```bash
-cd infra/
-terraform init
+terraform -chdir=infra init
 ```
 
 Expected: "Terraform has been successfully initialized."
@@ -31,7 +30,7 @@ Expected: "Terraform has been successfully initialized."
 This creates networking, RDS, Cognito, S3, secrets, and ECR. Lambda is provisioned in this step, but its first deploy will fail if no image exists in ECR yet — that is expected and documented below.
 
 ```bash
-terraform apply
+terraform -chdir=infra apply
 ```
 
 > **On first deploy only:** Lambda function creation will fail with an image-not-found error because ECR is empty. This is expected. All other resources (networking, Cognito, RDS, S3, secrets, ECR) are created successfully. The Terraform exit code will be non-zero; continue to step 3.
@@ -39,7 +38,7 @@ terraform apply
 Capture outputs for use in later steps:
 
 ```bash
-terraform output -json
+terraform -chdir=infra output -json
 ```
 
 Key values (update these after each fresh deploy — do not store credentials):
@@ -60,9 +59,9 @@ Key values (update these after each fresh deploy — do not store credentials):
 The Vite build bakes Cognito IDs into the JavaScript bundle at compile time. Read them from Terraform outputs before building:
 
 ```bash
-COGNITO_USER_POOL_ID=$(cd infra && terraform output -raw cognito_user_pool_id)
-COGNITO_CLIENT_ID=$(cd infra && terraform output -raw cognito_client_id)
-ECR_URL=$(cd infra && terraform output -raw ecr_repository_url)
+COGNITO_USER_POOL_ID=$(terraform -chdir=infra output -raw cognito_user_pool_id)
+COGNITO_CLIENT_ID=$(terraform -chdir=infra output -raw cognito_client_id)
+ECR_URL=$(terraform -chdir=infra output -raw ecr_repository_url)
 ```
 
 Build the multi-stage Docker image from the repo root:
@@ -98,8 +97,7 @@ Expected: `latest: digest: sha256:...` push confirmation.
 With an image now in ECR, re-run apply to complete Lambda provisioning:
 
 ```bash
-cd infra/
-terraform apply
+terraform -chdir=infra apply
 ```
 
 Expected: Lambda function and Function URL are created successfully.
@@ -112,7 +110,7 @@ Expected: Lambda function and Function URL are created successfully.
 
 ```bash
 # Build DATABASE_URL from the Terraform-managed Secrets Manager ARN (environment-agnostic)
-DB_SECRET_ARN=$(cd infra && terraform output -raw db_secret_arn)
+DB_SECRET_ARN=$(terraform -chdir=infra output -raw db_secret_arn)
 CONN=$(aws secretsmanager get-secret-value \
   --secret-id "$DB_SECRET_ARN" \
   --profile records --region us-east-1 \
@@ -184,7 +182,7 @@ aws cognito-idp admin-add-user-to-group \
 1. Update the Lambda function code:
 
 ```bash
-ECR_URL=$(cd infra && terraform output -raw ecr_repository_url)
+ECR_URL=$(terraform -chdir=infra output -raw ecr_repository_url)
 
 aws lambda update-function-code \
   --function-name records-dev \
