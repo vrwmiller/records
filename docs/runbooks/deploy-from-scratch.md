@@ -142,7 +142,7 @@ alembic upgrade head
 ## 7. Verify the deployment
 
 ```bash
-APP_URL=$(cd infra && terraform output -raw lambda_function_url)
+APP_URL=$(terraform -chdir=infra output -raw lambda_function_url)
 curl -s "${APP_URL}api/health"
 # Expected: {"status":"ok"}
 ```
@@ -158,7 +158,7 @@ See [cognito-operations.md](cognito-operations.md) for creating users and adding
 For the owner account:
 
 ```bash
-COGNITO_USER_POOL_ID=$(cd infra && terraform output -raw cognito_user_pool_id)
+COGNITO_USER_POOL_ID=$(terraform -chdir=infra output -raw cognito_user_pool_id)
 
 aws cognito-idp admin-create-user \
   --user-pool-id "$COGNITO_USER_POOL_ID" \

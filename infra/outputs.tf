@@ -51,6 +51,6 @@ output "ecr_repository_url" {
 }
 
 output "lambda_function_url" {
-  description = "Public HTTPS URL for the Lambda Function URL"
-  value       = aws_lambda_function_url.app.function_url
+  description = "Public HTTPS URL for the Lambda Function URL (null until second terraform apply)"
+  value       = try(aws_lambda_function_url.app.function_url, null)
 }
