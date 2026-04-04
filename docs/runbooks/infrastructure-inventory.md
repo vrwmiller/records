@@ -86,6 +86,7 @@ Provide a concise reference of baseline infrastructure currently provisioned by 
   - Function URL `authorization_type = "NONE"` — authentication is enforced at the application layer by Cognito JWT validation
   - migrations are **not** run at startup; run `alembic upgrade head` manually before any schema-bearing deploy
 - Validation:
-  - `terraform output lambda_function_url` — open URL in browser and verify login page loads
-  - `curl <lambda_function_url>api/health` — expect `{"status":"ok"}`
+  - `URL=$(terraform -chdir=infra output -raw lambda_function_url)` — retrieve the Function URL from repo root
+  - open `$URL` in a browser and verify the login page loads
+  - `curl "${URL}api/health"` — expect `{"status":"ok"}`
   - check Lambda logs: `aws logs tail /aws/lambda/records-dev --profile records --region us-east-1`

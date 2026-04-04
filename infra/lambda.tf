@@ -84,7 +84,7 @@ resource "aws_cloudwatch_log_group" "lambda" {
 #
 # To redeploy after pushing a new image:
 #   aws lambda update-function-code \
-#     --function-name records-${environment} \
+#     --function-name records-<environment> \
 #     --image-uri <ecr_repository_url>:latest \
 #     --profile records --region us-east-1
 # ---------------------------------------------------------------------------
