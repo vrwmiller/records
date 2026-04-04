@@ -39,10 +39,6 @@ WORKDIR /var/task
 COPY requirements.txt ./
 RUN pip install --no-cache-dir awslambdaric -r requirements.txt
 
-# Install AWS CLI v1 via pip (awscli) for local troubleshooting; not used
-# by the Lambda handler at runtime.
-RUN pip install --no-cache-dir awscli
-
 # Copy application source.
 COPY app/ ./app/
 

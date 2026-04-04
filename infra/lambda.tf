@@ -120,6 +120,7 @@ resource "aws_lambda_function" "app" {
   depends_on = [
     aws_cloudwatch_log_group.lambda,
     aws_iam_role_policy_attachment.lambda_vpc,
+    aws_iam_role_policy.lambda,
   ]
 
   tags = { Name = "records-${var.environment}-lambda" }

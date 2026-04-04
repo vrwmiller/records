@@ -13,7 +13,7 @@ IMPORTANT — Migrations are NOT run here. Before deploying any image that
 includes schema changes, run migrations manually:
 
     source env.sh
-    # Set DATABASE_URL from Secrets Manager (see deploy-from-scratch.md step 5)
+    # Set DATABASE_URL from Secrets Manager (see deploy-from-scratch.md step 6)
     alembic upgrade head
 """
 

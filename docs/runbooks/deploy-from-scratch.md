@@ -110,9 +110,10 @@ Expected: Lambda function and Function URL are created successfully.
 **Migrations do not run at Lambda startup.** Before the first use, and before any deploy that includes schema changes, run migrations manually from your local machine with `DATABASE_URL` set from Secrets Manager:
 
 ```bash
-# Build DATABASE_URL from Secrets Manager (adapt to your shell — see scripts/set-db-url.sh if present)
+# Build DATABASE_URL from the Terraform-managed Secrets Manager ARN (environment-agnostic)
+DB_SECRET_ARN=$(cd infra && terraform output -raw db_secret_arn)
 CONN=$(aws secretsmanager get-secret-value \
-  --secret-id records/dev/db-connection-info \
+  --secret-id "$DB_SECRET_ARN" \
   --profile records --region us-east-1 \
   --query SecretString --output text)
 
