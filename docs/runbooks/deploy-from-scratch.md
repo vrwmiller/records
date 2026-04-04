@@ -8,7 +8,6 @@ Step-by-step procedure to deploy the full Record Ranch application stack to AWS 
 
 - AWS CLI configured with the `records` profile (`aws configure --profile records`)
 - Terraform >= 1.10.0 installed
-- Docker installed and running
 - Node 24 installed (via nvm: `. ~/.nvm/nvm.sh && nvm use`)
 - Python 3.14 virtual environment (see `env.sh`)
 - Repository cloned and `venv` activated
@@ -27,13 +26,13 @@ Expected: "Terraform has been successfully initialized."
 
 ## 2. Deploy the base infrastructure
 
-This creates networking, RDS, Cognito, S3, secrets, and ECR. Lambda is provisioned in this step, but its first deploy will fail if no image exists in ECR yet — that is expected and documented below.
+This creates networking, RDS, Cognito, S3, and secrets. Lambda is provisioned here too — the zip must exist before apply (build it in step 3 first on a first deploy).
+
+> **On first deploy:** build the Lambda zip package (step 3) before running `terraform apply`. The `filename` in `lambda.tf` references `../lambda.zip` from the `infra/` directory; if the file does not exist, `terraform apply` will fail.
 
 ```bash
 terraform -chdir=infra apply
 ```
-
-> **On first deploy only:** Lambda function creation will fail with an image-not-found error because ECR is empty. This is expected. All other resources (networking, Cognito, RDS, S3, secrets, ECR) are created successfully. The Terraform exit code will be non-zero; continue to step 3.
 
 Capture outputs for use in later steps:
 
@@ -47,54 +46,68 @@ Key values (update these after each fresh deploy — do not store credentials):
 | --- | --- |
 | `cognito_user_pool_id` | Cognito user pool ID |
 | `cognito_client_id` | Cognito app client ID |
-| `ecr_repository_url` | ECR URL to push the image |
-| `lambda_function_url` | Public HTTPS URL of the deployed app (available after step 5 only) |
+| `lambda_function_url` | Public HTTPS URL of the deployed app |
 | `image_bucket_name` | S3 bucket for record images |
 | `db_secret_arn` | Secrets Manager secret for DB connection info |
 
 ---
 
-## 3. Build the React UI and Docker image
+## 3. Build the Lambda zip package and React UI
+
+The zip package must be built before `terraform apply` on a first deploy (it is also rebuilt on every code or dependency change).
+
+### 3a. Build the React UI
 
 The Vite build bakes Cognito IDs into the JavaScript bundle at compile time. Read them from Terraform outputs before building:
 
 ```bash
 COGNITO_USER_POOL_ID=$(terraform -chdir=infra output -raw cognito_user_pool_id)
 COGNITO_CLIENT_ID=$(terraform -chdir=infra output -raw cognito_client_id)
-ECR_URL=$(terraform -chdir=infra output -raw ecr_repository_url)
 ```
-
-Build the multi-stage Docker image from the repo root:
 
 ```bash
-docker build \
-  --platform linux/amd64 \
-  --build-arg VITE_COGNITO_USER_POOL_ID="$COGNITO_USER_POOL_ID" \
-  --build-arg VITE_COGNITO_CLIENT_ID="$COGNITO_CLIENT_ID" \
-  -t records-app:latest .
+cd ui
+VITE_COGNITO_USER_POOL_ID="$COGNITO_USER_POOL_ID" \
+VITE_COGNITO_CLIENT_ID="$COGNITO_CLIENT_ID" \
+. ~/.nvm/nvm.sh && npm run build
+cd ..
 ```
 
-Expected: build completes without errors. The final image contains the FastAPI backend and the compiled React assets.
+Expected: `ui/dist/` is populated with compiled assets.
+
+### 3b. Build the Lambda zip
+
+Install dependencies into a staging directory using the correct target platform (Lambda runs on Linux x86_64 regardless of host architecture):
+
+```bash
+rm -rf /tmp/lambda-package
+pip install \
+  --platform manylinux2014_x86_64 \
+  --implementation cp \
+  --python-version 3.13 \
+  --only-binary=:all: \
+  --target /tmp/lambda-package \
+  -r requirements.txt
+```
+
+Copy application code and compiled UI assets into the staging directory, then zip:
+
+```bash
+cp -r app /tmp/lambda-package/
+cp -r ui/dist /tmp/lambda-package/app/static
+
+cd /tmp/lambda-package
+zip -r ~/records/lambda.zip .
+cd ~/records
+```
+
+Expected: `lambda.zip` exists at the repo root.
 
 ---
 
-## 4. Authenticate Docker to ECR and push the image
+## 4. Apply Terraform
 
-```bash
-aws ecr get-login-password --profile records --region us-east-1 \
-  | docker login --username AWS --password-stdin "$ECR_URL"
-
-docker tag records-app:latest "${ECR_URL}:latest"
-docker push "${ECR_URL}:latest"
-```
-
-Expected: `latest: digest: sha256:...` push confirmation.
-
----
-
-## 5. Re-apply Terraform to create the Lambda function
-
-With an image now in ECR, re-run apply to complete Lambda provisioning:
+With `lambda.zip` present, apply Terraform. On first deploy this creates all infrastructure including the Lambda function:
 
 ```bash
 terraform -chdir=infra apply
@@ -177,26 +190,25 @@ aws cognito-idp admin-add-user-to-group \
 
 ## 9. Redeploy after code changes
 
-1. Build a new image (step 3 above).
-1. Push to ECR (step 4).
-1. Update the Lambda function code:
+1. Rebuild the zip (step 3 above).
+1. Update the Lambda function code directly — no Terraform required for code-only changes:
 
 ```bash
-ECR_URL=$(terraform -chdir=infra output -raw ecr_repository_url)
-
 aws lambda update-function-code \
   --function-name records-dev \
-  --image-uri "${ECR_URL}:latest" \
+  --zip-file fileb://lambda.zip \
   --profile records --region us-east-1
 ```
 
 1. If the deploy includes schema changes, run migrations (step 6) **before** updating the function code.
+1. If the deploy includes Terraform changes (env vars, IAM, etc.), run `terraform apply` instead of (or in addition to) the CLI update.
 
 ---
 
 ## Known constraints
 
-- **First apply order:** Lambda requires an image in ECR before it can be created. On first deploy, `terraform apply` will provision all base infrastructure but fail on the Lambda function — this is expected. Push the image (steps 3–4) then re-run `terraform apply` (step 5) to complete provisioning.
+- **First deploy order:** Build `lambda.zip` (step 3) before running `terraform apply`. Terraform references the zip at `../lambda.zip` and will fail if the file does not exist.
+- **Platform targeting:** The `pip install --platform manylinux2014_x86_64` flag is required when building on macOS (including Apple Silicon). Omitting it produces wheels compiled for the host OS that will fail to load on Lambda.
 - **RDS is private:** The database is in private subnets and not directly reachable from a laptop. For direct DB access or to run migrations locally, an SSM port-forward to the RDS host is required.
 - **Migrations are manual:** `alembic upgrade head` must be run before any deploy that introduces schema changes. Lambda does not run migrations at startup.
 - **Cognito IDs baked into the UI bundle:** If the Cognito user pool or client is replaced (e.g., in a new environment), rebuild and redeploy the image.
