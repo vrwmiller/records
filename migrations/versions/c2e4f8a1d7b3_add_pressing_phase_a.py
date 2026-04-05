@@ -40,7 +40,7 @@ def upgrade() -> None:
     # ------------------------------------------------------------------
     op.create_table(
         "pressing",
-        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False, server_default=sa.text("gen_random_uuid()")),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -114,14 +114,18 @@ def upgrade() -> None:
     # ------------------------------------------------------------------
     # inventory_transaction: composite index for per-item history queries
     # ------------------------------------------------------------------
-    op.execute(
-        "CREATE INDEX ix_inventory_transaction_item_created "
-        "ON inventory_transaction (inventory_item_id, created_at DESC)"
+    op.create_index(
+        "ix_inventory_transaction_item_created",
+        "inventory_transaction",
+        ["inventory_item_id", sa.text("created_at DESC")],
     )
 
 
 def downgrade() -> None:
-    op.execute("DROP INDEX IF EXISTS ix_inventory_transaction_item_created")
+    op.drop_index(
+        "ix_inventory_transaction_item_created",
+        table_name="inventory_transaction",
+    )
 
     op.drop_index("ix_inventory_item_collection_type", table_name="inventory_item")
     op.drop_index("ix_inventory_item_status", table_name="inventory_item")

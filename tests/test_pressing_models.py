@@ -63,6 +63,9 @@ class TestPressingColumns:
     def test_id_not_nullable(self) -> None:
         assert not _col(self.t, "id").nullable
 
+    def test_id_has_server_default(self) -> None:
+        assert _col(self.t, "id").server_default is not None
+
     def test_created_at_not_nullable(self) -> None:
         assert not _col(self.t, "created_at").nullable
 
