@@ -45,7 +45,7 @@ output "image_bucket_name" {
   value       = aws_s3_bucket.images.bucket
 }
 
-output "lambda_function_url" {
-  description = "Public HTTPS URL for the Lambda Function URL"
-  value       = try(aws_lambda_function_url.app.function_url, null)
+output "app_url" {
+  description = "Public HTTPS URL for the app via API Gateway"
+  value       = aws_apigatewayv2_stage.default.invoke_url
 }

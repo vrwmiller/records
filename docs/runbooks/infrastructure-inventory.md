@@ -66,16 +66,16 @@ Provide a concise reference of baseline infrastructure currently provisioned by 
 
 ## Application Runtime
 
-- Resource type: AWS Lambda function (`records-dev`) + Lambda Function URL
+- Resource type: AWS Lambda function (`records-dev`) fronted by an API Gateway HTTP API (v2)
 - Purpose: runs the FastAPI backend and serves the pre-built React UI as static files
 - Critical settings:
   - VPC-attached to private subnets via the app security group so the function can reach the private RDS instance
   - execution role grants Secrets Manager read for DB credentials and RDS master secret, plus S3 access for images
   - DB credentials are fetched from Secrets Manager at cold start; `DATABASE_URL` is not stored as a Lambda env var
-  - Function URL `authorization_type = "NONE"` — authentication is enforced at the application layer by Cognito JWT validation
+  - API Gateway uses `AWS_PROXY` integration (payload format 2.0); authentication is enforced at the application layer by Cognito JWT validation
   - migrations are **not** run at startup; run `alembic upgrade head` manually before any schema-bearing deploy
 - Validation:
-  - `URL=$(terraform -chdir=infra output -raw lambda_function_url)` — retrieve the Function URL from repo root
+  - `URL=$(terraform -chdir=infra output -raw app_url)` — retrieve the API Gateway URL from repo root
   - open `$URL` in a browser and verify the login page loads
   - `curl "${URL}api/health"` — expect `{"status":"ok"}`
   - check Lambda logs: `aws logs tail /aws/lambda/records-dev --profile records --region us-east-1`

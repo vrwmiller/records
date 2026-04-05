@@ -115,7 +115,7 @@ resource "aws_lambda_function" "app" {
       S3_IMAGE_BUCKET      = aws_s3_bucket.images.bucket
       # Empty string overrides the app default (localhost origins) so no
       # cross-origin requests are allowed in production. The React UI is
-      # served from the same Function URL origin and does not need CORS.
+      # served from the same API Gateway origin and does not need CORS.
       CORS_ORIGINS = ""
     }
   }
@@ -129,15 +129,4 @@ resource "aws_lambda_function" "app" {
   tags = { Name = "records-${var.environment}-lambda" }
 }
 
-# ---------------------------------------------------------------------------
-# Lambda Function URL — public HTTPS endpoint, no AWS-level auth
-#
-# Cognito authentication is enforced at the application layer. The Function
-# URL CORS block is intentionally omitted; FastAPI's CORSMiddleware manages
-# all CORS response headers, and configuring both would produce duplicate
-# headers that break browsers.
-# ---------------------------------------------------------------------------
-resource "aws_lambda_function_url" "app" {
-  function_name      = aws_lambda_function.app.function_name
-  authorization_type = "NONE"
-}
+
