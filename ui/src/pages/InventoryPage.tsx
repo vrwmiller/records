@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AuthUser } from 'aws-amplify/auth'
 import { fetchAuthSession } from 'aws-amplify/auth'
 import {
@@ -7,9 +7,11 @@ import {
   getSummary,
   listItems,
   type AcquireRequest,
+  type DiscogsPressingIn,
   type InventoryItem,
   type SummaryResponse,
 } from '../api/inventory'
+import { searchDiscogs, type DiscogsSearchResult } from '../api/discogs'
 
 interface InventoryPageProps {
   user: AuthUser
@@ -30,6 +32,14 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
   })
   const [acquiring, setAcquiring] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+
+  // Discogs search state
+  const [discogsQuery, setDiscogsQuery] = useState('')
+  const [discogsResults, setDiscogsResults] = useState<DiscogsSearchResult[]>([])
+  const [discogsSearching, setDiscogsSearching] = useState(false)
+  const [discogsError, setDiscogsError] = useState<string | null>(null)
+  const [selectedPressing, setSelectedPressing] = useState<DiscogsPressingIn | null>(null)
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     fetchAuthSession().then(({ tokens }) => {
@@ -57,13 +67,57 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
 
   useEffect(() => { void load() }, [load])
 
+  function handleDiscogsQueryChange(q: string) {
+    setDiscogsQuery(q)
+    setSelectedPressing(null)
+    setDiscogsError(null)
+
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+
+    if (!q.trim()) {
+      setDiscogsResults([])
+      return
+    }
+
+    searchTimer.current = setTimeout(() => {
+      setDiscogsSearching(true)
+      searchDiscogs(q)
+        .then(data => setDiscogsResults(data.results))
+        .catch(e => setDiscogsError(e instanceof Error ? e.message : 'Search failed'))
+        .finally(() => setDiscogsSearching(false))
+    }, 400)
+  }
+
+  function handleSelectResult(result: DiscogsSearchResult) {
+    const pressing: DiscogsPressingIn = {
+      discogs_release_id: result.id,
+      discogs_resource_url: result.resource_url,
+      title: result.title,
+      artists_sort: null,
+      year: result.year != null ? Number(result.year) : null,
+      country: result.country ?? null,
+    }
+    setSelectedPressing(pressing)
+    setAcquireForm(f => ({ ...f, pressing }))
+    setDiscogsResults([])
+    setDiscogsQuery(result.title)
+  }
+
+  function resetAcquireForm() {
+    setAcquireForm({ collection_type: 'PERSONAL' })
+    setDiscogsQuery('')
+    setDiscogsResults([])
+    setSelectedPressing(null)
+    setDiscogsError(null)
+  }
+
   async function handleAcquire() {
     setAcquiring(true)
     setError(null)
     try {
       await acquireItems(acquireForm)
       setShowAcquire(false)
-      setAcquireForm({ collection_type: 'PERSONAL' })
+      resetAcquireForm()
       await load()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Acquire failed')
@@ -110,7 +164,10 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
           {isAdmin && (
             <button
               className="acquire-btn"
-              onClick={() => setShowAcquire(v => !v)}
+              onClick={() => {
+                setShowAcquire(v => !v)
+                if (showAcquire) resetAcquireForm()
+              }}
             >
               + Acquire
             </button>
@@ -119,6 +176,60 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
 
         {showAcquire && isAdmin && (
           <div className="acquire-form">
+            <label>
+              Search Discogs
+              <input
+                type="search"
+                placeholder="Artist, title, label…"
+                value={discogsQuery}
+                onChange={e => handleDiscogsQueryChange(e.target.value)}
+                autoComplete="off"
+              />
+            </label>
+
+            {discogsSearching && <p className="status-msg">Searching Discogs…</p>}
+            {discogsError && <p className="error-msg">{discogsError}</p>}
+
+            {discogsResults.length > 0 && (
+              <ul className="discogs-results">
+                {discogsResults.map(r => (
+                  <li key={r.id}>
+                    <button
+                      type="button"
+                      className="discogs-result-btn"
+                      onClick={() => handleSelectResult(r)}
+                    >
+                      <span className="result-title">{r.title}</span>
+                      {r.year && <span className="result-meta">{r.year}</span>}
+                      {r.country && <span className="result-meta">{r.country}</span>}
+                      {r.label && r.label.length > 0 && (
+                        <span className="result-meta">{r.label[0]}</span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {selectedPressing && (
+              <div className="selected-pressing">
+                <strong>Selected:</strong> {selectedPressing.title}
+                {selectedPressing.year != null && ` (${selectedPressing.year})`}
+                {selectedPressing.country && ` · ${selectedPressing.country}`}
+                <button
+                  type="button"
+                  className="clear-pressing-btn"
+                  onClick={() => {
+                    setSelectedPressing(null)
+                    setAcquireForm(f => { const { pressing: _, ...rest } = f; return rest })
+                    setDiscogsQuery('')
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             <label>
               Collection
               <select
@@ -160,7 +271,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
               </button>
               <button
                 className="cancel-btn"
-                onClick={() => setShowAcquire(false)}
+                onClick={() => { setShowAcquire(false); resetAcquireForm() }}
                 disabled={acquiring}
               >
                 Cancel
@@ -200,6 +311,14 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                   <span className="status-badge">{item.status}</span>
                 </div>
                 <div className="item-detail">
+                  {item.pressing && (
+                    <span className="item-pressing">
+                      {item.pressing.title ?? '—'}
+                      {item.pressing.artists_sort && ` · ${item.pressing.artists_sort}`}
+                      {item.pressing.year != null && ` (${item.pressing.year})`}
+                      {item.pressing.country && ` · ${item.pressing.country}`}
+                    </span>
+                  )}
                   {item.condition_media && (
                     <span>Media: {item.condition_media}</span>
                   )}

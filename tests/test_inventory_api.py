@@ -48,6 +48,7 @@ def _make_item(**overrides: object) -> MagicMock:
     item = MagicMock()
     item.id = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
     item.pressing_id = None
+    item.pressing = None
     item.acquisition_batch_id = uuid.UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
     item.collection_type = "PERSONAL"
     item.condition_media = None
@@ -353,6 +354,33 @@ class TestAcquireService:
         assert all(isinstance(i.id, uuid.UUID) for i in items)
         assert items[0].id != items[1].id
 
+    def test_pressing_upsert_called_when_pressing_provided(self) -> None:
+        """When AcquireRequest.pressing is set, upsert_pressing is called and the
+        resulting UUID is used as pressing_id on each created item."""
+        from app.schemas.discogs import DiscogsPressingIn
+
+        db = MagicMock()
+        pressing_uuid = uuid.uuid4()
+        pressing_in = DiscogsPressingIn(
+            discogs_release_id=12345,
+            discogs_resource_url="https://api.discogs.com/releases/12345",
+            title="OK Computer",
+            artists_sort="Radiohead",
+            year=1997,
+            country="UK",
+        )
+        with patch("app.services.inventory.upsert_pressing", return_value=pressing_uuid) as mock_upsert:
+            items = acquire(db, AcquireRequest(collection_type="PERSONAL", pressing=pressing_in))
+
+        mock_upsert.assert_called_once_with(db, pressing_in)
+        assert items[0].pressing_id == pressing_uuid
+
+    def test_pressing_upsert_not_called_without_pressing(self) -> None:
+        db = MagicMock()
+        with patch("app.services.inventory.upsert_pressing") as mock_upsert:
+            acquire(db, AcquireRequest(collection_type="PERSONAL"))
+        mock_upsert.assert_not_called()
+
 
 # ---------------------------------------------------------------------------
 # Service tests — soft_delete
@@ -418,7 +446,7 @@ class TestUpdateItemService:
         # Verify the schema excludes unset fields correctly — the service loop
         # only calls setattr for keys present in this dict.
         request = UpdateRequest(condition_media="M")
-        partial = request.model_dump(exclude_unset=True)
+        partial = request.model_dump(exclude_unset=True, exclude={"pressing"})
         assert partial == {"condition_media": "M"}
         assert "notes" not in partial
         assert "condition_sleeve" not in partial

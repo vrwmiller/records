@@ -1,8 +1,19 @@
 import { fetchAuthSession } from 'aws-amplify/auth'
 
+export interface PressingBookmark {
+  id: string
+  discogs_release_id: number | null
+  discogs_resource_url: string | null
+  title: string | null
+  artists_sort: string | null
+  year: number | null
+  country: string | null
+}
+
 export interface InventoryItem {
   id: string
   pressing_id: string | null
+  pressing: PressingBookmark | null
   acquisition_batch_id: string | null
   collection_type: 'PERSONAL' | 'DISTRIBUTION'
   condition_media: string | null
@@ -19,9 +30,19 @@ export interface SummaryResponse {
   total: number
 }
 
+export interface DiscogsPressingIn {
+  discogs_release_id: number
+  discogs_resource_url: string | null
+  title: string | null
+  artists_sort: string | null
+  year: number | null
+  country: string | null
+}
+
 export interface AcquireRequest {
   collection_type: 'PERSONAL' | 'DISTRIBUTION'
   quantity?: number
+  pressing?: DiscogsPressingIn
   condition_media?: string
   condition_sleeve?: string
   notes?: string

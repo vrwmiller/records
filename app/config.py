@@ -19,5 +19,8 @@ class Settings(BaseSettings):
     cognito_user_pool_id: str
     cognito_client_id: str
 
+    # Discogs
+    discogs_token: str = ""
+
 
 settings = Settings()
