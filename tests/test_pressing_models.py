@@ -1,9 +1,10 @@
 """
-Structural tests for the Pressing ORM model and Phase A migration file.
+Structural tests for the Pressing ORM model and Discogs schema migrations.
 
-These tests verify schema invariants (table registration, column properties,
-constraints, FK behavior, relationship wiring) using SQLAlchemy metadata
-inspection only. No database connection is required.
+Covers: table registration, column properties, constraints, FK behavior,
+relationship wiring, and migration file structure for the Phase A migration
+(c2e4f8a1d7b3) and the lean-schema trim migration (dcd582777257).
+Uses SQLAlchemy metadata inspection only. No database connection is required.
 """
 
 import importlib
@@ -73,56 +74,31 @@ class TestPressingColumns:
         assert _col(self.t, "created_at").server_default is not None
 
     def test_discogs_identity_columns_present(self) -> None:
-        for col in ("discogs_release_id", "discogs_master_id", "discogs_resource_url"):
+        for col in ("discogs_release_id", "discogs_resource_url"):
             assert col in self.t.c, f"Missing column: {col}"
+
+    def test_dropped_columns_absent(self) -> None:
+        dropped = (
+            "discogs_master_id", "released_text", "released_formatted",
+            "status", "data_quality", "num_for_sale", "lowest_price",
+            "community_have", "community_want", "community_rating_avg",
+            "community_rating_count", "source_last_changed_at",
+            "last_synced_at", "sync_status", "raw_payload_json",
+        )
+        for col in dropped:
+            assert col not in self.t.c, f"Column should be absent: {col}"
 
     def test_core_metadata_columns_present(self) -> None:
-        for col in (
-            "title", "artists_sort", "year", "country",
-            "released_text", "released_formatted", "status", "data_quality",
-        ):
+        for col in ("title", "artists_sort", "year", "country"):
             assert col in self.t.c, f"Missing column: {col}"
 
-    def test_market_columns_present(self) -> None:
-        for col in (
-            "num_for_sale", "lowest_price",
-            "community_have", "community_want",
-            "community_rating_avg", "community_rating_count",
-        ):
-            assert col in self.t.c, f"Missing column: {col}"
-
-    def test_sync_columns_present(self) -> None:
-        for col in (
-            "source_last_changed_at", "last_synced_at",
-            "sync_status", "raw_payload_json",
-        ):
-            assert col in self.t.c, f"Missing column: {col}"
-
-    def test_all_discogs_columns_nullable(self) -> None:
+    def test_all_lean_columns_nullable(self) -> None:
         nullable_cols = [
-            "discogs_release_id", "discogs_master_id", "discogs_resource_url",
+            "discogs_release_id", "discogs_resource_url",
             "title", "artists_sort", "year", "country",
-            "released_text", "released_formatted", "status", "data_quality",
-            "num_for_sale", "lowest_price",
-            "community_have", "community_want",
-            "community_rating_avg", "community_rating_count",
-            "source_last_changed_at", "last_synced_at",
-            "sync_status", "raw_payload_json",
         ]
         for col_name in nullable_cols:
             assert _col(self.t, col_name).nullable, f"{col_name} should be nullable"
-
-    def test_lowest_price_numeric_type(self) -> None:
-        col = _col(self.t, "lowest_price")
-        assert isinstance(col.type, sa.Numeric)
-        assert col.type.precision == 12
-        assert col.type.scale == 2
-
-    def test_community_rating_avg_numeric_type(self) -> None:
-        col = _col(self.t, "community_rating_avg")
-        assert isinstance(col.type, sa.Numeric)
-        assert col.type.precision == 4
-        assert col.type.scale == 2
 
 
 # ---------------------------------------------------------------------------
@@ -197,6 +173,37 @@ class TestPhaseAMigrationFileStructure:
 
     def test_down_revision_points_to_inventory_tables(self) -> None:
         assert self.mod.down_revision == "a271049050bc"  # pragma: allowlist secret
+
+    def test_upgrade_is_callable(self) -> None:
+        assert callable(self.mod.upgrade)
+
+    def test_downgrade_is_callable(self) -> None:
+        assert callable(self.mod.downgrade)
+
+    def test_upgrade_accepts_no_args(self) -> None:
+        sig = inspect.signature(self.mod.upgrade)
+        assert len(sig.parameters) == 0
+
+    def test_downgrade_accepts_no_args(self) -> None:
+        sig = inspect.signature(self.mod.downgrade)
+        assert len(sig.parameters) == 0
+
+
+# ---------------------------------------------------------------------------
+# Lean schema migration file structure
+# ---------------------------------------------------------------------------
+
+class TestLeanSchemaMigrationFileStructure:
+    def setup_method(self) -> None:
+        self.mod = importlib.import_module(
+            "migrations.versions.dcd582777257_trim_pressing_lean_schema"
+        )
+
+    def test_revision_id_set(self) -> None:
+        assert self.mod.revision == "dcd582777257"  # pragma: allowlist secret
+
+    def test_down_revision_points_to_phase_a(self) -> None:
+        assert self.mod.down_revision == "c2e4f8a1d7b3"  # pragma: allowlist secret
 
     def test_upgrade_is_callable(self) -> None:
         assert callable(self.mod.upgrade)

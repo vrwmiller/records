@@ -17,6 +17,28 @@ Operational profile assumptions:
 
 ---
 
+## Design Decisions
+
+### Discogs Integration: Lean Schema and On-Demand Fetches (April 2026)
+
+**Decision:** `pressing` stores a lean eight-column bookmark (id, created_at, discogs_release_id, discogs_resource_url, title, artists_sort, year, country). All Discogs detail data — tracks, images, credits, labels, identifiers, market signals, community signals, raw payload — is fetched on demand via a proxy endpoint and is never stored locally.
+
+**Rationale:**
+- Storage costs money. Discogs data is large and changes frequently; local copies would be expensive and stale.
+- Discogs is an authoritative, reliable read-only source; duplicating it locally provides no data safety benefit.
+- At human interaction pace, the 60 req/min authenticated rate limit is not a practical constraint.
+- On-demand model eliminates background sync jobs, stale-data detection, and sync-status bookkeeping entirely.
+
+**Consequences:**
+- Phase B child tables (pressing_track, pressing_identifier, pressing_image, pressing_video, pressing_credit, pressing_company, pressing_label) are cancelled.
+- Phase C background sync is cancelled.
+- The Discogs API is called only on explicit user action (search, release detail, image load). No background API calls are made.
+- Market signals are displayed in the release detail panel on user request; they are not shown in list views.
+
+See [design-discogs.md](design-discogs.md) for full integration design.
+
+---
+
 ## Non-Functional Requirements
 
 ### Performance Priorities
@@ -295,6 +317,7 @@ GET  /inventory?collection=PERSONAL|DISTRIBUTION
 GET  /inventory/summary
 GET  /transactions
 GET  /discogs/releases?q=... (release search proxy — requires app authentication (Cognito JWT); proxies to Discogs public database search, which does not require Discogs user auth; rate-limited; returns candidate pressings for selection in acquire and edit flows)
+GET  /discogs/releases/{discogs_release_id} (release detail proxy — requires app authentication (Cognito JWT); fetches full Discogs release payload on demand; detail data is returned to the client and not stored locally; use cases: tracks, credits, images, market signals)
 POST /imports/access/validate
 POST /imports/access/commit
 GET  /imports/{id}
@@ -390,14 +413,11 @@ GET  /imports/{id}/errors
 
 ### Market Value Signal Presentation
 
-- Search results and item-detail views should present Discogs market/value signals when available
-- Initial displayed signals include:
-  - lowest price
-  - number for sale
-  - have/want counts
-  - last synced timestamp
-- The interface must label these as market signals for decision support, not authoritative local valuation
-- If Discogs market data is unavailable for an item, the interface should display an explicit unavailable state
+- Discogs market and community signals (lowest price, num_for_sale, have/want counts, rating) are fetched on demand from the Discogs API via the release detail proxy endpoint and are never stored locally.
+- These signals are displayed in the release detail panel or item-detail view when the user explicitly opens it.
+- The interface must label these as market signals for decision support, not authoritative local valuation.
+- If Discogs market data is unavailable or the on-demand fetch fails, the interface must display an explicit unavailable state.
+- Signals must not be retrieved in the background or pre-fetched for list views; fetches are user-triggered only.
 
 ### Personal Collection Pricing
 
