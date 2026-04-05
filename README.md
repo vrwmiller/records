@@ -33,6 +33,8 @@ The system is designed to:
 - Proposal: [docs/proposal.md](docs/proposal.md)
 - Architecture: [docs/architecture.md](docs/architecture.md)
 - Design: [docs/design.md](docs/design.md)
+  - Legacy import pipeline: [docs/design-import.md](docs/design-import.md)
+  - Discogs integration: [docs/design-discogs.md](docs/design-discogs.md)
 - Runbooks: [docs/runbooks/](docs/runbooks/)
 
 ## Infrastructure Bootstrap

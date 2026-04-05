@@ -183,7 +183,7 @@ Current baseline infrastructure is defined as Terraform in `infra/` and includes
 
 - Web app supports importing legacy Microsoft Access inventory exports
 - Import is staged, validated, and then mapped into local inventory and metadata tables
-- Import behavior details and field mappings are defined in design
+- Import behavior details and field mappings are defined in [design-import.md](design-import.md)
 
 ---
 
@@ -265,7 +265,7 @@ flowchart TD
 - Integration role:
   - Discogs is an external metadata source for enrichment, not a system of record for inventory ownership state
 - Boundary:
-  - Discogs-facing ingestion and synchronization behavior is documented in design
+  - Discogs-facing ingestion and synchronization behavior is documented in [design-discogs.md](design-discogs.md)
 - Reliability principles:
   - Use resilient fetch pipelines with throttling, retries, and idempotent upserts
 - Compliance principles:
