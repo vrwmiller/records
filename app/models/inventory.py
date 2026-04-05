@@ -62,6 +62,7 @@ class InventoryItem(Base):
         Uuid,
         ForeignKey("pressing.id", ondelete="SET NULL", name="fk_inventory_item_pressing"),
         nullable=True,
+        index=True,
     )
     acquisition_batch_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, nullable=True, index=True
@@ -69,6 +70,7 @@ class InventoryItem(Base):
     collection_type: Mapped[str] = mapped_column(
         Text,
         nullable=False,
+        index=True,
     )
     condition_media: Mapped[str | None] = mapped_column(Text, nullable=True)
     condition_sleeve: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -77,6 +79,7 @@ class InventoryItem(Base):
         nullable=False,
         default="active",
         server_default="'active'",
+        index=True,
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

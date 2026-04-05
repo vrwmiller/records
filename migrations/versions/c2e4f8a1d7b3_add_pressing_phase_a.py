@@ -17,11 +17,17 @@ Schema notes:
   to support common filter and list queries.
 - Adds composite index on inventory_transaction(inventory_item_id, created_at DESC)
   for per-item history lookups ordered by recency.
+- Before adding the FK, any inventory_item rows with a non-NULL pressing_id are
+  set to NULL. The AcquireRequest and UpdateRequest schemas accept pressing_id
+  from callers, so non-NULL values may already exist in the database. This step
+  makes the FK addition unconditionally safe. Affected items remain intact with
+  pressing_id = NULL and can be re-linked after Phase A syncing is in place.
 
 Rollback intent:
   Drop new inventory_transaction index, inventory_item new indexes and FK
   constraint, is_sealed column, all pressing indexes, and the pressing table.
   inventory_item rows are preserved; pressing_id reverts to a bare UUID column.
+  Items whose pressing_id was cleared by upgrade retain pressing_id = NULL.
 """
 
 from alembic import op
@@ -97,6 +103,12 @@ def upgrade() -> None:
         "inventory_item",
         sa.Column("is_sealed", sa.Boolean(), nullable=True),
     )
+    # Null out any existing pressing_id values before adding the FK.
+    # AcquireRequest/UpdateRequest accept pressing_id from callers, so non-NULL
+    # values may already exist. pressing is a brand-new empty table at this point,
+    # so all non-NULL pressing_id values would fail the FK check. Items retain
+    # all other fields and can be re-linked once Phase A sync is in place.
+    op.execute("UPDATE inventory_item SET pressing_id = NULL WHERE pressing_id IS NOT NULL")
     op.create_foreign_key(
         "fk_inventory_item_pressing",
         "inventory_item",
