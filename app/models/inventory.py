@@ -4,6 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -16,6 +17,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
+from app.models.pressing import Pressing  # noqa: F401 — registers Pressing on Base
 
 
 class CollectionType(str, enum.Enum):
@@ -56,13 +58,19 @@ class InventoryItem(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid, primary_key=True, default=uuid.uuid4
     )
-    pressing_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    pressing_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("pressing.id", ondelete="SET NULL", name="fk_inventory_item_pressing"),
+        nullable=True,
+        index=True,
+    )
     acquisition_batch_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, nullable=True, index=True
     )
     collection_type: Mapped[str] = mapped_column(
         Text,
         nullable=False,
+        index=True,
     )
     condition_media: Mapped[str | None] = mapped_column(Text, nullable=True)
     condition_sleeve: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -71,6 +79,7 @@ class InventoryItem(Base):
         nullable=False,
         default="active",
         server_default="'active'",
+        index=True,
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -79,7 +88,9 @@ class InventoryItem(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    is_sealed: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
 
+    pressing: Mapped[Pressing | None] = relationship(back_populates="items")
     transactions: Mapped[list["InventoryTransaction"]] = relationship(
         back_populates="item", order_by="InventoryTransaction.created_at"
     )
