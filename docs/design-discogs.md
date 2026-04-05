@@ -83,6 +83,13 @@ The following target schema is intended for PostgreSQL and can be implemented wi
 ```sql
 -- Existing inventory tables remain system-of-record for ownership state.
 
+-- pressing is the local metadata anchor for a Discogs release.
+-- pressing_id in inventory_item is UUID (see design.md); pressing.id must match.
+CREATE TABLE IF NOT EXISTS pressing (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 ALTER TABLE pressing
   ADD COLUMN discogs_release_id BIGINT,
   ADD COLUMN discogs_master_id BIGINT,
@@ -119,7 +126,7 @@ CREATE INDEX IF NOT EXISTS ix_pressing_last_synced_at ON pressing (last_synced_a
 
 CREATE TABLE IF NOT EXISTS pressing_identifier (
   id BIGSERIAL PRIMARY KEY,
-  pressing_id BIGINT NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
+  pressing_id UUID NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
   identifier_type TEXT NOT NULL,
   value TEXT NOT NULL,
   description TEXT,
@@ -131,7 +138,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_pressing_identifier_key
 
 CREATE TABLE IF NOT EXISTS pressing_track (
   id BIGSERIAL PRIMARY KEY,
-  pressing_id BIGINT NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
+  pressing_id UUID NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
   position TEXT,
   track_type TEXT,
   title TEXT NOT NULL,
@@ -143,7 +150,7 @@ CREATE INDEX IF NOT EXISTS ix_pressing_track_pressing_id ON pressing_track (pres
 
 CREATE TABLE IF NOT EXISTS pressing_image (
   id BIGSERIAL PRIMARY KEY,
-  pressing_id BIGINT NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
+  pressing_id UUID NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
   image_type TEXT,
   uri TEXT NOT NULL,
   uri150 TEXT,
@@ -157,7 +164,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_pressing_image_uri
 
 CREATE TABLE IF NOT EXISTS pressing_video (
   id BIGSERIAL PRIMARY KEY,
-  pressing_id BIGINT NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
+  pressing_id UUID NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
   uri TEXT NOT NULL,
   title TEXT,
   description TEXT,
@@ -171,7 +178,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_pressing_video_uri
 
 CREATE TABLE IF NOT EXISTS pressing_credit (
   id BIGSERIAL PRIMARY KEY,
-  pressing_id BIGINT NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
+  pressing_id UUID NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
   discogs_artist_id BIGINT,
   name TEXT NOT NULL,
   anv TEXT,
@@ -185,7 +192,7 @@ CREATE INDEX IF NOT EXISTS ix_pressing_credit_artist_id ON pressing_credit (disc
 
 CREATE TABLE IF NOT EXISTS pressing_company (
   id BIGSERIAL PRIMARY KEY,
-  pressing_id BIGINT NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
+  pressing_id UUID NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
   discogs_label_id BIGINT,
   name TEXT NOT NULL,
   entity_type_code TEXT,
@@ -198,7 +205,7 @@ CREATE INDEX IF NOT EXISTS ix_pressing_company_label_id ON pressing_company (dis
 
 CREATE TABLE IF NOT EXISTS pressing_label (
   id BIGSERIAL PRIMARY KEY,
-  pressing_id BIGINT NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
+  pressing_id UUID NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
   discogs_label_id BIGINT,
   name TEXT NOT NULL,
   catno TEXT,
@@ -308,7 +315,7 @@ This is the primary integration path. It is user-triggered and synchronous.
 
 - If the release is not found in Discogs, the user may proceed with manual entry
 - `pressing_id` on `inventory_item` is nullable; Discogs linkage is never required to complete an acquire or edit
-- A pressing may be created locally with no `discogs_release_id`
+- In this fallback path, no `pressing` row is created or upserted; the `inventory_item` is created with `pressing_id = null`
 
 ### Background Sync (Future Phase)
 
