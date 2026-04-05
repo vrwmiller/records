@@ -73,7 +73,8 @@ Use a two-pass mapping process.
 Pass A: metadata and pressing resolution
 
 - Prefer `Discogs#` as external identity key when present
-- Map metadata into `pressing` (title, artist sort, label, catalog number, year, country)
+- Map metadata into `pressing` (title, artists_sort, year, country)
+- Label, catalog number, and full artist text are not stored in `pressing`; they are available on demand from the Discogs API for linked releases, and are preserved in import metadata for traceability
 - Retain legacy-only fields in import metadata for traceability
 
 Pass B: inventory item and transaction creation
@@ -88,7 +89,7 @@ Pass B: inventory item and transaction creation
 
 | Access `Albums` field | Local target | Notes |
 | ----- | ----------- | ----- |
-| Artist | `pressing.artists_sort` (sort key); full artist attribution available on demand from Discogs API | retain exact source artist text; canonical artist normalization is a later phase |
+| Artist | `pressing.artists_sort` (sort key); raw Access Artist text preserved in import metadata | `pressing.artists_sort` is a normalized sort key, not the raw source text; canonical artist normalization is a later phase |
 | ArtistSort | `pressing.artists_sort` | preferred sort key |
 | Title | `pressing.title` | required for canonical display |
 | Label | available on demand from Discogs API (`labels[]` in release payload) | not stored locally; fetched via proxy endpoint when needed |
