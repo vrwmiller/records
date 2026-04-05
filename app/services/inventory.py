@@ -113,10 +113,14 @@ def update_item(db: Session, item_id: uuid.UUID, request: UpdateRequest) -> Inve
     if item is None or item.deleted_at is not None:
         raise NotFoundError(item_id)
 
+    exclude_fields = {"pressing"}
     if request.pressing is not None:
         item.pressing_id = upsert_pressing(db, request.pressing)
+        # exclude pressing_id from the setattr loop: the upserted UUID takes
+        # precedence; a raw pressing_id in the request must not overwrite it.
+        exclude_fields.add("pressing_id")
 
-    for field, value in request.model_dump(exclude_unset=True, exclude={"pressing"}).items():
+    for field, value in request.model_dump(exclude_unset=True, exclude=exclude_fields).items():
         setattr(item, field, value)
 
     db.commit()

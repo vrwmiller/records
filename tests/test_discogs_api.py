@@ -189,6 +189,22 @@ class TestDiscogsService:
         assert params["type"] == "release"
         assert result == {"results": [], "pagination": {}}
 
+    def test_search_releases_sends_required_headers(self) -> None:
+        from app.services.discogs import search_releases
+
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"results": [], "pagination": {}}
+
+        with patch("httpx.Client") as mock_client_cls:
+            instance = mock_client_cls.return_value.__enter__.return_value
+            instance.get.return_value = mock_resp
+            search_releases("test")
+
+        headers = instance.get.call_args.kwargs["headers"]
+        assert "User-Agent" in headers
+        assert "RecordRanch" in headers["User-Agent"]
+        assert "Accept" in headers
+
     def test_get_release_builds_correct_url(self) -> None:
         from app.services.discogs import get_release
 
@@ -204,3 +220,19 @@ class TestDiscogsService:
         call_args = instance.get.call_args
         assert "/releases/12345" in call_args.args[0]
         assert result == {"id": 12345}
+
+    def test_get_release_sends_required_headers(self) -> None:
+        from app.services.discogs import get_release
+
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"id": 99}
+
+        with patch("httpx.Client") as mock_client_cls:
+            instance = mock_client_cls.return_value.__enter__.return_value
+            instance.get.return_value = mock_resp
+            get_release(99)
+
+        headers = instance.get.call_args.kwargs["headers"]
+        assert "User-Agent" in headers
+        assert "RecordRanch" in headers["User-Agent"]
+        assert "Accept" in headers

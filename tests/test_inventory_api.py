@@ -452,6 +452,67 @@ class TestUpdateItemService:
         assert "condition_sleeve" not in partial
         assert "pressing_id" not in partial
 
+    def test_pressing_upsert_called_and_sets_pressing_id(self) -> None:
+        """update_item() calls upsert_pressing when pressing is provided,
+        and the returned UUID replaces pressing_id on the item."""
+        from app.schemas.discogs import DiscogsPressingIn
+
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = None
+        db.get.return_value = item
+        pressing_uuid = uuid.uuid4()
+        pressing_in = DiscogsPressingIn(
+            discogs_release_id=99911,
+            title="Kid A",
+            artists_sort="Radiohead",
+            year=2000,
+            country="UK",
+        )
+
+        with patch("app.services.inventory.upsert_pressing", return_value=pressing_uuid) as mock_upsert:
+            update_item(db, uuid.uuid4(), UpdateRequest(pressing=pressing_in))
+
+        mock_upsert.assert_called_once_with(db, pressing_in)
+        assert item.pressing_id == pressing_uuid
+
+    def test_pressing_upsert_excludes_raw_pressing_id_from_loop(self) -> None:
+        """When pressing is provided, a simultaneous pressing_id in the request
+        must not overwrite the upserted UUID via the setattr loop."""
+        from app.schemas.discogs import DiscogsPressingIn
+
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = None
+        db.get.return_value = item
+        upserted_uuid = uuid.uuid4()
+        raw_uuid = uuid.uuid4()
+        pressing_in = DiscogsPressingIn(
+            discogs_release_id=12345,
+            title="OK Computer",
+        )
+
+        with patch("app.services.inventory.upsert_pressing", return_value=upserted_uuid):
+            update_item(
+                db,
+                uuid.uuid4(),
+                UpdateRequest(pressing=pressing_in, pressing_id=raw_uuid),
+            )
+
+        # The upserted UUID must win — the raw pressing_id must not be applied.
+        assert item.pressing_id == upserted_uuid
+
+    def test_pressing_upsert_not_called_without_pressing(self) -> None:
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = None
+        db.get.return_value = item
+
+        with patch("app.services.inventory.upsert_pressing") as mock_upsert:
+            update_item(db, uuid.uuid4(), UpdateRequest(condition_media="VG"))
+
+        mock_upsert.assert_not_called()
+
 
 # ---------------------------------------------------------------------------
 # Service tests — get_summary

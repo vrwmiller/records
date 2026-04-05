@@ -4,9 +4,10 @@ Thin synchronous wrapper around the Discogs REST API.  All calls are user-trigge
 (search and release detail on acquire/edit); the backend never polls Discogs
 autonomously.
 
-Rate limit headers (X-Discogs-Ratelimit, X-Discogs-Ratelimit-Used,
-X-Discogs-Ratelimit-Remaining) are read and forwarded to callers as part of the
-response payload so the router can surface them to the client if needed.
+This client returns the raw Discogs JSON response body for each request.
+Response headers, including X-Discogs-Ratelimit, X-Discogs-Ratelimit-Used, and
+X-Discogs-Ratelimit-Remaining, are not currently forwarded as part of the
+returned payload.
 """
 
 from __future__ import annotations

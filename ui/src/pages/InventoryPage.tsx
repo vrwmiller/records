@@ -40,12 +40,21 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
   const [discogsError, setDiscogsError] = useState<string | null>(null)
   const [selectedPressing, setSelectedPressing] = useState<DiscogsPressingIn | null>(null)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Monotonically increasing request ID to discard stale search responses.
+  const searchSeq = useRef(0)
 
   useEffect(() => {
     fetchAuthSession().then(({ tokens }) => {
       const groups: unknown = tokens?.idToken?.payload?.['cognito:groups']
       setIsAdmin(Array.isArray(groups) && groups.includes('admin'))
     }).catch(() => setIsAdmin(false))
+  }, [])
+
+  // Clear pending search timer on unmount to avoid setState-after-unmount.
+  useEffect(() => {
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current)
+    }
   }, [])
 
   const load = useCallback(async () => {
@@ -70,6 +79,9 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
   function handleDiscogsQueryChange(q: string) {
     setDiscogsQuery(q)
     setSelectedPressing(null)
+    // Clear pressing from the form immediately so a stale selection is never
+    // submitted if the user edits the query without explicitly clicking ✕.
+    setAcquireForm(f => { const { pressing: _, ...rest } = f; return rest })
     setDiscogsError(null)
 
     if (searchTimer.current) clearTimeout(searchTimer.current)
@@ -79,12 +91,22 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
       return
     }
 
+    const seq = ++searchSeq.current
     searchTimer.current = setTimeout(() => {
       setDiscogsSearching(true)
       searchDiscogs(q)
-        .then(data => setDiscogsResults(data.results))
-        .catch(e => setDiscogsError(e instanceof Error ? e.message : 'Search failed'))
-        .finally(() => setDiscogsSearching(false))
+        .then(data => {
+          // Ignore responses that arrived after a newer request was issued.
+          if (seq !== searchSeq.current) return
+          setDiscogsResults(data.results)
+        })
+        .catch(e => {
+          if (seq !== searchSeq.current) return
+          setDiscogsError(e instanceof Error ? e.message : 'Search failed')
+        })
+        .finally(() => {
+          if (seq === searchSeq.current) setDiscogsSearching(false)
+        })
     }, 400)
   }
 
