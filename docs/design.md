@@ -48,6 +48,8 @@ Operational profile assumptions:
   - Cognito user pool plus app client for authentication
   - Private S3 bucket for record image assets
   - Secrets Manager for database credentials
+  - Lambda function (Python 3.13, zip package) as the application runtime; serves both the FastAPI backend and the pre-built React UI as static files; VPC-attached to private subnets
+  - API Gateway HTTP API (v2) as the public HTTPS ingress; `AWS_PROXY` integration (payload format 2.0); stage-level throttling and access logging to CloudWatch enabled
 
 ### Backup and Restore Constraints
 

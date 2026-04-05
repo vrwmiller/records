@@ -22,16 +22,18 @@ The system is designed to:
 
 ## Current Repository Status
 
-- Documentation-first project state
-- No runnable application implementation yet
-- Environment and dependency scaffolding present for future build-out
+- Full stack deployed to AWS (Lambda + RDS + API Gateway + Cognito)
+- Application is accessible at the API Gateway HTTPS endpoint (`app_url` Terraform output)
+- React UI is served as static files bundled into the Lambda zip package
+- Database migrations are at head; Alembic manages schema lifecycle
+- Infrastructure managed via Terraform in `infra/`; state stored in S3 with locking
 
 ## Documentation References
 
 - Proposal: [docs/proposal.md](docs/proposal.md)
 - Architecture: [docs/architecture.md](docs/architecture.md)
 - Design: [docs/design.md](docs/design.md)
-- Runbooks: planned (will live under docs/runbooks/)
+- Runbooks: [docs/runbooks/](docs/runbooks/)
 
 ## Infrastructure Bootstrap
 
@@ -100,4 +102,4 @@ bash scripts/install-hooks.sh
 
 ## Notes
 
-When implementation begins, this README should be expanded with full setup, local run instructions, testing commands, and deployment guidance.
+For deployment procedures, infrastructure details, and operational runbooks, see [docs/runbooks/](docs/runbooks/). The deploy-from-scratch runbook covers the full provisioning sequence including Lambda packaging, Cognito setup, and database migrations.
