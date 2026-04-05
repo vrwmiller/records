@@ -46,6 +46,11 @@ output "image_bucket_name" {
 }
 
 output "lambda_function_url" {
-  description = "Public HTTPS URL for the Lambda Function URL"
+  description = "Lambda Function URL (AWS_IAM auth — internal use only; access the app via app_url)"
   value       = try(aws_lambda_function_url.app.function_url, null)
+}
+
+output "app_url" {
+  description = "Public HTTPS URL for the app via CloudFront"
+  value       = "https://${aws_cloudfront_distribution.app.domain_name}"
 }

@@ -130,14 +130,14 @@ resource "aws_lambda_function" "app" {
 }
 
 # ---------------------------------------------------------------------------
-# Lambda Function URL — public HTTPS endpoint, no AWS-level auth
+# Lambda Function URL — AWS_IAM auth; public access via CloudFront OAC
 #
-# Cognito authentication is enforced at the application layer. The Function
-# URL CORS block is intentionally omitted; FastAPI's CORSMiddleware manages
-# all CORS response headers, and configuring both would produce duplicate
-# headers that break browsers.
+# Direct invocation of this URL is rejected unless the request is signed
+# with valid AWS SigV4 credentials. CloudFront signs all requests via OAC
+# (see cloudfront.tf). The CORS block is intentionally omitted; FastAPI's
+# CORSMiddleware manages all CORS response headers.
 # ---------------------------------------------------------------------------
 resource "aws_lambda_function_url" "app" {
   function_name      = aws_lambda_function.app.function_name
-  authorization_type = "NONE"
+  authorization_type = "AWS_IAM"
 }
