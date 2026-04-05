@@ -101,6 +101,9 @@ inventory_item (
   collection_type      TEXT NOT NULL CHECK (collection_type IN ('PERSONAL','DISTRIBUTION')),
   condition_media      TEXT NULL,
   condition_sleeve     TEXT NULL,
+  is_sealed            BOOLEAN NULL,        -- NULL = not recorded; TRUE = factory sealed; FALSE = confirmed open
+                                             -- Sealed status is independent of condition grades: media condition
+                                             -- is ungraded for sealed copies; sleeve may still be graded
   status               TEXT NOT NULL DEFAULT 'active'
                             CHECK (status IN ('active','sold','lost','deleted')),
   notes                TEXT NULL,
@@ -556,6 +559,39 @@ Fallback key path:
 
 ---
 
+## Vinyl Identifier and Catalog Number Domain Notes
+
+Vinyl record identification has no industry standard. Record companies, labels, and manufacturers each followed their own conventions. The schema must accommodate this variability without enforcing uniformity that does not exist.
+
+### Matrix Numbers
+
+- Almost all vinyl records have matrix numbers, one per side. Not all do.
+- Found etched or stamped in the **deadwax** (the silent area between the last groove and the label). Occasionally also printed on the label. Rarely on the cover.
+- Identifies the mastering engineer or mastering house responsible for that side.
+- May incorporate part or all of the catalog number as a prefix or suffix.
+- Because matrix numbers are per-side, a single release has at least two distinct matrix values (Side A, Side B). Box sets may have many more.
+- The `pressing_identifier` table models this directly: `identifier_type = 'Matrix / Runout'`, `value = <etched string>`, `description = <side or location note>`. Discogs surfaces these via `identifiers[]` in the release payload.
+
+### Catalog Numbers
+
+- Almost all releases have a catalog number, but not all do.
+- Typically appears on the cover and/or the record label.
+- The "record number" is often the catalog number, but not always — the terms overlap without being interchangeable.
+- Box sets frequently carry a separate catalog number for the overall set **and** distinct numbers for each individual disc inside. This relationship is not guaranteed and cannot be assumed.
+- Captured in the schema via `pressing_label.catno` (per-label catalog number as Discogs reports it) and optionally as a `pressing_identifier` row with `identifier_type = 'Catalog'`.
+
+### Modeling Rationale
+
+The heterogeneity of real-world vinyl data is the reason the schema uses:
+
+- `pressing_identifier` as an open-typed one-to-many table keyed by `(pressing_id, identifier_type, value, description)` — handles matrix numbers, catalog numbers, barcodes, label codes, and any other identifiers Discogs or future sources expose.
+- `pressing_label.catno` as the canonical per-label catalog number field, sourced from Discogs `labels[]`.
+- `pressing.raw_payload_json` as the unbounded safety net for long-tail or future identifier types not yet normalized.
+
+Do not attempt to enforce a single canonical "the catalog number" field at the pressing level. The reality is one pressing may have multiple catalog number representations across different labels and formats, and that is correct data.
+
+---
+
 ## Discogs Integration Design
 
 ### Implementation Reference
@@ -762,6 +798,12 @@ CREATE INDEX IF NOT EXISTS ix_pressing_label_label_id ON pressing_label (discogs
 
 ALTER TABLE inventory_item
   ADD COLUMN IF NOT EXISTS acquisition_batch_id UUID;
+
+ALTER TABLE inventory_item
+  ADD COLUMN IF NOT EXISTS is_sealed BOOLEAN NULL;
+  -- NULL = not recorded (safe default for legacy imports)
+  -- TRUE  = factory sealed
+  -- FALSE = confirmed open
 
 -- Inventory-focused indexes for query and event retrieval patterns.
 CREATE INDEX IF NOT EXISTS ix_inventory_item_collection_type ON inventory_item (collection_type);
