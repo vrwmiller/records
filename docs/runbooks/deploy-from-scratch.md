@@ -9,8 +9,10 @@ Step-by-step procedure to deploy the full Record Ranch application stack to AWS 
 - AWS CLI configured with the `records` profile (`aws configure --profile records`)
 - Terraform >= 1.10.0 installed
 - Node 24 installed (via nvm: `. ~/.nvm/nvm.sh && nvm use`)
-- Python 3.14 virtual environment (see `env.sh`)
-- Repository cloned and `venv` activated
+- Python 3.14 virtual environment created and activated (see `env.sh`)
+- `pip` available in the active virtual environment (used in step 2 to install Lambda dependencies)
+- `zip` CLI available on `PATH` (used in step 2 to build `lambda.zip`; pre-installed on macOS)
+- Repository cloned
 
 ---
 
