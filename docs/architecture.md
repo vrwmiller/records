@@ -50,7 +50,7 @@ flowchart TD
     DSQ -->|No match| MAN[Manual Entry]
     SEL --> POST[POST /inventory/acquire]
     MAN --> POST
-    POST --> ITEM[inventory_item created and linked]
+    POST --> ITEM[inventory_item created, pressing linked when selected]
   end
 
   subgraph Edit[Edit Inventory Item]
