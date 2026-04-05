@@ -3,6 +3,18 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { InventoryPage } from './InventoryPage'
 
+// Mock fetchAuthSession to return an admin user so isAdmin=true in the component
+vi.mock('aws-amplify/auth', () => ({
+  fetchAuthSession: vi.fn().mockResolvedValue({
+    tokens: {
+      idToken: {
+        payload: { 'cognito:groups': ['admin'] },
+        toString: () => 'mock-token',
+      },
+    },
+  }),
+}))
+
 // Mock the entire api/inventory module
 vi.mock('../api/inventory', () => ({
   listItems: vi.fn(),
