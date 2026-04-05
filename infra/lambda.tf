@@ -74,25 +74,28 @@ resource "aws_cloudwatch_log_group" "lambda" {
 }
 
 # ---------------------------------------------------------------------------
-# Lambda function (container image)
+# Lambda function (zip package, Python 3.13 managed runtime)
 #
 # IMPORTANT — first-deploy order:
-#   1. terraform apply   (provisions all infra; Lambda creation will fail if
-#                         ECR is empty — that is expected)
-#   2. docker build + push to ECR  (image must exist before Lambda can start)
-#   3. terraform apply   (Lambda creation succeeds on retry)
+#   1. Build the zip package (see deploy-from-scratch.md step 2)
+#   2. terraform apply   (zip must exist at ../lambda.zip before apply)
 #
-# To redeploy after pushing a new image:
+# To redeploy after a code or dependency change:
 #   aws lambda update-function-code \
 #     --function-name records-<environment> \
-#     --image-uri <ecr_repository_url>:latest \
+#     --zip-file fileb://lambda.zip \
 #     --profile records --region us-east-1
 # ---------------------------------------------------------------------------
 resource "aws_lambda_function" "app" {
   function_name = "records-${var.environment}"
-  package_type  = "Image"
-  image_uri     = "${aws_ecr_repository.app.repository_url}:latest"
-  role          = aws_iam_role.lambda.arn
+  package_type  = "Zip"
+  runtime       = "python3.13"
+  handler       = "app.handler.handler"
+  filename      = "${path.module}/../lambda.zip"
+  # Guard the hash calculation so validate/plan succeed before lambda.zip exists.
+  # Build lambda.zip before running terraform apply (see deploy-from-scratch.md).
+  source_code_hash = fileexists("${path.module}/../lambda.zip") ? filebase64sha256("${path.module}/../lambda.zip") : null
+  role             = aws_iam_role.lambda.arn
 
   timeout     = 30
   memory_size = 512

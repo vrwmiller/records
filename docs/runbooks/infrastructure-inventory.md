@@ -64,17 +64,6 @@ Provide a concise reference of baseline infrastructure currently provisioned by 
   - verify secret ARN output exists
   - verify secret value is present after apply
 
-## Container Registry
-
-- Resource type: Amazon ECR repository (`records-dev`)
-- Purpose: stores versioned Docker images built from the repo; Lambda pulls from here
-- Critical settings:
-  - `scan_on_push = true` — image vulnerability scanning on every push
-  - lifecycle policy retains last 10 images; older images are expired automatically
-- Validation:
-  - `aws ecr describe-repositories --profile records --region us-east-1`
-  - confirm lifecycle policy is attached after apply
-
 ## Application Runtime
 
 - Resource type: AWS Lambda function (`records-dev`) + Lambda Function URL
