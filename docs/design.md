@@ -294,7 +294,7 @@ POST /inventory/bulk/delete
 GET  /inventory?collection=PERSONAL|DISTRIBUTION
 GET  /inventory/summary
 GET  /transactions
-GET  /discogs/releases?q=... (release search proxy — rate-limited, authenticated; returns Discogs candidate pressings for selection in acquire and edit flows)
+GET  /discogs/releases?q=... (release search proxy — requires app authentication (Cognito JWT); proxies to Discogs public database search, which does not require Discogs user auth; rate-limited; returns candidate pressings for selection in acquire and edit flows)
 POST /imports/access/validate
 POST /imports/access/commit
 GET  /imports/{id}

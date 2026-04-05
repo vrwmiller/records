@@ -134,7 +134,7 @@ flowchart TD
   - `POST /imports/access/commit`
   - `GET /imports/{id}`
   - `GET /imports/{id}/errors`
-  - `GET /discogs/releases?q=...` (release search proxy — rate-limited, authenticated, returns candidate pressing results from Discogs API for user selection in acquire and edit flows)
+  - `GET /discogs/releases?q=...` (release search proxy — requires app authentication (Cognito JWT); proxies to Discogs public database search (no Discogs user auth required); rate-limited; returns candidate pressings for user selection in acquire and edit flows)
 
 ### 3. Web UI
 
