@@ -17,18 +17,18 @@ Deployment intent:
 
 ```mermaid
 flowchart LR
-  U[Authenticated User] --> W
+  U[Authenticated User] --> APIGW[API Gateway HTTP API]
 
   subgraph SVC[Record Ranch Microservice]
-    W[Web UI Layer]
-    W --> A[API Layer]
+    APIGW --> LM[Lambda\nFastAPI + React Static]
   end
 
-  A --> D[(PostgreSQL RDS)]
-  A --> S[(S3 Storage)]
-  A --> C[Discogs API]
+  LM --> D[(PostgreSQL RDS)]
+  LM --> S[(S3 Storage)]
+  LM --> C[Discogs API]
 
-  A --> L[CloudWatch Logs and Metrics]
+  LM --> L[CloudWatch Logs and Metrics]
+  APIGW --> L
   D --> B[Automated Backups]
 ```
 
@@ -133,7 +133,7 @@ flowchart TD
 ### 3a. AWS Microservice Profile
 
 - App/API service runs as a single microservice workload in AWS
-- Public ingress is controlled through an HTTPS endpoint and authentication
+- Public ingress is an API Gateway HTTP API (v2) HTTPS endpoint; authentication is enforced at the application layer by Cognito JWT validation
 - Data tier and object storage are managed AWS services
 - Service design favors simple operation with durable state and fast interaction paths over HA complexity
 
@@ -158,7 +158,8 @@ Current baseline infrastructure is defined as Terraform in `infra/` and includes
   - Public access blocked, versioning enabled, server-side encryption enabled
 - Secret management:
   - Database credentials stored in AWS Secrets Manager
-- Application runtime: Lambda function (zip package, Python 3.13 managed runtime) behind a Lambda Function URL, provisioned via `infra/lambda.tf`; credentials fetched from Secrets Manager at cold start via `app/handler.py`; zip is built with `pip install --platform manylinux2014_x86_64 -t` and deployed via `aws lambda update-function-code` (no Docker required)
+- Application runtime: Lambda function (zip package, Python 3.13 managed runtime) fronted by an API Gateway HTTP API (v2) with an `AWS_PROXY` integration (payload format 2.0); Mangum translates API Gateway events to ASGI; credentials fetched from Secrets Manager at cold start via `app/handler.py`; zip is built with `pip install --platform manylinux2014_x86_64 -t` and deployed via `aws lambda update-function-code` (no Docker required)
+- API Gateway stage throttling (burst and rate limits) bounds cost and trivial abuse; access logs are written to a managed CloudWatch log group with configurable retention
 
 ### 4. Developer Environment
 
