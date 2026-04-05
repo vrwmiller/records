@@ -83,6 +83,13 @@ The following target schema is intended for PostgreSQL and can be implemented wi
 ```sql
 -- Existing inventory tables remain system-of-record for ownership state.
 
+-- pressing is the local metadata anchor for a Discogs release.
+-- pressing_id in inventory_item is UUID (see design.md); pressing.id must match.
+CREATE TABLE IF NOT EXISTS pressing (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 ALTER TABLE pressing
   ADD COLUMN discogs_release_id BIGINT,
   ADD COLUMN discogs_master_id BIGINT,
@@ -119,7 +126,7 @@ CREATE INDEX IF NOT EXISTS ix_pressing_last_synced_at ON pressing (last_synced_a
 
 CREATE TABLE IF NOT EXISTS pressing_identifier (
   id BIGSERIAL PRIMARY KEY,
-  pressing_id BIGINT NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
+  pressing_id UUID NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
   identifier_type TEXT NOT NULL,
   value TEXT NOT NULL,
   description TEXT,
@@ -131,7 +138,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_pressing_identifier_key
 
 CREATE TABLE IF NOT EXISTS pressing_track (
   id BIGSERIAL PRIMARY KEY,
-  pressing_id BIGINT NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
+  pressing_id UUID NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
   position TEXT,
   track_type TEXT,
   title TEXT NOT NULL,
@@ -143,7 +150,7 @@ CREATE INDEX IF NOT EXISTS ix_pressing_track_pressing_id ON pressing_track (pres
 
 CREATE TABLE IF NOT EXISTS pressing_image (
   id BIGSERIAL PRIMARY KEY,
-  pressing_id BIGINT NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
+  pressing_id UUID NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
   image_type TEXT,
   uri TEXT NOT NULL,
   uri150 TEXT,
@@ -157,7 +164,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_pressing_image_uri
 
 CREATE TABLE IF NOT EXISTS pressing_video (
   id BIGSERIAL PRIMARY KEY,
-  pressing_id BIGINT NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
+  pressing_id UUID NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
   uri TEXT NOT NULL,
   title TEXT,
   description TEXT,
@@ -171,7 +178,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_pressing_video_uri
 
 CREATE TABLE IF NOT EXISTS pressing_credit (
   id BIGSERIAL PRIMARY KEY,
-  pressing_id BIGINT NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
+  pressing_id UUID NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
   discogs_artist_id BIGINT,
   name TEXT NOT NULL,
   anv TEXT,
@@ -185,7 +192,7 @@ CREATE INDEX IF NOT EXISTS ix_pressing_credit_artist_id ON pressing_credit (disc
 
 CREATE TABLE IF NOT EXISTS pressing_company (
   id BIGSERIAL PRIMARY KEY,
-  pressing_id BIGINT NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
+  pressing_id UUID NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
   discogs_label_id BIGINT,
   name TEXT NOT NULL,
   entity_type_code TEXT,
@@ -198,7 +205,7 @@ CREATE INDEX IF NOT EXISTS ix_pressing_company_label_id ON pressing_company (dis
 
 CREATE TABLE IF NOT EXISTS pressing_label (
   id BIGSERIAL PRIMARY KEY,
-  pressing_id BIGINT NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
+  pressing_id UUID NOT NULL REFERENCES pressing(id) ON DELETE CASCADE,
   discogs_label_id BIGINT,
   name TEXT NOT NULL,
   catno TEXT,
@@ -292,14 +299,41 @@ Phase C: performance hardening
 - Optional later phase:
   - local image caching with integrity and refresh policy
 
-### Sync Workflow
+### Interactive Release Search (Acquire and Edit Flows)
 
-1. Search or resolve Discogs release ID
+This is the primary integration path. It is user-triggered and synchronous.
+
+1. User enters search text in the acquire or edit UI
+2. The backend calls the Discogs release search API and returns paginated candidate pressings (`GET /discogs/releases?q=...`)
+3. User selects a pressing from the results
+4. The backend fetches the full release payload for the selected `discogs_release_id` from Discogs
+5. Upsert `pressing` by `discogs_release_id`
+6. Persist raw payload snapshot and sync metadata (`raw_payload_json`, `last_synced_at`, `sync_status`)
+7. Link the upserted `pressing_id` to the `inventory_item` on acquire or patch
+
+**Fallback — No Discogs Match:**
+
+- If the release is not found in Discogs, the user may proceed with manual entry
+- `pressing_id` on `inventory_item` is nullable; Discogs linkage is never required to complete an acquire or edit
+- In this fallback path, no `pressing` row is created or upserted; the `inventory_item` is created with `pressing_id = null`
+
+### Background Sync (Future Phase)
+
+Background sync refreshes market signals and metadata for already-linked pressings. It is not triggered by user action.
+
+1. Resolve `discogs_release_id` for pressings with `last_synced_at` older than threshold or `sync_status = stale`
 2. Fetch release payload from Discogs API
 3. Upsert `pressing` by `discogs_release_id`
 4. Replace/upsert selected child-table rows for the release
 5. Persist raw payload snapshot and sync metadata
-6. Link local `inventory_item` rows to `pressing_id`
+
+Background sync is a Phase C concern and should not be conflated with the interactive search flow.
+
+### Out of Scope (Current Phase): Writing to Discogs
+
+- Creating or updating Discogs database entries from the web app requires Discogs OAuth and write-endpoint access
+- This is a natural follow-on once the interactive read/search integration is stable
+- It is explicitly deferred; no write-path implementation should be included in Phase A or B work
 
 ### Compliance and Licensing
 
