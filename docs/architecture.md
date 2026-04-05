@@ -58,7 +58,7 @@ flowchart TD
     ED --> DSQ2[Discogs Release Search]
     DSQ2 -->|Match found| SEL2[User Selects Pressing]
     DSQ2 -->|No match| MAN2[Manual Update]
-    SEL2 --> PATCH[PATCH /inventory/{id}]
+    SEL2 --> PATCH["PATCH /inventory/{id}"]
     MAN2 --> PATCH
   end
 
