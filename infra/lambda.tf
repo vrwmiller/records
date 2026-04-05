@@ -77,7 +77,7 @@ resource "aws_cloudwatch_log_group" "lambda" {
 # Lambda function (zip package, Python 3.13 managed runtime)
 #
 # IMPORTANT — first-deploy order:
-#   1. Build the zip package (see deploy-from-scratch.md step 3)
+#   1. Build the zip package (see deploy-from-scratch.md step 2)
 #   2. terraform apply   (zip must exist at ../lambda.zip before apply)
 #
 # To redeploy after a code or dependency change:

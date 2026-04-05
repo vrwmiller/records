@@ -41,7 +41,7 @@ pip install \
   -r requirements.txt
 ```
 
-Copy application code. On first deploy the React UI has not been built yet (Cognito IDs are not available until after `terraform apply`), so the UI is omitted here and added after apply in step 5:
+Copy application code. On first deploy the React UI has not been built yet (Cognito IDs are not available until after `terraform apply`), so the UI is omitted here and added after apply in step 4:
 
 ```bash
 cp -r app /tmp/lambda-package/
@@ -132,8 +132,11 @@ cd "$REPO_ROOT"
 ### 4c. Push the zip to Lambda
 
 ```bash
+# Set ENVIRONMENT to the Terraform environment you deployed (dev or prod)
+ENVIRONMENT=dev
+
 aws lambda update-function-code \
-  --function-name records-dev \
+  --function-name "records-${ENVIRONMENT}" \
   --zip-file fileb://lambda.zip \
   --profile records --region us-east-1
 ```
