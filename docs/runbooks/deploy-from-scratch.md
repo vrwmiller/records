@@ -26,17 +26,9 @@ Expected: "Terraform has been successfully initialized."
 
 ## 2. Deploy the base infrastructure
 
-This creates networking, RDS, Cognito, S3, secrets, and the Lambda function. The zip archive must exist before running `terraform apply` (Terraform reads it to compute a content hash).
+This creates networking, RDS, Cognito, S3, secrets, and the Lambda function.
 
-> **On first deploy — two-pass sequence:** Cognito outputs (pool ID, client ID) do not exist until after the first apply, but the UI bundle requires them at build time. To break the dependency:
->
-> 1. Complete **step 3b only** (build the Python package without UI assets).
-> 2. Run `terraform apply` (this step) to provision infrastructure and create the Lambda function.
-> 3. Return to **step 3a** to build the React UI with Cognito IDs baked in.
-> 4. Re-run **step 3b** to rebuild the zip with UI included.
-> 5. Run **step 9** to update the deployed function code with the full zip.
->
-> Subsequent deploys run steps 3 and 9 (or `terraform apply`) in a single pass.
+> **On first deploy:** `lambda.zip` does not exist yet. That is fine — `fileexists()` in `lambda.tf` returns `null` for `source_code_hash`, so Terraform can create all resources except useful Lambda code. After this apply completes you will have Cognito outputs needed to build the UI. Build the full zip in step 3 and push it in step 9.
 
 ```bash
 terraform -chdir=infra apply
@@ -62,11 +54,9 @@ Key values (update these after each fresh deploy — do not store credentials):
 
 ## 3. Build the Lambda zip package and React UI
 
-The zip package is rebuilt on every code or dependency change. On a first deploy, complete step 3b before `terraform apply`; return to step 3a after apply succeeds (see the first-deploy note in step 2).
+Build the zip after `terraform apply` (step 2) so Cognito outputs are available for the UI build. This step is run on every code or dependency change.
 
 ### 3a. Build the React UI
-
-> **First deploy:** skip this step until after `terraform apply` (step 4) completes — Cognito outputs do not exist yet.
 
 The Vite build bakes Cognito IDs into the JavaScript bundle at compile time. Read them from Terraform outputs before building:
 
@@ -106,8 +96,11 @@ Copy application code and compiled UI assets into the staging directory, then zi
 
 ```bash
 cp -r app /tmp/lambda-package/
-mkdir -p /tmp/lambda-package/ui
-cp -r ui/dist /tmp/lambda-package/ui/
+# Include the compiled UI if it was built in step 3a (skipped on first deploy before apply).
+if [ -d ui/dist ]; then
+  mkdir -p /tmp/lambda-package/ui
+  cp -r ui/dist /tmp/lambda-package/ui/
+fi
 
 REPO_ROOT=$(pwd)
 cd /tmp/lambda-package
@@ -119,15 +112,18 @@ Expected: `lambda.zip` exists at the repo root.
 
 ---
 
-## 4. Apply Terraform
+## 4. Deploy the zip to Lambda
 
-With `lambda.zip` present, apply Terraform. On first deploy this creates all infrastructure including the Lambda function:
+Push the freshly built zip to the deployed function:
 
 ```bash
-terraform -chdir=infra apply
+aws lambda update-function-code \
+  --function-name records-dev \
+  --zip-file fileb://lambda.zip \
+  --profile records --region us-east-1
 ```
 
-Expected: Lambda function and Function URL are created successfully.
+Expected: function update confirmation with `CodeSize` in the response.
 
 ---
 
@@ -204,24 +200,14 @@ aws cognito-idp admin-add-user-to-group \
 
 ## 9. Redeploy after code changes
 
-1. Rebuild the zip (step 3 above).
-1. Update the Lambda function code directly — no Terraform required for code-only changes:
-
-```bash
-aws lambda update-function-code \
-  --function-name records-dev \
-  --zip-file fileb://lambda.zip \
-  --profile records --region us-east-1
-```
-
-1. If the deploy includes schema changes, run migrations (step 6) **before** updating the function code.
-1. If the deploy includes Terraform changes (env vars, IAM, etc.), run `terraform apply` instead of (or in addition to) the CLI update.
+1. Rebuild the zip and redeploy: run steps 3 and 4.
+1. If the deploy includes schema changes, run migrations (step 6) **before** step 4.
+1. If the deploy includes Terraform changes (env vars, IAM, etc.), run `terraform apply` instead of (or in addition to) step 4.
 
 ---
 
 ## Known constraints
 
-- **First deploy order:** Build `lambda.zip` (step 3) before running `terraform apply`. Terraform references the zip at `../lambda.zip` and will fail if the file does not exist.
 - **Platform targeting:** The `pip install --platform manylinux2014_x86_64` flag is required when building on macOS (including Apple Silicon). Omitting it produces wheels compiled for the host OS that will fail to load on Lambda.
 - **RDS is private:** The database is in private subnets and not directly reachable from a laptop. For direct DB access or to run migrations locally, an SSM port-forward to the RDS host is required.
 - **Migrations are manual:** `alembic upgrade head` must be run before any deploy that introduces schema changes. Lambda does not run migrations at startup.
