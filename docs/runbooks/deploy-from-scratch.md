@@ -24,11 +24,41 @@ Expected: "Terraform has been successfully initialized."
 
 ---
 
-## 2. Deploy the base infrastructure
+## 2. Build the Lambda zip package
 
-This creates networking, RDS, Cognito, S3, secrets, and the Lambda function.
+The zip must exist before `terraform apply` — the AWS Lambda provider reads the `filename` file during apply. Build it now before provisioning infrastructure.
 
-> **On first deploy:** `lambda.zip` does not exist yet. That is fine — `fileexists()` in `lambda.tf` returns `null` for `source_code_hash`, so Terraform can create all resources except useful Lambda code. After this apply completes you will have Cognito outputs needed to build the UI. Build the full zip in step 3 and push it in step 9.
+Install Python dependencies into a staging directory targeting the Lambda runtime platform (Linux x86_64):
+
+```bash
+rm -rf /tmp/lambda-package
+pip install \
+  --platform manylinux2014_x86_64 \
+  --implementation cp \
+  --python-version 3.13 \
+  --only-binary=:all: \
+  --target /tmp/lambda-package \
+  -r requirements.txt
+```
+
+Copy application code. On first deploy the React UI has not been built yet (Cognito IDs are not available until after `terraform apply`), so the UI is omitted here and added after apply in step 5:
+
+```bash
+cp -r app /tmp/lambda-package/
+
+REPO_ROOT=$(pwd)
+cd /tmp/lambda-package
+zip -r "$REPO_ROOT/lambda.zip" .
+cd "$REPO_ROOT"
+```
+
+Expected: `lambda.zip` exists at the repo root.
+
+---
+
+## 3. Deploy the base infrastructure
+
+This creates networking, RDS, Cognito, S3, secrets, and the Lambda function:
 
 ```bash
 terraform -chdir=infra apply
@@ -52,13 +82,13 @@ Key values (update these after each fresh deploy — do not store credentials):
 
 ---
 
-## 3. Build the Lambda zip package and React UI
+## 4. Build and deploy the full zip (with React UI)
 
-Build the zip after `terraform apply` (step 2) so Cognito outputs are available for the UI build. This step is run on every code or dependency change.
+With Cognito outputs now available, build the React UI and rebuild the zip with UI assets included.
 
-### 3a. Build the React UI
+### 4a. Build the React UI
 
-The Vite build bakes Cognito IDs into the JavaScript bundle at compile time. Read them from Terraform outputs before building:
+The Vite build bakes Cognito IDs into the JavaScript bundle at compile time:
 
 ```bash
 COGNITO_USER_POOL_ID=$(terraform -chdir=infra output -raw cognito_user_pool_id)
@@ -77,9 +107,7 @@ cd ..
 
 Expected: `ui/dist/` is populated with compiled assets.
 
-### 3b. Build the Lambda zip
-
-Install dependencies into a staging directory using the correct target platform (Lambda runs on Linux x86_64 regardless of host architecture):
+### 4b. Rebuild the zip with UI included
 
 ```bash
 rm -rf /tmp/lambda-package
@@ -90,17 +118,10 @@ pip install \
   --only-binary=:all: \
   --target /tmp/lambda-package \
   -r requirements.txt
-```
 
-Copy application code and compiled UI assets into the staging directory, then zip:
-
-```bash
 cp -r app /tmp/lambda-package/
-# Include the compiled UI if it was built in step 3a (skipped on first deploy before apply).
-if [ -d ui/dist ]; then
-  mkdir -p /tmp/lambda-package/ui
-  cp -r ui/dist /tmp/lambda-package/ui/
-fi
+mkdir -p /tmp/lambda-package/ui
+cp -r ui/dist /tmp/lambda-package/ui/
 
 REPO_ROOT=$(pwd)
 cd /tmp/lambda-package
@@ -108,13 +129,7 @@ zip -r "$REPO_ROOT/lambda.zip" .
 cd "$REPO_ROOT"
 ```
 
-Expected: `lambda.zip` exists at the repo root.
-
----
-
-## 4. Deploy the zip to Lambda
-
-Push the freshly built zip to the deployed function:
+### 4c. Push the zip to Lambda
 
 ```bash
 aws lambda update-function-code \
@@ -127,7 +142,7 @@ Expected: function update confirmation with `CodeSize` in the response.
 
 ---
 
-## 6. Run database migrations
+## 5. Run database migrations
 
 **Migrations do not run at Lambda startup.** Before the first use, and before any deploy that includes schema changes, run migrations manually from your local machine with `DATABASE_URL` set from Secrets Manager:
 
@@ -162,7 +177,7 @@ alembic upgrade head
 
 ---
 
-## 7. Verify the deployment
+## 6. Verify the deployment
 
 ```bash
 APP_URL=$(terraform -chdir=infra output -raw lambda_function_url)
@@ -174,7 +189,7 @@ Then open `$APP_URL` in a browser and sign in with the admin account.
 
 ---
 
-## 8. Create the first user (if Cognito pool is new)
+## 7. Create the first user (if Cognito pool is new)
 
 See [cognito-operations.md](cognito-operations.md) for creating users and adding them to the `admin` group.
 
@@ -198,11 +213,11 @@ aws cognito-idp admin-add-user-to-group \
 
 ---
 
-## 9. Redeploy after code changes
+## 8. Redeploy after code changes
 
-1. Rebuild the zip and redeploy: run steps 3 and 4.
-1. If the deploy includes schema changes, run migrations (step 6) **before** step 4.
-1. If the deploy includes Terraform changes (env vars, IAM, etc.), run `terraform apply` instead of (or in addition to) step 4.
+1. Rebuild the zip and redeploy: run step 4 (4a, 4b, 4c).
+1. If the deploy includes schema changes, run migrations (step 5) **before** step 4c.
+1. If the deploy includes Terraform changes (env vars, IAM, etc.), run `terraform apply` (step 3) instead of or in addition to step 4c.
 
 ---
 
@@ -211,5 +226,5 @@ aws cognito-idp admin-add-user-to-group \
 - **Platform targeting:** The `pip install --platform manylinux2014_x86_64` flag is required when building on macOS (including Apple Silicon). Omitting it produces wheels compiled for the host OS that will fail to load on Lambda.
 - **RDS is private:** The database is in private subnets and not directly reachable from a laptop. For direct DB access or to run migrations locally, an SSM port-forward to the RDS host is required.
 - **Migrations are manual:** `alembic upgrade head` must be run before any deploy that introduces schema changes. Lambda does not run migrations at startup.
-- **Cognito IDs baked into the UI bundle:** If the Cognito user pool or client is replaced (e.g., in a new environment), rebuild the zip (step 3) and redeploy (step 9).
+- **Cognito IDs baked into the UI bundle:** If the Cognito user pool or client is replaced (e.g., in a new environment), rebuild the zip (step 4) and redeploy (step 4c).
 - **Cold starts:** Lambda may take 2–5 seconds to respond after a period of inactivity. For a personal single-user tool this is tolerable.
