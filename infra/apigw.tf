@@ -51,11 +51,14 @@ resource "aws_apigatewayv2_stage" "default" {
     destination_arn = aws_cloudwatch_log_group.apigw.arn
     # JSON format captures method, path, status, latency, and request ID —
     # sufficient for diagnosing routing and integration failures.
+    # routeKey is always "$default" for this stage; path carries the actual
+    # request path (e.g. /api/health) needed to identify which URL was hit.
     format = jsonencode({
       requestId          = "$context.requestId"
       ip                 = "$context.identity.sourceIp"
       requestTime        = "$context.requestTime"
       httpMethod         = "$context.httpMethod"
+      path               = "$context.path"
       routeKey           = "$context.routeKey"
       status             = "$context.status"
       protocol           = "$context.protocol"
