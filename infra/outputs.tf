@@ -45,12 +45,7 @@ output "image_bucket_name" {
   value       = aws_s3_bucket.images.bucket
 }
 
-output "lambda_function_url" {
-  description = "Lambda Function URL (AWS_IAM auth — internal use only; access the app via app_url)"
-  value       = try(aws_lambda_function_url.app.function_url, null)
-}
-
 output "app_url" {
-  description = "Public HTTPS URL for the app via CloudFront"
-  value       = "https://${aws_cloudfront_distribution.app.domain_name}"
+  description = "Public HTTPS URL for the app via API Gateway"
+  value       = aws_apigatewayv2_stage.default.invoke_url
 }

@@ -158,7 +158,7 @@ Current baseline infrastructure is defined as Terraform in `infra/` and includes
   - Public access blocked, versioning enabled, server-side encryption enabled
 - Secret management:
   - Database credentials stored in AWS Secrets Manager
-- Application runtime: Lambda function (zip package, Python 3.13 managed runtime) behind a CloudFront distribution with Origin Access Control (OAC); Lambda Function URL uses `AWS_IAM` authorization so only CloudFront can invoke it directly; CloudFront signs all origin requests via SigV4; credentials fetched from Secrets Manager at cold start via `app/handler.py`; zip is built with `pip install --platform manylinux2014_x86_64 -t` and deployed via `aws lambda update-function-code` (no Docker required)
+- Application runtime: Lambda function (zip package, Python 3.13 managed runtime) fronted by an API Gateway HTTP API (v2) with an `AWS_PROXY` integration (payload format 2.0); Mangum translates API Gateway events to ASGI; credentials fetched from Secrets Manager at cold start via `app/handler.py`; zip is built with `pip install --platform manylinux2014_x86_64 -t` and deployed via `aws lambda update-function-code` (no Docker required)
 
 ### 4. Developer Environment
 

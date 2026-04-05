@@ -115,7 +115,7 @@ resource "aws_lambda_function" "app" {
       S3_IMAGE_BUCKET      = aws_s3_bucket.images.bucket
       # Empty string overrides the app default (localhost origins) so no
       # cross-origin requests are allowed in production. The React UI is
-      # served from the same Function URL origin and does not need CORS.
+      # served from the same API Gateway origin and does not need CORS.
       CORS_ORIGINS = ""
     }
   }
@@ -129,15 +129,4 @@ resource "aws_lambda_function" "app" {
   tags = { Name = "records-${var.environment}-lambda" }
 }
 
-# ---------------------------------------------------------------------------
-# Lambda Function URL — AWS_IAM auth; public access via CloudFront OAC
-#
-# Direct invocation of this URL is rejected unless the request is signed
-# with valid AWS SigV4 credentials. CloudFront signs all requests via OAC
-# (see cloudfront.tf). The CORS block is intentionally omitted; FastAPI's
-# CORSMiddleware manages all CORS response headers.
-# ---------------------------------------------------------------------------
-resource "aws_lambda_function_url" "app" {
-  function_name      = aws_lambda_function.app.function_name
-  authorization_type = "AWS_IAM"
-}
+
