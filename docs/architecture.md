@@ -36,16 +36,35 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-  subgraph RequestPath[Primary User Flow]
-    LP[Landing Page in Read Mode] --> SUM[GET /inventory/summary]
-    LP --> SRCH[Search Form]
+  subgraph Read[Search and Transfer]
+    LP[Login] --> INV[Inventory List]
+    INV --> SRCH[Search / Filter]
     SRCH --> ACT[Per-Item and Bulk Actions]
+    ACT --> XFR[Transfer Collection]
   end
 
-  SUM --> PERF[Low-latency response target]
-  ACT --> PERF
-  PERF --> UX[Low-friction UX]
+  subgraph Acquire[Add to Inventory]
+    LP --> AQ[Acquire]
+    AQ --> DSQ[Discogs Release Search]
+    DSQ -->|Match found| SEL[User Selects Pressing]
+    DSQ -->|No match| MAN[Manual Entry]
+    SEL --> POST[POST /inventory/acquire]
+    MAN --> POST
+    POST --> ITEM[inventory_item created and linked]
+  end
 
+  subgraph Edit[Edit Inventory Item]
+    ACT --> ED[Edit Item]
+    ED --> DSQ2[Discogs Release Search]
+    DSQ2 -->|Match found| SEL2[User Selects Pressing]
+    DSQ2 -->|No match| MAN2[Manual Update]
+    SEL2 --> PATCH[PATCH /inventory/:id]
+    MAN2 --> PATCH
+  end
+
+  PERF[Low-latency response target] --- Read
+  PERF --- Acquire
+  PERF --- Edit
   DURA[Durable Storage and Backups] --> REC[Restore Capability]
   REC --> TRUST[Data Integrity Confidence]
 ```
@@ -115,6 +134,7 @@ flowchart TD
   - `POST /imports/access/commit`
   - `GET /imports/{id}`
   - `GET /imports/{id}/errors`
+  - `GET /discogs/releases?q=...` (release search proxy — rate-limited, authenticated, returns candidate pressing results from Discogs API for user selection in acquire and edit flows)
 
 ### 3. Web UI
 
@@ -126,6 +146,8 @@ flowchart TD
 - Read mode supports bulk transfer/update/delete workflows on selected results
 - Bulk selection supports per-row checkboxes plus select-all-current-page/select-all-results controls
 - Read mode surfaces Discogs market/value signals when available for user decision support
+- Acquire flow: user enters search text, selects a matching Discogs pressing from returned candidates, then confirms acquisition details; if the release is not in Discogs, the user may enter metadata manually
+- Edit flow: same Discogs search-and-select UX to re-link or update pressing on an existing inventory item; manual update is available as a fallback when no Discogs match is found
 - Distinguishes PERSONAL vs DISTRIBUTION visually
 - Sale confirmation for personal items
 - Listing optimized for quick sales workflows
@@ -254,18 +276,24 @@ flowchart TD
 
 ---
 
-## Optional Extensions
+## Core Integrations
 
-- Discogs integration for auto-populating metadata
-- Analytics dashboards
-- Automated premium pricing for PERSONAL collection
+- Discogs: release search and metadata enrichment for acquire and edit flows
+- Analytics dashboards (future)
+- Automated premium pricing for PERSONAL collection (future)
 
 ### Discogs Integration (High Level)
 
 - Integration role:
-  - Discogs is an external metadata source for enrichment, not a system of record for inventory ownership state
+  - Discogs is the primary metadata source for the acquire and edit flows; users search Discogs by text and select a pressing to populate or update inventory items
+  - Discogs is also an external source for market/value signals surfaced in read mode on inventory items
+  - Discogs is not a system of record for inventory ownership state
+- Fallback:
+  - If a release is not found in Discogs, the user must still be able to add or edit the item via manual entry; `pressing_id` is nullable and Discogs linkage is never required
+- Out of scope (current phase):
+  - Writing back to Discogs from the web app requires Discogs OAuth and write-endpoint access; this is explicitly deferred to a future phase
 - Boundary:
-  - Discogs-facing ingestion and synchronization behavior is documented in [design-discogs.md](design-discogs.md)
+  - Discogs-facing ingestion, synchronization, and schema extension behavior is documented in [design-discogs.md](design-discogs.md)
 - Reliability principles:
   - Use resilient fetch pipelines with throttling, retries, and idempotent upserts
 - Compliance principles:

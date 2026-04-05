@@ -30,6 +30,9 @@ Operational profile assumptions:
 - Common actions (search, transfer, update, delete, bulk operations) should be executable from the default read-mode workflow with minimal navigation
 - Authenticated users should reach actionable inventory context quickly after login
 - The interface should prefer progressive disclosure over multi-step modal chains for routine actions
+- Acquiring a new item requires the fewest possible steps: enter search text, select from Discogs results, confirm acquisition details
+- Editing an existing item follows the same pattern: search Discogs, select a pressing, confirm changes
+- When a Discogs match is unavailable, the user must still be able to add or edit the item using manual entry without leaving the primary workflow
 
 ### Availability and Durability Posture
 
@@ -291,6 +294,7 @@ POST /inventory/bulk/delete
 GET  /inventory?collection=PERSONAL|DISTRIBUTION
 GET  /inventory/summary
 GET  /transactions
+GET  /discogs/releases?q=... (release search proxy — rate-limited, authenticated; returns Discogs candidate pressings for selection in acquire and edit flows)
 POST /imports/access/validate
 POST /imports/access/commit
 GET  /imports/{id}
@@ -337,6 +341,22 @@ GET  /imports/{id}/errors
 - Inventory results expose controls to invoke transfer, update, and delete actions
 - Transfer, update, and delete controls may be presented as buttons or menus
 - Search-result actions assume operator intent to manage item lifecycle after lookup
+
+### Acquire Flow
+
+- User initiates acquire from the default view
+- User enters search text; the app calls `GET /discogs/releases?q=...` and presents candidate pressings
+- User selects a pressing from the results to populate acquisition details
+- If no Discogs match exists, the user may proceed with manual entry and still complete acquisition
+- Confirmed acquisition calls `POST /inventory/acquire`; the selected Discogs pressing is upserted and linked automatically
+
+### Edit Flow
+
+- User opens edit for an existing inventory item
+- User may enter search text to find a new or corrected Discogs pressing; the app calls `GET /discogs/releases?q=...` and presents candidates
+- User selects a pressing to update the item's `pressing_id` linkage
+- If no Discogs match exists, the user may update item fields manually without re-linking a pressing
+- Confirmed edits call `PATCH /inventory/{id}`
 
 ### Inventory Row Actions
 
