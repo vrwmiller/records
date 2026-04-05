@@ -26,9 +26,11 @@ Schema notes:
   ix_pressing_year, ix_pressing_country.
 
 Rollback intent:
-  Re-add all fifteen dropped columns (all nullable, zero data loss) and
-  restore the two dropped indexes. No data recovery is needed; columns were
-  empty at time of drop.
+  Re-add all fifteen dropped columns (all nullable) and restore the two
+  dropped indexes. Downgrade recreates schema only — it does not restore
+  column data. These columns had no data populated in the development
+  environment at time of migration; data recovery is not expected to be
+  needed, but is not guaranteed by the migration itself.
 """
 
 from alembic import op

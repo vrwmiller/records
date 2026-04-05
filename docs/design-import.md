@@ -88,11 +88,11 @@ Pass B: inventory item and transaction creation
 
 | Access `Albums` field | Local target | Notes |
 | ----- | ----------- | ----- |
-| Artist | `pressing.raw_payload_json` and/or `pressing_credit.name` | retain exact source artist text; canonical artist normalization is a later phase |
+| Artist | `pressing.artists_sort` (sort key); full artist attribution available on demand from Discogs API | retain exact source artist text; canonical artist normalization is a later phase |
 | ArtistSort | `pressing.artists_sort` | preferred sort key |
 | Title | `pressing.title` | required for canonical display |
-| Label | `pressing_label.name` | normalize against lookup |
-| Number | `pressing_label.catno` | source says include prefix |
+| Label | available on demand from Discogs API (`labels[]` in release payload) | not stored locally; fetched via proxy endpoint when needed |
+| Number | available on demand from Discogs API (`labels[].catno` in release payload) | not stored locally; fetched via proxy endpoint when needed |
 | Discogs# | `pressing.discogs_release_id` | primary external key if valid |
 | Year | `pressing.year` | integer coercion with validation |
 | Value | import transaction metadata | estimated value, not guaranteed cost basis |
@@ -153,7 +153,7 @@ Vinyl record identification has no industry standard. Record companies, labels, 
 - Identifies the mastering engineer or mastering house responsible for that side.
 - May incorporate part or all of the catalog number as a prefix or suffix.
 - Because matrix numbers are per-side, a single release has at least two distinct matrix values (Side A, Side B). Box sets may have many more.
-- The `pressing_identifier` table models this directly: `identifier_type = 'Matrix / Runout'`, `value = <etched string>`, `description = <side or location note>`. Discogs surfaces these via `identifiers[]` in the release payload.
+- Discogs surfaces matrix numbers via `identifiers[]` in the release payload (type `'Matrix / Runout'`). This data is available on demand from the Discogs API via the proxy endpoint and is not stored locally.
 
 ### Catalog Numbers
 
@@ -161,14 +161,10 @@ Vinyl record identification has no industry standard. Record companies, labels, 
 - Typically appears on the cover and/or the record label.
 - The "record number" is often the catalog number, but not always — the terms overlap without being interchangeable.
 - Box sets frequently carry a separate catalog number for the overall set **and** distinct numbers for each individual disc inside. This relationship is not guaranteed and cannot be assumed.
-- Captured in the schema via `pressing_label.catno` (per-label catalog number as Discogs reports it) and optionally as a `pressing_identifier` row with `identifier_type = 'Catalog'`.
+- Catalog number and label data are available on demand from the Discogs API via the proxy endpoint (`labels[]` in the release payload) and are not stored locally.
 
 ### Modeling Rationale
 
-The heterogeneity of real-world vinyl data is the reason the schema uses:
-
-- `pressing_identifier` as an open-typed one-to-many table keyed by `(pressing_id, identifier_type, value, description)` — handles matrix numbers, catalog numbers, barcodes, label codes, and any other identifiers Discogs or future sources expose.
-- `pressing_label.catno` as the canonical per-label catalog number field, sourced from Discogs `labels[]`.
-- `pressing.raw_payload_json` as the unbounded safety net for long-tail or future identifier types not yet normalized.
+The heterogeneity of real-world vinyl data is why identifier and label data are not forced into a single canonical local field. Discogs surfaces this complexity via `identifiers[]` and `labels[]` in the full release payload, which is available on demand from the proxy endpoint. The lean local schema (`pressing`) does not store this data; it is fetched when the user explicitly requests release detail.
 
 Do not attempt to enforce a single canonical "the catalog number" field at the pressing level. The reality is one pressing may have multiple catalog number representations across different labels and formats, and that is correct data.

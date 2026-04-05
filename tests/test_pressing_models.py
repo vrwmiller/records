@@ -1,9 +1,10 @@
 """
-Structural tests for the Pressing ORM model and Phase A migration file.
+Structural tests for the Pressing ORM model and Discogs schema migrations.
 
-These tests verify schema invariants (table registration, column properties,
-constraints, FK behavior, relationship wiring) using SQLAlchemy metadata
-inspection only. No database connection is required.
+Covers: table registration, column properties, constraints, FK behavior,
+relationship wiring, and migration file structure for the Phase A migration
+(c2e4f8a1d7b3) and the lean-schema trim migration (dcd582777257).
+Uses SQLAlchemy metadata inspection only. No database connection is required.
 """
 
 import importlib
