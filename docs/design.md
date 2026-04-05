@@ -101,7 +101,7 @@ Each inventory item belongs to one of:
 ```sql
 inventory_item (
   id                   UUID PK,
-  pressing_id          UUID NULL,           -- future FK to pressing (deferred to Discogs integration phase)
+  pressing_id          UUID NULL,           -- FK to pressing; populated during acquire/edit via Discogs search-and-select (Phase A); nullable to support manual entry without a Discogs match
   acquisition_batch_id UUID NULL,          -- shared across batch-acquired copies
   collection_type      TEXT NOT NULL CHECK (collection_type IN ('PERSONAL','DISTRIBUTION')),
   condition_media      TEXT NULL,
@@ -348,7 +348,8 @@ GET  /imports/{id}/errors
 - User enters search text; the app calls `GET /discogs/releases?q=...` and presents candidate pressings
 - User selects a pressing from the results to populate acquisition details
 - If no Discogs match exists, the user may proceed with manual entry and still complete acquisition
-- Confirmed acquisition calls `POST /inventory/acquire`; the selected Discogs pressing is upserted and linked automatically
+- Confirmed acquisition with a Discogs selection calls `POST /inventory/acquire`; the selected pressing is upserted and the new inventory item is linked via `pressing_id` automatically
+- Confirmed acquisition via manual entry still calls `POST /inventory/acquire`; no Discogs pressing is upserted or linked, and the new inventory item is created with `pressing_id = null`
 
 ### Edit Flow
 

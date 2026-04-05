@@ -2,7 +2,7 @@
 
 ## Overview
 
-The system is designed to support a dual-collection inventory with auditability, developer accessibility, and eventual integration with Discogs.
+The system is designed to support a dual-collection inventory with auditability, developer accessibility, and Discogs integration as the primary mechanism for acquire and edit workflows.
 
 Deployment intent:
 
@@ -58,7 +58,7 @@ flowchart TD
     ED --> DSQ2[Discogs Release Search]
     DSQ2 -->|Match found| SEL2[User Selects Pressing]
     DSQ2 -->|No match| MAN2[Manual Update]
-    SEL2 --> PATCH[PATCH /inventory/:id]
+    SEL2 --> PATCH[PATCH /inventory/{id}]
     MAN2 --> PATCH
   end
 
@@ -79,7 +79,7 @@ flowchart TD
 - Tables:
   - `inventory_item`
   - `inventory_transaction`
-  - `pressing` (Discogs reference, future)
+  - `pressing` (Discogs metadata anchor; linked to inventory items during acquire and edit flows)
 - Features:
   - Transaction logging
   - Collection type enforcement
