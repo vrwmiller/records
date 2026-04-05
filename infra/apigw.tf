@@ -29,10 +29,49 @@ resource "aws_apigatewayv2_route" "default" {
   target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
 
+# ---------------------------------------------------------------------------
+# CloudWatch log group for API Gateway access logs
+#
+# Managed explicitly so retention matches the Lambda log group. Without this,
+# API Gateway auto-creates a group with infinite retention on first request.
+# ---------------------------------------------------------------------------
+resource "aws_cloudwatch_log_group" "apigw" {
+  name              = "/aws/apigateway/records-${var.environment}"
+  retention_in_days = var.app_log_retention_days
+
+  tags = { Name = "records-${var.environment}-apigw-logs" }
+}
+
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.app.id
   name        = "$default"
   auto_deploy = true
+
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.apigw.arn
+    # JSON format captures method, path, status, latency, and request ID —
+    # sufficient for diagnosing routing and integration failures.
+    format = jsonencode({
+      requestId          = "$context.requestId"
+      ip                 = "$context.identity.sourceIp"
+      requestTime        = "$context.requestTime"
+      httpMethod         = "$context.httpMethod"
+      routeKey           = "$context.routeKey"
+      status             = "$context.status"
+      protocol           = "$context.protocol"
+      responseLength     = "$context.responseLength"
+      integrationLatency = "$context.integrationLatency"
+    })
+  }
+
+  # Throttle at the stage level to bound cost and block trivial abuse.
+  # Burst: max concurrent requests spike; rate: sustained requests/second.
+  # Values are conservative for a single-user dev workload and can be raised
+  # via a tfvar override when traffic warrants it.
+  default_route_settings {
+    throttling_burst_limit = 50
+    throttling_rate_limit  = 20
+  }
 
   tags = { Name = "records-${var.environment}-apigw-stage" }
 }
