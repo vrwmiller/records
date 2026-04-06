@@ -21,10 +21,16 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
   const [saveError, setSaveError] = useState<string | null>(null)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchSeq = useRef(0)
+  const isMounted = useRef(true)
 
   useEffect(() => {
     return () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current)
+      isMounted.current = false
+      searchSeq.current += 1
+      if (searchTimer.current) {
+        clearTimeout(searchTimer.current)
+        searchTimer.current = null
+      }
     }
   }, [])
 
@@ -84,11 +90,11 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
         notes: notes || null,
       }
       const updated = await updateItem(item.id, request)
-      onSave(updated)
+      if (isMounted.current) onSave(updated)
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : 'Save failed')
+      if (isMounted.current) setSaveError(e instanceof Error ? e.message : 'Save failed')
     } finally {
-      setSaving(false)
+      if (isMounted.current) setSaving(false)
     }
   }
 

@@ -1,6 +1,6 @@
 # Discogs API Reference
 
-**Source:** https://www.discogs.com/developers/#  
+**Source:** <https://www.discogs.com/developers/#>  
 **API version:** v2 (only version supported)  
 **Base URL:** `https://api.discogs.com`
 
@@ -10,7 +10,7 @@
 
 Record Ranch uses **Discogs token auth** (not OAuth). Every request must include:
 
-```
+```bash
 Authorization: Discogs token={DISCOGS_TOKEN}
 User-Agent: RecordRanch/1.0 +https://github.com/vrwmiller/records
 Accept: application/vnd.discogs.v2.discogs+json
@@ -18,7 +18,7 @@ Accept: application/vnd.discogs.v2.discogs+json
 
 The `User-Agent` header is required — requests without it return an empty response (see FAQ below).
 
-Token is stored in `DISCOGS_TOKEN` env var / Parameter Store and read via `app/config.py`.
+Token is stored in the `DISCOGS_TOKEN` environment variable and read via `app/config.py`. Parameter Store (SSM) is the planned production secret store but is not yet implemented — tracked as an open follow-up item.
 
 ---
 
@@ -47,7 +47,7 @@ Default page size: **50 items**. Max per page: **100**.
 
 Query params: `page` (1-based), `per_page`.
 
-```
+```bash
 GET https://api.discogs.com/database/search?q=nirvana&page=2&per_page=25
 ```
 
@@ -76,7 +76,7 @@ Response body includes a `pagination` object:
 
 Specify version and format via `Accept` header:
 
-```
+```bash
 application/vnd.discogs.v2.discogs+json   ← default (Discogs markup)
 application/vnd.discogs.v2.plaintext+json
 application/vnd.discogs.v2.html+json
@@ -90,7 +90,7 @@ If no `Accept` header is supplied, defaults to `discogs+json`.
 
 ### Search Releases
 
-```
+```bash
 GET /database/search?q={query}&type=release&page={page}&per_page={per_page}
 ```
 
@@ -150,7 +150,7 @@ Authentication required.
 
 ### Get Release
 
-```
+```bash
 GET /releases/{release_id}
 ```
 
@@ -158,43 +158,43 @@ Optional: `?curr_abbr=USD` for marketplace pricing in a specific currency.
 
 **Key response fields:**
 
-| Field              | Type     | Description                                  |
-|--------------------|----------|----------------------------------------------|
-| `id`               | int      | Discogs release ID                           |
-| `title`            | string   | Release title                                |
-| `artists`          | array    | Artist objects with `name`, `id`, `resource_url` |
-| `artists_sort`     | string   | Canonical "Artist Name" for sorting          |
-| `year`             | int      | Release year                                 |
-| `country`          | string   | Country of release                           |
-| `labels`           | array    | Label objects with `name`, `catno`, `id`     |
-| `formats`          | array    | Format objects with `name`, `descriptions`, `qty` |
-| `genres`           | array    | Genre strings                                |
-| `styles`           | array    | Style strings                                |
+| Field              | Type     | Description                                        |
+|--------------------|----------|----------------------------------------------------|
+| `id`               | int      | Discogs release ID                                 |
+| `title`            | string   | Release title                                      |
+| `artists`          | array    | Artist objects with `name`, `id`, `resource_url`   |
+| `artists_sort`     | string   | Canonical "Artist Name" for sorting                |
+| `year`             | int      | Release year                                       |
+| `country`          | string   | Country of release                                 |
+| `labels`           | array    | Label objects with `name`, `catno`, `id`           |
+| `formats`          | array    | Format objects with `name`, `descriptions`, `qty`  |
+| `genres`           | array    | Genre strings                                      |
+| `styles`           | array    | Style strings                                      |
 | `tracklist`        | array    | Track objects with `position`, `title`, `duration` |
-| `images`           | array    | Image objects (see Images section)           |
-| `thumb`            | string   | Thumbnail URL (300x300)                      |
-| `resource_url`     | string   | Canonical API URL for this release           |
-| `uri`              | string   | Discogs web URL                              |
-| `master_id`        | int      | Master release ID (if applicable)            |
-| `master_url`       | string   | API URL for the master release               |
-| `lowest_price`     | float    | Lowest marketplace listing price             |
-| `num_for_sale`     | int      | Number of marketplace listings               |
-| `community.have`   | int      | Number of users who have this release        |
-| `community.want`   | int      | Number of users who want this release        |
-| `community.rating` | object   | `{ "average": float, "count": int }`         |
-| `released`         | string   | Release date string (may be just a year)     |
+| `images`           | array    | Image objects (see Images section)                 |
+| `thumb`            | string   | Thumbnail URL (300x300)                            |
+| `resource_url`     | string   | Canonical API URL for this release                 |
+| `uri`              | string   | Discogs web URL                                    |
+| `master_id`        | int      | Master release ID (if applicable)                  |
+| `master_url`       | string   | API URL for the master release                     |
+| `lowest_price`     | float    | Lowest marketplace listing price                   |
+| `num_for_sale`     | int      | Number of marketplace listings                     |
+| `community.have`   | int      | Number of users who have this release              |
+| `community.want`   | int      | Number of users who want this release              |
+| `community.rating` | object   | `{ "average": float, "count": int }`               |
+| `released`         | string   | Release date string (may be just a year)           |
 
 **Error responses:**
 
-| Status | Body                              |
-|--------|-----------------------------------|
+| Status | Body                                  |
+|--------|---------------------------------------|
 | 404    | `{ "message": "Release not found." }` |
 
 ---
 
 ### Get Master Release
 
-```
+```bash
 GET /masters/{master_id}
 ```
 
@@ -212,7 +212,7 @@ A master groups all pressings/versions of the same recording. The `main_release`
 
 ### Get Master Release Versions
 
-```
+```bash
 GET /masters/{master_id}/versions?page={page}&per_page={per_page}
 ```
 
@@ -223,7 +223,7 @@ Sort params: `sort` (one of `released`, `title`, `format`, `label`, `catno`, `co
 
 ### Release Stats
 
-```
+```bash
 GET /releases/{release_id}/stats
 ```
 
@@ -254,22 +254,22 @@ Image objects returned within releases have this shape:
 
 **Image URLs are signed.** Do not modify any part of the URL — doing so will return a 404.
 
-Image endpoints require authentication. See https://www.discogs.com/developers/#page:images for details.
+Image endpoints require authentication. See <https://www.discogs.com/developers/#page:images> for details.
 
 ---
 
 ## HTTP Status Codes
 
-| Code | Meaning                                                              |
-|------|----------------------------------------------------------------------|
-| 200  | Success                                                              |
-| 201  | Created (POST to a collection — new resource ID in body)             |
-| 204  | No content (success, empty body)                                     |
-| 401  | Unauthorized — authentication required                               |
-| 403  | Forbidden — authenticated but not permitted                          |
-| 404  | Resource not found                                                   |
-| 405  | Method not allowed (e.g. PUT on a read-only endpoint)                |
-| 422  | Unprocessable entity — missing/wrong param, malformed JSON           |
+| Code | Meaning                                                                  |
+|------|--------------------------------------------------------------------------|
+| 200  | Success                                                                  |
+| 201  | Created (POST to a collection — new resource ID in body)                 |
+| 204  | No content (success, empty body)                                         |
+| 401  | Unauthorized — authentication required                                   |
+| 403  | Forbidden — authenticated but not permitted                              |
+| 404  | Resource not found                                                       |
+| 405  | Method not allowed (e.g. PUT on a read-only endpoint)                    |
+| 422  | Unprocessable entity — missing/wrong param, malformed JSON               |
 | 500  | Internal server error — check `message` field; report to Discogs Support |
 
 ---
@@ -283,7 +283,7 @@ You forgot to include a `User-Agent` header.
 Image URLs are signed — any modification (including changing the release ID in the path) invalidates the signature.
 
 **Where do I subscribe to API change announcements?**  
-https://www.discogs.com/forum/thread/521520689469733cfcfd2089
+<https://www.discogs.com/forum/thread/521520689469733cfcfd2089>
 
 **Where do I register an application?**  
-https://www.discogs.com/settings/developers
+<https://www.discogs.com/settings/developers>
