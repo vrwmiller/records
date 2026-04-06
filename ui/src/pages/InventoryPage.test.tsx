@@ -284,4 +284,26 @@ describe('InventoryPage — Discogs search-and-select', () => {
     await waitFor(() => expect(mockAcquireItems).toHaveBeenCalledOnce())
     expect(mockAcquireItems.mock.calls[0][0].pressing).toBeUndefined()
   })
+
+  it('cancelling the acquire form stops any pending debounced search', async () => {
+    // searchDiscogs resolves, but since Cancel is clicked before the debounce
+    // fires, the search should be cancelled and results should never appear.
+    let resolveSearch!: (v: Awaited<ReturnType<typeof discogsApi.searchDiscogs>>) => void
+    mockSearchDiscogs.mockReturnValue(
+      new Promise(res => { resolveSearch = res })
+    )
+    await openAcquireForm()
+    const user = userEvent.setup()
+    // Type into the search box to schedule a debounced search
+    await user.type(screen.getByPlaceholderText('Artist, title, label…'), 'Rick')
+    // Cancel the form before the debounce fires (debounce is 400ms; act is immediate)
+    await user.click(screen.getByText('Cancel'))
+    // Resolve the deferred search after the form is closed
+    resolveSearch({
+      results: [sampleDiscogsResult],
+      pagination: { page: 1, pages: 1, per_page: 50, items: 1, urls: {} },
+    })
+    // The search results list should never appear because reset invalidated the request
+    expect(screen.queryByText('Never Gonna Give You Up')).not.toBeInTheDocument()
+  })
 })

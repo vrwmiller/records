@@ -134,6 +134,14 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
   }
 
   function resetAcquireForm() {
+    // Cancel any pending debounce and invalidate in-flight search promises so
+    // that stale results cannot repopulate state after the form is closed.
+    if (searchTimer.current) {
+      clearTimeout(searchTimer.current)
+      searchTimer.current = null
+    }
+    ++searchSeq.current
+    setDiscogsSearching(false)
     setAcquireForm({ collection_type: 'PERSONAL' })
     setDiscogsQuery('')
     setDiscogsResults([])
