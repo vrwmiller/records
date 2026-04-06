@@ -97,7 +97,7 @@ export async function acquireItems(request: AcquireRequest): Promise<InventoryIt
 
 export interface UpdateRequest {
   pressing?: DiscogsPressingIn
-  pressing_id?: string
+  pressing_id?: string | null
   condition_media?: string | null
   condition_sleeve?: string | null
   notes?: string | null
