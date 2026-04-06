@@ -208,6 +208,23 @@ class TestDiscogsService:
         assert "RecordRanch" in headers["User-Agent"]
         assert "Accept" in headers
 
+    def test_search_releases_sends_authorization_header_when_token_configured(self) -> None:
+        from app.services.discogs import search_releases
+
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"results": [], "pagination": {}}
+
+        with patch("httpx.Client") as mock_client_cls:
+            instance = mock_client_cls.return_value.__enter__.return_value
+            instance.get.return_value = mock_resp
+            with patch("app.services.discogs.settings") as mock_settings:
+                mock_settings.discogs_token = "test-token-abc"
+                search_releases("test")
+
+        headers = instance.get.call_args.kwargs["headers"]
+        assert "Authorization" in headers
+        assert headers["Authorization"] == "Discogs token=test-token-abc"
+
     def test_get_release_builds_correct_url(self) -> None:
         from app.services.discogs import get_release
 

@@ -43,6 +43,7 @@ const filledSummary = { personal: 1, distribution: 2, total: 3 }
 const sampleItem = {
   id: 'item-1',
   pressing_id: null,
+  pressing: null,
   acquisition_batch_id: null,
   collection_type: 'PERSONAL' as const,
   condition_media: 'VG+',

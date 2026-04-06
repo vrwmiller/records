@@ -573,6 +573,79 @@ class TestGetJwksError:
         _auth._get_jwks.cache_clear()
 
 
+# ---------------------------------------------------------------------------
+# Pressing upsert service (direct SQL tests)
+# ---------------------------------------------------------------------------
+
+
+class TestPressingService:
+    """Direct unit tests for app.services.pressing.upsert_pressing().
+
+    Uses a mocked SQLAlchemy Session so no live database is required.
+    """
+
+    def _make_pressing_in(self) -> "DiscogsPressingIn":
+        from app.schemas.discogs import DiscogsPressingIn
+
+        return DiscogsPressingIn(
+            discogs_release_id=249504,
+            discogs_resource_url="https://api.discogs.com/releases/249504",
+            title="Never Gonna Give You Up",
+            artists_sort="Astley, Rick",
+            year=1987,
+            country="UK",
+        )
+
+    def test_upsert_pressing_executes_insert_on_conflict(self) -> None:
+        """upsert_pressing() calls db.execute with a statement containing
+        INSERT … ON CONFLICT … RETURNING."""
+        from app.services.pressing import upsert_pressing
+
+        pressing_uuid = uuid.uuid4()
+        db = MagicMock()
+        db.execute.return_value.scalar_one.return_value = pressing_uuid
+
+        result = upsert_pressing(db, self._make_pressing_in())
+
+        assert result == pressing_uuid
+        db.execute.assert_called_once()
+        stmt_text = str(db.execute.call_args.args[0])
+        assert "ON CONFLICT" in stmt_text
+        assert "RETURNING" in stmt_text
+
+    def test_upsert_pressing_passes_all_parameters(self) -> None:
+        """upsert_pressing() forwards every field from DiscogsPressingIn as
+        bind parameters to the SQL statement."""
+        from app.services.pressing import upsert_pressing
+
+        db = MagicMock()
+        db.execute.return_value.scalar_one.return_value = uuid.uuid4()
+
+        pressing_in = self._make_pressing_in()
+        upsert_pressing(db, pressing_in)
+
+        params = db.execute.call_args.args[1]
+        assert params["discogs_release_id"] == pressing_in.discogs_release_id
+        assert params["discogs_resource_url"] == pressing_in.discogs_resource_url
+        assert params["title"] == pressing_in.title
+        assert params["artists_sort"] == pressing_in.artists_sort
+        assert params["year"] == pressing_in.year
+        assert params["country"] == pressing_in.country
+
+    def test_upsert_pressing_returns_scalar_uuid(self) -> None:
+        """upsert_pressing() propagates scalar_one() directly to the caller."""
+        from app.services.pressing import upsert_pressing
+
+        expected = uuid.uuid4()
+        db = MagicMock()
+        db.execute.return_value.scalar_one.return_value = expected
+
+        result = upsert_pressing(db, self._make_pressing_in())
+
+        assert result is expected
+        db.execute.return_value.scalar_one.assert_called_once()
+
+
 class TestVerifyTokenUse:
     def test_access_token_rejected_with_401(self) -> None:
         from app.auth import _verify_token
