@@ -36,6 +36,7 @@ htmlcov/
 !.env.example
 .envrc
 .direnv/
+env.sh
 
 # Terraform/OpenTofu local state and overrides
 .terraform/

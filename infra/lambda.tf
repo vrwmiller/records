@@ -116,7 +116,8 @@ resource "aws_lambda_function" "app" {
       # Empty string overrides the app default (localhost origins) so no
       # cross-origin requests are allowed in production. The React UI is
       # served from the same API Gateway origin and does not need CORS.
-      CORS_ORIGINS = ""
+      CORS_ORIGINS  = ""
+      DISCOGS_TOKEN = var.discogs_token
     }
   }
 
