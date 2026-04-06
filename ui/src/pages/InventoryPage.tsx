@@ -78,6 +78,12 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
 
   useEffect(() => { void load() }, [load])
 
+  // Clear any active edit panel when the filter changes so a stale
+  // editingItemId cannot re-open the panel if the item reappears.
+  useEffect(() => {
+    setEditingItemId(null)
+  }, [filter])
+
   function handleDiscogsQueryChange(q: string) {
     setDiscogsQuery(q)
     setSelectedPressing(null)

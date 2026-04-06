@@ -368,4 +368,17 @@ describe('InventoryPage — edit flow', () => {
     expect(screen.getByText('Media: NM')).toBeInTheDocument()
     expect(mockListItems).toHaveBeenCalledTimes(1) // no reload — in-place update only
   })
+
+  it('changing the filter clears the active edit panel', async () => {
+    mockListItems.mockResolvedValue([sampleItem])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    renderPage()
+    await waitFor(() => screen.getByRole('button', { name: 'Edit item' }))
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Edit item' }))
+    expect(screen.getByPlaceholderText('Search Discogs to change pressing…')).toBeInTheDocument()
+    // Switch to Distribution filter — panel should close
+    await user.click(screen.getByText('Distribution'))
+    expect(screen.queryByPlaceholderText('Search Discogs to change pressing…')).not.toBeInTheDocument()
+  })
 })
