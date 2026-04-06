@@ -95,6 +95,25 @@ export async function acquireItems(request: AcquireRequest): Promise<InventoryIt
   return res.json() as Promise<InventoryItem[]>
 }
 
+export interface UpdateRequest {
+  pressing?: DiscogsPressingIn
+  pressing_id?: string | null
+  condition_media?: string | null
+  condition_sleeve?: string | null
+  notes?: string | null
+}
+
+export async function updateItem(id: string, request: UpdateRequest): Promise<InventoryItem> {
+  const headers = await authHeaders()
+  const res = await fetch(`/api/inventory/${id}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify(request),
+  })
+  if (!res.ok) throw new Error(`Update failed (${res.status})`)
+  return res.json() as Promise<InventoryItem>
+}
+
 export async function deleteItem(id: string): Promise<void> {
   const headers = await authHeaders()
   const res = await fetch(`/api/inventory/${id}`, {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { listItems, getSummary, acquireItems, deleteItem } from './inventory'
+import { listItems, getSummary, acquireItems, deleteItem, updateItem } from './inventory'
 
 // Mock aws-amplify/auth
 vi.mock('aws-amplify/auth', () => ({
@@ -127,5 +127,50 @@ describe('deleteItem', () => {
   it('throws on non-ok response', async () => {
     mockFetch.mockReturnValue(jsonResponse({}, 404))
     await expect(deleteItem('bad-id')).rejects.toThrow('Delete failed (404)')
+  })
+})
+
+describe('updateItem', () => {
+  const updatedItem = {
+    id: 'item-1',
+    pressing_id: null,
+    pressing: null,
+    acquisition_batch_id: null,
+    collection_type: 'PERSONAL',
+    condition_media: 'NM',
+    condition_sleeve: null,
+    status: 'AVAILABLE',
+    notes: null,
+    created_at: '2026-04-01T00:00:00Z',
+    deleted_at: null,
+  }
+
+  it('sends PATCH to correct URL with request body', async () => {
+    mockFetch.mockReturnValue(jsonResponse(updatedItem))
+    await updateItem('item-1', { condition_media: 'NM', condition_sleeve: null })
+    const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('/api/inventory/item-1')
+    expect(opts.method).toBe('PATCH')
+    expect(JSON.parse(opts.body as string)).toEqual({ condition_media: 'NM', condition_sleeve: null })
+  })
+
+  it('includes pressing in body when provided', async () => {
+    mockFetch.mockReturnValue(jsonResponse(updatedItem))
+    const pressing = {
+      discogs_release_id: 249504,
+      discogs_resource_url: 'https://api.discogs.com/releases/249504',
+      title: 'Never Gonna Give You Up',
+      artists_sort: null,
+      year: 1987,
+      country: 'UK',
+    }
+    await updateItem('item-1', { pressing })
+    const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit]
+    expect(JSON.parse(opts.body as string).pressing.discogs_release_id).toBe(249504)
+  })
+
+  it('throws on non-ok response', async () => {
+    mockFetch.mockReturnValue(jsonResponse({}, 404))
+    await expect(updateItem('bad-id', {})).rejects.toThrow('Update failed (404)')
   })
 })
