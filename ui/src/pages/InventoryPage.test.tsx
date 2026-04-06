@@ -364,5 +364,8 @@ describe('InventoryPage — edit flow', () => {
     await waitFor(() => expect(mockUpdateItem).toHaveBeenCalledWith('item-1', expect.any(Object)))
     // Panel closes after save
     expect(screen.queryByPlaceholderText('Search Discogs to change pressing…')).not.toBeInTheDocument()
+    // Updated value is rendered in the list without a full reload
+    expect(screen.getByText('Media: NM')).toBeInTheDocument()
+    expect(mockListItems).toHaveBeenCalledTimes(1) // no reload — in-place update only
   })
 })
