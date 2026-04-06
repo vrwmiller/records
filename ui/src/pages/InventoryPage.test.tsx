@@ -21,6 +21,7 @@ vi.mock('../api/inventory', () => ({
   getSummary: vi.fn(),
   acquireItems: vi.fn(),
   deleteItem: vi.fn(),
+  updateItem: vi.fn(),
 }))
 
 // Mock the Discogs API module
@@ -36,6 +37,7 @@ const mockListItems = vi.mocked(inventoryApi.listItems)
 const mockGetSummary = vi.mocked(inventoryApi.getSummary)
 const mockAcquireItems = vi.mocked(inventoryApi.acquireItems)
 const mockDeleteItem = vi.mocked(inventoryApi.deleteItem)
+const mockUpdateItem = vi.mocked(inventoryApi.updateItem)
 
 const mockUser = {
   userId: 'user-1',
@@ -67,6 +69,7 @@ beforeEach(() => {
   mockGetSummary.mockResolvedValue(emptySummary)
   mockAcquireItems.mockResolvedValue([sampleItem])
   mockDeleteItem.mockResolvedValue(undefined)
+  mockUpdateItem.mockResolvedValue(sampleItem)
   mockSearchDiscogs.mockResolvedValue({
     results: [],
     pagination: { page: 1, pages: 0, per_page: 50, items: 0, urls: {} },
@@ -305,5 +308,61 @@ describe('InventoryPage — Discogs search-and-select', () => {
     })
     // The search results list should never appear because reset invalidated the request
     expect(screen.queryByText('Never Gonna Give You Up')).not.toBeInTheDocument()
+  })
+})
+
+describe('InventoryPage — edit flow', () => {
+  it('renders an Edit button per item for admin users', async () => {
+    mockListItems.mockResolvedValue([sampleItem])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    renderPage()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Edit item' })).toBeInTheDocument())
+  })
+
+  it('clicking Edit opens the edit panel', async () => {
+    mockListItems.mockResolvedValue([sampleItem])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    renderPage()
+    await waitFor(() => screen.getByRole('button', { name: 'Edit item' }))
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Edit item' }))
+    expect(screen.getByPlaceholderText('Search Discogs to change pressing…')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument()
+  })
+
+  it('edit panel pre-populates condition fields from the item', async () => {
+    mockListItems.mockResolvedValue([sampleItem])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    renderPage()
+    await waitFor(() => screen.getByRole('button', { name: 'Edit item' }))
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Edit item' }))
+    const mediaInput = screen.getByDisplayValue('VG+')
+    expect(mediaInput).toBeInTheDocument()
+  })
+
+  it('Cancel in edit panel closes the panel', async () => {
+    mockListItems.mockResolvedValue([sampleItem])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    renderPage()
+    await waitFor(() => screen.getByRole('button', { name: 'Edit item' }))
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Edit item' }))
+    expect(screen.getByPlaceholderText('Search Discogs to change pressing…')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByPlaceholderText('Search Discogs to change pressing…')).not.toBeInTheDocument()
+  })
+
+  it('Save calls updateItem and updates the item in the list', async () => {
+    const updatedItem = { ...sampleItem, condition_media: 'NM' }
+    mockUpdateItem.mockResolvedValue(updatedItem)
+    mockListItems.mockResolvedValue([sampleItem])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    renderPage()
+    await waitFor(() => screen.getByRole('button', { name: 'Edit item' }))
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Edit item' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(mockUpdateItem).toHaveBeenCalledWith('item-1', expect.any(Object)))
+    // Panel closes after save
+    expect(screen.queryByPlaceholderText('Search Discogs to change pressing…')).not.toBeInTheDocument()
   })
 })

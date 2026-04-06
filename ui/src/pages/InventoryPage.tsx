@@ -12,6 +12,7 @@ import {
   type SummaryResponse,
 } from '../api/inventory'
 import { searchDiscogs, type DiscogsSearchResult } from '../api/discogs'
+import { EditItemPanel } from '../components/EditItemPanel'
 
 interface InventoryPageProps {
   user: AuthUser
@@ -32,6 +33,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
   })
   const [acquiring, setAcquiring] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
 
   // Discogs search state
   const [discogsQuery, setDiscogsQuery] = useState('')
@@ -162,6 +164,11 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
     } finally {
       setAcquiring(false)
     }
+  }
+
+  function handleUpdateSaved(updated: InventoryItem) {
+    setItems(prev => prev.map(i => (i.id === updated.id ? updated : i)))
+    setEditingItemId(null)
   }
 
   async function handleDelete(id: string) {
@@ -371,6 +378,17 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                     Added {new Date(item.created_at).toLocaleDateString()}
                   </span>
                 </div>
+                {isAdmin && (
+                  <button
+                    className="edit-btn"
+                    onClick={() =>
+                      setEditingItemId(id => (id === item.id ? null : item.id))
+                    }
+                    aria-label="Edit item"
+                  >
+                    ✎
+                  </button>
+                )}
                 <button
                   className="delete-btn"
                   onClick={() => void handleDelete(item.id)}
@@ -379,6 +397,13 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                 >
                   ×
                 </button>
+                {editingItemId === item.id && (
+                  <EditItemPanel
+                    item={item}
+                    onSave={handleUpdateSaved}
+                    onCancel={() => setEditingItemId(null)}
+                  />
+                )}
               </li>
             ))}
           </ul>
