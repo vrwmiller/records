@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AuthUser } from 'aws-amplify/auth'
 import { fetchAuthSession } from 'aws-amplify/auth'
 import {
@@ -7,9 +7,11 @@ import {
   getSummary,
   listItems,
   type AcquireRequest,
+  type DiscogsPressingIn,
   type InventoryItem,
   type SummaryResponse,
 } from '../api/inventory'
+import { searchDiscogs, type DiscogsSearchResult } from '../api/discogs'
 
 interface InventoryPageProps {
   user: AuthUser
@@ -31,11 +33,28 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
   const [acquiring, setAcquiring] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
 
+  // Discogs search state
+  const [discogsQuery, setDiscogsQuery] = useState('')
+  const [discogsResults, setDiscogsResults] = useState<DiscogsSearchResult[]>([])
+  const [discogsSearching, setDiscogsSearching] = useState(false)
+  const [discogsError, setDiscogsError] = useState<string | null>(null)
+  const [selectedPressing, setSelectedPressing] = useState<DiscogsPressingIn | null>(null)
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Monotonically increasing request ID to discard stale search responses.
+  const searchSeq = useRef(0)
+
   useEffect(() => {
     fetchAuthSession().then(({ tokens }) => {
       const groups: unknown = tokens?.idToken?.payload?.['cognito:groups']
       setIsAdmin(Array.isArray(groups) && groups.includes('admin'))
     }).catch(() => setIsAdmin(false))
+  }, [])
+
+  // Clear pending search timer on unmount to avoid setState-after-unmount.
+  useEffect(() => {
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current)
+    }
   }, [])
 
   const load = useCallback(async () => {
@@ -57,13 +76,86 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
 
   useEffect(() => { void load() }, [load])
 
+  function handleDiscogsQueryChange(q: string) {
+    setDiscogsQuery(q)
+    setSelectedPressing(null)
+    // Clear pressing from the form immediately so a stale selection is never
+    // submitted if the user edits the query without explicitly clicking ✕.
+    setAcquireForm(f => { const { pressing: _, ...rest } = f; return rest })
+    setDiscogsError(null)
+
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+
+    // Increment seq before the early-return so any in-flight request from a
+    // prior non-empty query is invalidated even when the user clears the input.
+    const seq = ++searchSeq.current
+
+    if (!q.trim()) {
+      setDiscogsResults([])
+      setDiscogsSearching(false)
+      return
+    }
+    searchTimer.current = setTimeout(() => {
+      setDiscogsSearching(true)
+      searchDiscogs(q)
+        .then(data => {
+          // Ignore responses that arrived after a newer request was issued.
+          if (seq !== searchSeq.current) return
+          setDiscogsResults(data.results)
+        })
+        .catch(e => {
+          if (seq !== searchSeq.current) return
+          setDiscogsError(e instanceof Error ? e.message : 'Search failed')
+        })
+        .finally(() => {
+          if (seq === searchSeq.current) setDiscogsSearching(false)
+        })
+    }, 400)
+  }
+
+  function handleSelectResult(result: DiscogsSearchResult) {
+    // Cancel any pending debounce and invalidate in-flight requests so that
+    // selecting a pressing is a terminal action for the current search cycle.
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    ++searchSeq.current
+    setDiscogsSearching(false)
+    const pressing: DiscogsPressingIn = {
+      discogs_release_id: result.id,
+      discogs_resource_url: result.resource_url,
+      title: result.title,
+      artists_sort: null,
+      year: result.year != null ? Number(result.year) : null,
+      country: result.country ?? null,
+    }
+    setSelectedPressing(pressing)
+    setAcquireForm(f => ({ ...f, pressing }))
+    setDiscogsResults([])
+    setDiscogsQuery(result.title)
+  }
+
+  function resetAcquireForm() {
+    // Cancel any pending debounce and invalidate in-flight search promises so
+    // that stale results cannot repopulate state after the form is closed.
+    if (searchTimer.current) {
+      clearTimeout(searchTimer.current)
+      searchTimer.current = null
+    }
+    ++searchSeq.current
+    setDiscogsSearching(false)
+    setAcquireForm({ collection_type: 'PERSONAL' })
+    setDiscogsQuery('')
+    setDiscogsResults([])
+    setSelectedPressing(null)
+    setDiscogsError(null)
+  }
+
   async function handleAcquire() {
     setAcquiring(true)
     setError(null)
     try {
       await acquireItems(acquireForm)
       setShowAcquire(false)
-      setAcquireForm({ collection_type: 'PERSONAL' })
+      resetAcquireForm()
       await load()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Acquire failed')
@@ -110,7 +202,10 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
           {isAdmin && (
             <button
               className="acquire-btn"
-              onClick={() => setShowAcquire(v => !v)}
+              onClick={() => {
+                setShowAcquire(v => !v)
+                if (showAcquire) resetAcquireForm()
+              }}
             >
               + Acquire
             </button>
@@ -119,6 +214,61 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
 
         {showAcquire && isAdmin && (
           <div className="acquire-form">
+            <label>
+              Search Discogs
+              <input
+                type="search"
+                placeholder="Artist, title, label…"
+                value={discogsQuery}
+                onChange={e => handleDiscogsQueryChange(e.target.value)}
+                autoComplete="off"
+              />
+            </label>
+
+            {discogsSearching && <p className="status-msg">Searching Discogs…</p>}
+            {discogsError && <p className="error-msg">{discogsError}</p>}
+
+            {discogsResults.length > 0 && (
+              <ul className="discogs-results">
+                {discogsResults.map(r => (
+                  <li key={r.id}>
+                    <button
+                      type="button"
+                      className="discogs-result-btn"
+                      onClick={() => handleSelectResult(r)}
+                    >
+                      <span className="result-title">{r.title}</span>
+                      {r.year && <span className="result-meta">{r.year}</span>}
+                      {r.country && <span className="result-meta">{r.country}</span>}
+                      {r.label && r.label.length > 0 && (
+                        <span className="result-meta">{r.label[0]}</span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {selectedPressing && (
+              <div className="selected-pressing">
+                <strong>Selected:</strong> {selectedPressing.title}
+                {selectedPressing.year != null && ` (${selectedPressing.year})`}
+                {selectedPressing.country && ` · ${selectedPressing.country}`}
+                <button
+                  type="button"
+                  className="clear-pressing-btn"
+                  aria-label="Clear selected pressing"
+                  onClick={() => {
+                    setSelectedPressing(null)
+                    setAcquireForm(f => { const { pressing: _, ...rest } = f; return rest })
+                    setDiscogsQuery('')
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             <label>
               Collection
               <select
@@ -160,7 +310,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
               </button>
               <button
                 className="cancel-btn"
-                onClick={() => setShowAcquire(false)}
+                onClick={() => { setShowAcquire(false); resetAcquireForm() }}
                 disabled={acquiring}
               >
                 Cancel
@@ -200,6 +350,14 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                   <span className="status-badge">{item.status}</span>
                 </div>
                 <div className="item-detail">
+                  {item.pressing && (
+                    <span className="item-pressing">
+                      {item.pressing.title ?? '—'}
+                      {item.pressing.artists_sort && ` · ${item.pressing.artists_sort}`}
+                      {item.pressing.year != null && ` (${item.pressing.year})`}
+                      {item.pressing.country && ` · ${item.pressing.country}`}
+                    </span>
+                  )}
                   {item.condition_media && (
                     <span>Media: {item.condition_media}</span>
                   )}

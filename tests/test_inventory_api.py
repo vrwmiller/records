@@ -48,6 +48,7 @@ def _make_item(**overrides: object) -> MagicMock:
     item = MagicMock()
     item.id = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
     item.pressing_id = None
+    item.pressing = None
     item.acquisition_batch_id = uuid.UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
     item.collection_type = "PERSONAL"
     item.condition_media = None
@@ -353,6 +354,60 @@ class TestAcquireService:
         assert all(isinstance(i.id, uuid.UUID) for i in items)
         assert items[0].id != items[1].id
 
+    def test_pressing_upsert_called_when_pressing_provided(self) -> None:
+        """When AcquireRequest.pressing is set, upsert_pressing is called and the
+        resulting UUID is used as pressing_id on each created item."""
+        from app.schemas.discogs import DiscogsPressingIn
+
+        db = MagicMock()
+        pressing_uuid = uuid.uuid4()
+        pressing_in = DiscogsPressingIn(
+            discogs_release_id=12345,
+            discogs_resource_url="https://api.discogs.com/releases/12345",
+            title="OK Computer",
+            artists_sort="Radiohead",
+            year=1997,
+            country="UK",
+        )
+        with patch("app.services.inventory.upsert_pressing", return_value=pressing_uuid) as mock_upsert:
+            items = acquire(db, AcquireRequest(collection_type="PERSONAL", pressing=pressing_in))
+
+        mock_upsert.assert_called_once_with(db, pressing_in)
+        assert items[0].pressing_id == pressing_uuid
+
+    def test_pressing_upsert_not_called_without_pressing(self) -> None:
+        db = MagicMock()
+        with patch("app.services.inventory.upsert_pressing") as mock_upsert:
+            acquire(db, AcquireRequest(collection_type="PERSONAL"))
+        mock_upsert.assert_not_called()
+
+    def test_pressing_object_eagerly_assigned_to_avoid_n_plus_one(self) -> None:
+        """acquire() calls db.get(Pressing, pressing_id) once after commit to
+        populate item.pressing, eliminating N+1 lazy loads during response
+        serialisation.  Asserts db.get is called exactly once with the resolved
+        pressing UUID regardless of quantity."""
+        from app.models.pressing import Pressing
+        from app.schemas.discogs import DiscogsPressingIn
+
+        pressing_uuid = uuid.uuid4()
+        db = MagicMock()
+
+        pressing_in = DiscogsPressingIn(discogs_release_id=1)
+        with patch("app.services.inventory.upsert_pressing", return_value=pressing_uuid):
+            acquire(db, AcquireRequest(collection_type="PERSONAL", quantity=3, pressing=pressing_in))
+
+        db.get.assert_called_once_with(Pressing, pressing_uuid)
+
+    def test_pressing_not_fetched_when_no_pressing_id(self) -> None:
+        """acquire() must not call db.get() for pressing when pressing_id is None."""
+        from app.models.pressing import Pressing
+
+        db = MagicMock()
+        acquire(db, AcquireRequest(collection_type="PERSONAL"))
+
+        for call in db.get.call_args_list:
+            assert call.args[0] is not Pressing, "db.get(Pressing, ...) must not be called when pressing_id is None"
+
 
 # ---------------------------------------------------------------------------
 # Service tests — soft_delete
@@ -418,11 +473,72 @@ class TestUpdateItemService:
         # Verify the schema excludes unset fields correctly — the service loop
         # only calls setattr for keys present in this dict.
         request = UpdateRequest(condition_media="M")
-        partial = request.model_dump(exclude_unset=True)
+        partial = request.model_dump(exclude_unset=True, exclude={"pressing"})
         assert partial == {"condition_media": "M"}
         assert "notes" not in partial
         assert "condition_sleeve" not in partial
         assert "pressing_id" not in partial
+
+    def test_pressing_upsert_called_and_sets_pressing_id(self) -> None:
+        """update_item() calls upsert_pressing when pressing is provided,
+        and the returned UUID replaces pressing_id on the item."""
+        from app.schemas.discogs import DiscogsPressingIn
+
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = None
+        db.get.return_value = item
+        pressing_uuid = uuid.uuid4()
+        pressing_in = DiscogsPressingIn(
+            discogs_release_id=99911,
+            title="Kid A",
+            artists_sort="Radiohead",
+            year=2000,
+            country="UK",
+        )
+
+        with patch("app.services.inventory.upsert_pressing", return_value=pressing_uuid) as mock_upsert:
+            update_item(db, uuid.uuid4(), UpdateRequest(pressing=pressing_in))
+
+        mock_upsert.assert_called_once_with(db, pressing_in)
+        assert item.pressing_id == pressing_uuid
+
+    def test_pressing_upsert_excludes_raw_pressing_id_from_loop(self) -> None:
+        """When pressing is provided, a simultaneous pressing_id in the request
+        must not overwrite the upserted UUID via the setattr loop."""
+        from app.schemas.discogs import DiscogsPressingIn
+
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = None
+        db.get.return_value = item
+        upserted_uuid = uuid.uuid4()
+        raw_uuid = uuid.uuid4()
+        pressing_in = DiscogsPressingIn(
+            discogs_release_id=12345,
+            title="OK Computer",
+        )
+
+        with patch("app.services.inventory.upsert_pressing", return_value=upserted_uuid):
+            update_item(
+                db,
+                uuid.uuid4(),
+                UpdateRequest(pressing=pressing_in, pressing_id=raw_uuid),
+            )
+
+        # The upserted UUID must win — the raw pressing_id must not be applied.
+        assert item.pressing_id == upserted_uuid
+
+    def test_pressing_upsert_not_called_without_pressing(self) -> None:
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = None
+        db.get.return_value = item
+
+        with patch("app.services.inventory.upsert_pressing") as mock_upsert:
+            update_item(db, uuid.uuid4(), UpdateRequest(condition_media="VG"))
+
+        mock_upsert.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -482,6 +598,79 @@ class TestGetJwksError:
                 _auth._get_jwks()
         assert exc_info.value.status_code == 503
         _auth._get_jwks.cache_clear()
+
+
+# ---------------------------------------------------------------------------
+# Pressing upsert service (direct SQL tests)
+# ---------------------------------------------------------------------------
+
+
+class TestPressingService:
+    """Direct unit tests for app.services.pressing.upsert_pressing().
+
+    Uses a mocked SQLAlchemy Session so no live database is required.
+    """
+
+    def _make_pressing_in(self) -> "DiscogsPressingIn":
+        from app.schemas.discogs import DiscogsPressingIn
+
+        return DiscogsPressingIn(
+            discogs_release_id=249504,
+            discogs_resource_url="https://api.discogs.com/releases/249504",
+            title="Never Gonna Give You Up",
+            artists_sort="Astley, Rick",
+            year=1987,
+            country="UK",
+        )
+
+    def test_upsert_pressing_executes_insert_on_conflict(self) -> None:
+        """upsert_pressing() calls db.execute with a statement containing
+        INSERT … ON CONFLICT … RETURNING."""
+        from app.services.pressing import upsert_pressing
+
+        pressing_uuid = uuid.uuid4()
+        db = MagicMock()
+        db.execute.return_value.scalar_one.return_value = pressing_uuid
+
+        result = upsert_pressing(db, self._make_pressing_in())
+
+        assert result == pressing_uuid
+        db.execute.assert_called_once()
+        stmt_text = str(db.execute.call_args.args[0])
+        assert "ON CONFLICT" in stmt_text
+        assert "RETURNING" in stmt_text
+
+    def test_upsert_pressing_passes_all_parameters(self) -> None:
+        """upsert_pressing() forwards every field from DiscogsPressingIn as
+        bind parameters to the SQL statement."""
+        from app.services.pressing import upsert_pressing
+
+        db = MagicMock()
+        db.execute.return_value.scalar_one.return_value = uuid.uuid4()
+
+        pressing_in = self._make_pressing_in()
+        upsert_pressing(db, pressing_in)
+
+        params = db.execute.call_args.args[1]
+        assert params["discogs_release_id"] == pressing_in.discogs_release_id
+        assert params["discogs_resource_url"] == pressing_in.discogs_resource_url
+        assert params["title"] == pressing_in.title
+        assert params["artists_sort"] == pressing_in.artists_sort
+        assert params["year"] == pressing_in.year
+        assert params["country"] == pressing_in.country
+
+    def test_upsert_pressing_returns_scalar_uuid(self) -> None:
+        """upsert_pressing() propagates scalar_one() directly to the caller."""
+        from app.services.pressing import upsert_pressing
+
+        expected = uuid.uuid4()
+        db = MagicMock()
+        db.execute.return_value.scalar_one.return_value = expected
+
+        result = upsert_pressing(db, self._make_pressing_in())
+
+        assert result is expected
+        db.execute.return_value.scalar_one.assert_called_once()
 
 
 class TestVerifyTokenUse:

@@ -23,8 +23,15 @@ vi.mock('../api/inventory', () => ({
   deleteItem: vi.fn(),
 }))
 
-import * as inventoryApi from '../api/inventory'
+// Mock the Discogs API module
+vi.mock('../api/discogs', () => ({
+  searchDiscogs: vi.fn(),
+}))
 
+import * as inventoryApi from '../api/inventory'
+import * as discogsApi from '../api/discogs'
+
+const mockSearchDiscogs = vi.mocked(discogsApi.searchDiscogs)
 const mockListItems = vi.mocked(inventoryApi.listItems)
 const mockGetSummary = vi.mocked(inventoryApi.getSummary)
 const mockAcquireItems = vi.mocked(inventoryApi.acquireItems)
@@ -43,6 +50,7 @@ const filledSummary = { personal: 1, distribution: 2, total: 3 }
 const sampleItem = {
   id: 'item-1',
   pressing_id: null,
+  pressing: null,
   acquisition_batch_id: null,
   collection_type: 'PERSONAL' as const,
   condition_media: 'VG+',
@@ -59,6 +67,10 @@ beforeEach(() => {
   mockGetSummary.mockResolvedValue(emptySummary)
   mockAcquireItems.mockResolvedValue([sampleItem])
   mockDeleteItem.mockResolvedValue(undefined)
+  mockSearchDiscogs.mockResolvedValue({
+    results: [],
+    pagination: { page: 1, pages: 0, per_page: 50, items: 0, urls: {} },
+  })
 })
 
 function renderPage() {
@@ -188,5 +200,110 @@ describe('InventoryPage — delete flow', () => {
     await user.click(screen.getByRole('button', { name: 'Delete item' }))
     expect(mockDeleteItem).not.toHaveBeenCalled()
     vi.restoreAllMocks()
+  })
+})
+
+const sampleDiscogsResult = {
+  id: 249504,
+  title: 'Never Gonna Give You Up',
+  year: '1987',
+  country: 'UK',
+  resource_url: 'https://api.discogs.com/releases/249504',
+}
+
+async function openAcquireForm() {
+  renderPage()
+  await waitFor(() =>
+    expect(screen.getByText('No records yet. Use Acquire to add one.')).toBeInTheDocument(),
+  )
+  await userEvent.setup().click(screen.getByText('+ Acquire'))
+}
+
+describe('InventoryPage — Discogs search-and-select', () => {
+  it('triggers a Discogs search after the debounce interval elapses', async () => {
+    mockSearchDiscogs.mockResolvedValue({
+      results: [sampleDiscogsResult],
+      pagination: { page: 1, pages: 1, per_page: 50, items: 1, urls: {} },
+    })
+    await openAcquireForm()
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText('Artist, title, label…'), 'Rick')
+
+    // Before debounce fires, no search should have been issued
+    expect(mockSearchDiscogs).not.toHaveBeenCalled()
+
+    // After debounce elapses, searchDiscogs is called with the typed query
+    await waitFor(() => expect(mockSearchDiscogs).toHaveBeenCalledWith('Rick'), { timeout: 1500 })
+  })
+
+  it('selecting a result shows the Selected chip and sends pressing to acquireItems', async () => {
+    mockSearchDiscogs.mockResolvedValue({
+      results: [sampleDiscogsResult],
+      pagination: { page: 1, pages: 1, per_page: 50, items: 1, urls: {} },
+    })
+    await openAcquireForm()
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText('Artist, title, label…'), 'Rick')
+
+    await waitFor(() =>
+      expect(screen.getByText('Never Gonna Give You Up')).toBeInTheDocument(),
+      { timeout: 1500 },
+    )
+    await user.click(screen.getByText('Never Gonna Give You Up'))
+
+    expect(screen.getByText(/Selected:/)).toBeInTheDocument()
+
+    await user.click(screen.getByText('Confirm'))
+    await waitFor(() => expect(mockAcquireItems).toHaveBeenCalledOnce())
+    const req = mockAcquireItems.mock.calls[0][0]
+    expect(req.pressing?.discogs_release_id).toBe(249504)
+    expect(req.pressing?.title).toBe('Never Gonna Give You Up')
+  })
+
+  it('editing the search query after selection removes pressing from the acquire request', async () => {
+    mockSearchDiscogs.mockResolvedValue({
+      results: [sampleDiscogsResult],
+      pagination: { page: 1, pages: 1, per_page: 50, items: 1, urls: {} },
+    })
+    await openAcquireForm()
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText('Artist, title, label…'), 'Rick')
+
+    await waitFor(() =>
+      expect(screen.getByText('Never Gonna Give You Up')).toBeInTheDocument(),
+      { timeout: 1500 },
+    )
+    await user.click(screen.getByText('Never Gonna Give You Up'))
+    expect(screen.getByText(/Selected:/)).toBeInTheDocument()
+
+    // Clearing the search query should remove the selected pressing
+    await user.clear(screen.getByPlaceholderText('Artist, title, label…'))
+    expect(screen.queryByText(/Selected:/)).not.toBeInTheDocument()
+
+    await user.click(screen.getByText('Confirm'))
+    await waitFor(() => expect(mockAcquireItems).toHaveBeenCalledOnce())
+    expect(mockAcquireItems.mock.calls[0][0].pressing).toBeUndefined()
+  })
+
+  it('cancelling the acquire form stops any pending debounced search', async () => {
+    // searchDiscogs resolves, but since Cancel is clicked before the debounce
+    // fires, the search should be cancelled and results should never appear.
+    let resolveSearch!: (v: Awaited<ReturnType<typeof discogsApi.searchDiscogs>>) => void
+    mockSearchDiscogs.mockReturnValue(
+      new Promise(res => { resolveSearch = res })
+    )
+    await openAcquireForm()
+    const user = userEvent.setup()
+    // Type into the search box to schedule a debounced search
+    await user.type(screen.getByPlaceholderText('Artist, title, label…'), 'Rick')
+    // Cancel the form before the debounce fires (debounce is 400ms; act is immediate)
+    await user.click(screen.getByText('Cancel'))
+    // Resolve the deferred search after the form is closed
+    resolveSearch({
+      results: [sampleDiscogsResult],
+      pagination: { page: 1, pages: 1, per_page: 50, items: 1, urls: {} },
+    })
+    // The search results list should never appear because reset invalidated the request
+    expect(screen.queryByText('Never Gonna Give You Up')).not.toBeInTheDocument()
   })
 })
