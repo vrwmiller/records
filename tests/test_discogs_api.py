@@ -87,6 +87,7 @@ class TestDiscogsSearch:
     def test_discogs_404_returned_as_404(self) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 404
+        mock_resp.json.return_value = {"message": "Release not found."}
         exc = httpx.HTTPStatusError("not found", request=MagicMock(), response=mock_resp)
         with patch("app.routers.discogs.search_releases", side_effect=exc):
             resp = self.client.get("/api/discogs/releases", params={"q": "nonexistent"})
@@ -95,6 +96,7 @@ class TestDiscogsSearch:
     def test_discogs_429_returned_as_429(self) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 429
+        mock_resp.json.return_value = {"message": "You are making requests too quickly."}
         exc = httpx.HTTPStatusError("rate limited", request=MagicMock(), response=mock_resp)
         with patch("app.routers.discogs.search_releases", side_effect=exc):
             resp = self.client.get("/api/discogs/releases", params={"q": "test"})
@@ -153,6 +155,7 @@ class TestDiscogsDetail:
     def test_discogs_404_returned_as_404(self) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 404
+        mock_resp.json.return_value = {"message": "Release not found."}
         exc = httpx.HTTPStatusError("not found", request=MagicMock(), response=mock_resp)
         with patch("app.routers.discogs.get_release", side_effect=exc):
             resp = self.client.get("/api/discogs/releases/99999")

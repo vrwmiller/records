@@ -39,9 +39,13 @@ def search(
     try:
         return search_releases(q, page=page, per_page=per_page)
     except httpx.HTTPStatusError as exc:
+        try:
+            detail: Any = exc.response.json()
+        except Exception:
+            detail = "Discogs API error"
         raise HTTPException(
             status_code=exc.response.status_code,
-            detail="Discogs API error",
+            detail=detail,
         ) from exc
     except httpx.RequestError as exc:
         raise HTTPException(
@@ -59,9 +63,13 @@ def detail(
     try:
         return get_release(discogs_release_id)
     except httpx.HTTPStatusError as exc:
+        try:
+            detail: Any = exc.response.json()
+        except Exception:
+            detail = "Discogs API error"
         raise HTTPException(
             status_code=exc.response.status_code,
-            detail="Discogs API error",
+            detail=detail,
         ) from exc
     except httpx.RequestError as exc:
         raise HTTPException(

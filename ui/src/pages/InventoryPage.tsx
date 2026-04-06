@@ -86,12 +86,15 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
 
     if (searchTimer.current) clearTimeout(searchTimer.current)
 
+    // Increment seq before the early-return so any in-flight request from a
+    // prior non-empty query is invalidated even when the user clears the input.
+    const seq = ++searchSeq.current
+
     if (!q.trim()) {
       setDiscogsResults([])
+      setDiscogsSearching(false)
       return
     }
-
-    const seq = ++searchSeq.current
     searchTimer.current = setTimeout(() => {
       setDiscogsSearching(true)
       searchDiscogs(q)
@@ -241,6 +244,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                 <button
                   type="button"
                   className="clear-pressing-btn"
+                  aria-label="Clear selected pressing"
                   onClick={() => {
                     setSelectedPressing(null)
                     setAcquireForm(f => { const { pressing: _, ...rest } = f; return rest })

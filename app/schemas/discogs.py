@@ -4,8 +4,6 @@ from pydantic import BaseModel, ConfigDict
 
 
 class DiscogsPressingIn(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
     """Lean pressing fields supplied by the client when acquiring with a Discogs release.
 
     The client obtains these values from a prior call to GET /discogs/releases?q=...
@@ -13,6 +11,8 @@ class DiscogsPressingIn(BaseModel):
     ``discogs_release_id`` as the conflict key and links the resulting UUID to the
     new inventory item.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     discogs_release_id: int
     discogs_resource_url: str | None = None
