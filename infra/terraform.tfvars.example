@@ -10,3 +10,6 @@ db_max_allocated_storage = 100
 
 # Set to true only during a planned major Postgres version upgrade apply.
 # allow_major_version_upgrade = false
+
+# Discogs personal access token (sensitive — keep out of version control)
+discogs_token = "your_discogs_api_token"

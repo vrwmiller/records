@@ -104,3 +104,9 @@ variable "postgres_major_version" {
   type        = string
   default     = "16"
 }
+
+variable "discogs_token" {
+  description = "Discogs API personal access token. Set in terraform.tfvars (gitignored). See docs/discogs-api.md."
+  type        = string
+  sensitive   = true
+}
