@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.inventory import InventoryItem, InventoryTransaction
+from app.models.pressing import Pressing
 from app.schemas.inventory import AcquireRequest, UpdateRequest
 from app.services.pressing import upsert_pressing
 
@@ -59,6 +60,12 @@ def acquire(db: Session, request: AcquireRequest) -> list[InventoryItem]:
     db.commit()
     for item in items:
         db.refresh(item)
+    # Assign the pressing object once rather than relying on lazy-loads, which
+    # would trigger one extra SELECT per item when Pydantic serialises the response.
+    if pressing_id is not None:
+        pressing_obj = db.get(Pressing, pressing_id)
+        for item in items:
+            item.pressing = pressing_obj
     return items
 
 

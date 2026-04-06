@@ -114,6 +114,11 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
   }
 
   function handleSelectResult(result: DiscogsSearchResult) {
+    // Cancel any pending debounce and invalidate in-flight requests so that
+    // selecting a pressing is a terminal action for the current search cycle.
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    ++searchSeq.current
+    setDiscogsSearching(false)
     const pressing: DiscogsPressingIn = {
       discogs_release_id: result.id,
       discogs_resource_url: result.resource_url,

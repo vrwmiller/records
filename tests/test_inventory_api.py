@@ -381,6 +381,33 @@ class TestAcquireService:
             acquire(db, AcquireRequest(collection_type="PERSONAL"))
         mock_upsert.assert_not_called()
 
+    def test_pressing_object_eagerly_assigned_to_avoid_n_plus_one(self) -> None:
+        """acquire() calls db.get(Pressing, pressing_id) once after commit to
+        populate item.pressing, eliminating N+1 lazy loads during response
+        serialisation.  Asserts db.get is called exactly once with the resolved
+        pressing UUID regardless of quantity."""
+        from app.models.pressing import Pressing
+        from app.schemas.discogs import DiscogsPressingIn
+
+        pressing_uuid = uuid.uuid4()
+        db = MagicMock()
+
+        pressing_in = DiscogsPressingIn(discogs_release_id=1)
+        with patch("app.services.inventory.upsert_pressing", return_value=pressing_uuid):
+            acquire(db, AcquireRequest(collection_type="PERSONAL", quantity=3, pressing=pressing_in))
+
+        db.get.assert_called_once_with(Pressing, pressing_uuid)
+
+    def test_pressing_not_fetched_when_no_pressing_id(self) -> None:
+        """acquire() must not call db.get() for pressing when pressing_id is None."""
+        from app.models.pressing import Pressing
+
+        db = MagicMock()
+        acquire(db, AcquireRequest(collection_type="PERSONAL"))
+
+        for call in db.get.call_args_list:
+            assert call.args[0] is not Pressing, "db.get(Pressing, ...) must not be called when pressing_id is None"
+
 
 # ---------------------------------------------------------------------------
 # Service tests — soft_delete
