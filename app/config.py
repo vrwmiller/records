@@ -20,7 +20,8 @@ class Settings(BaseSettings):
     cognito_client_id: str
 
     # Discogs
-    discogs_token: str = ""
+    discogs_token: str = ""  # local dev only; leave empty in production
+    discogs_token_ssm_name: str = ""  # production: SSM SecureString parameter name
 
 
 settings = Settings()

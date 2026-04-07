@@ -105,8 +105,8 @@ variable "postgres_major_version" {
   default     = "16"
 }
 
-variable "discogs_token" {
-  description = "Discogs API personal access token. Set in terraform.tfvars (gitignored). See docs/discogs-api.md."
+variable "discogs_token_ssm_name" {
+  description = "AWS SSM SecureString parameter name that holds the Discogs API token. The parameter must be created out-of-band (aws ssm put-parameter). Only the name is passed to Terraform — the token value never enters state."
   type        = string
-  sensitive   = true
+  default     = ""
 }

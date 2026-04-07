@@ -11,5 +11,8 @@ db_max_allocated_storage = 100
 # Set to true only during a planned major Postgres version upgrade apply.
 # allow_major_version_upgrade = false
 
-# Discogs personal access token (sensitive — keep out of version control)
-discogs_token = "your_discogs_api_token"
+# SSM SecureString parameter name for the Discogs API token.
+# Create the parameter out-of-band before running terraform apply:
+#   aws ssm put-parameter --name "/records/prod/discogs-token" \
+#     --value "<your_token>" --type SecureString --profile records
+discogs_token_ssm_name = "/records/prod/discogs-token"

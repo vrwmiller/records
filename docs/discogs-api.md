@@ -18,7 +18,20 @@ Accept: application/vnd.discogs.v2.discogs+json
 
 The `User-Agent` header is required — requests without it return an empty response (see FAQ below).
 
-Token is stored in the `DISCOGS_TOKEN` environment variable and read via `app/config.py`. Parameter Store (SSM) is the planned production secret store but is not yet implemented — tracked as an open follow-up item.
+Token is resolved at runtime by `app/services/discogs._get_token()` in priority order:
+
+1. **Local dev:** `DISCOGS_TOKEN` environment variable (set in `env.sh`, gitignored).
+2. **Production:** `DISCOGS_TOKEN_SSM_NAME` environment variable holds the SSM parameter name. The Lambda fetches the token from SSM SecureString at cold start (`WithDecryption=True`) and caches it for the lifetime of the instance. The token value never enters Terraform state.
+
+The SSM parameter must be created out-of-band before `terraform apply`:
+
+```bash
+aws ssm put-parameter \
+  --name "/records/prod/discogs-token" \
+  --value "<your_token>" \
+  --type SecureString \
+  --profile records
+```
 
 ---
 

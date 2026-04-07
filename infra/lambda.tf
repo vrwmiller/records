@@ -55,6 +55,18 @@ resource "aws_iam_role_policy" "lambda" {
           aws_s3_bucket.images.arn,
           "${aws_s3_bucket.images.arn}/*"
         ]
+      },
+      {
+        # Allow the handler to resolve the Discogs API token from SSM at
+        # runtime. The token value is stored as a SecureString and is never
+        # passed through Terraform. Omitted when discogs_token_ssm_name is
+        # empty (the condition keeps the policy valid in that case).
+        Sid    = "SSMDiscogsToken"
+        Effect = "Allow"
+        Action = "ssm:GetParameter"
+        Resource = var.discogs_token_ssm_name != "" ? [
+          "arn:aws:ssm:${var.aws_region}:*:parameter${var.discogs_token_ssm_name}"
+        ] : []
       }
     ]
   })
@@ -116,8 +128,8 @@ resource "aws_lambda_function" "app" {
       # Empty string overrides the app default (localhost origins) so no
       # cross-origin requests are allowed in production. The React UI is
       # served from the same API Gateway origin and does not need CORS.
-      CORS_ORIGINS  = ""
-      DISCOGS_TOKEN = var.discogs_token
+      CORS_ORIGINS           = ""
+      DISCOGS_TOKEN_SSM_NAME = var.discogs_token_ssm_name
     }
   }
 
