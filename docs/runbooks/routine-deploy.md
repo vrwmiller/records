@@ -158,7 +158,7 @@ Expected: `401`. A `500` indicates a database or application error.
 
 ```bash
 # CloudWatch error scan (last 10 minutes)
-aws logs tail /aws/lambda/records-dev \
+aws logs tail /aws/lambda/records-<env> \
   --since 10m \
   --profile records \
   --region us-east-1 \

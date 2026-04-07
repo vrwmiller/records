@@ -165,6 +165,7 @@ Create `/tmp/migrate_handler.py`:
 
 ```python
 import json, os, subprocess, sys
+from urllib.parse import quote
 
 def handler(event, context):
     import boto3
@@ -184,8 +185,9 @@ def handler(event, context):
     port = outer.get("port", 5432)
     dbname = outer["dbname"]
     user = inner["username"]
-    # AWS-generated passwords may contain '%'; escape for configparser interpolation
-    password = inner["password"].replace("%", "%%")
+    # URL-encode the password to handle special chars (@, :, /) that break URL parsing,
+    # then escape % for configparser interpolation used by Alembic's set_main_option.
+    password = quote(inner["password"], safe="").replace("%", "%%")
 
     db_url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{dbname}"
 
