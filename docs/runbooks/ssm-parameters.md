@@ -37,13 +37,19 @@ The Terraform variable `discogs_token_ssm_name` in `infra/terraform.tfvars` must
 
 ## Create a Parameter (First Time)
 
+To avoid storing the token in shell history, read it interactively:
+
 ```bash
+read -rs DISCOGS_TOKEN
 aws ssm put-parameter \
   --name "/records/<env>/discogs-token" \
-  --value "<token>" \
+  --value "$DISCOGS_TOKEN" \
   --type SecureString \
   --profile records
+unset DISCOGS_TOKEN
 ```
+
+`read -rs` reads silently (no echo) and does not add the value to shell history. `unset` clears it from the environment immediately after use.
 
 SSM will reject the call if the parameter already exists without `--overwrite`. This is intentional — it prevents accidental overwrites during initial provisioning.
 
@@ -69,19 +75,21 @@ A valid Discogs API token is 40 characters. The `wc -c` output will be 41 (40 ch
 ## Rotate a Parameter (Overwrite Existing)
 
 ```bash
+read -rs DISCOGS_TOKEN
 aws ssm put-parameter \
   --name "/records/<env>/discogs-token" \
-  --value "<new-token>" \
+  --value "$DISCOGS_TOKEN" \
   --type SecureString \
   --overwrite \
   --profile records
+unset DISCOGS_TOKEN
 ```
 
 After rotation:
 
 1. Verify character count (see above).
-2. The Lambda will pick up the new value on the next invocation — no redeploy required, as the token is fetched at runtime.
-3. Confirm the old token has been revoked in the Discogs developer console.
+2. New Lambda cold starts will fetch the rotated token from SSM. However, warm Lambda runtimes cache the resolved token for the lifetime of that runtime (`_ssm_token_cache` in `app/services/discogs.py`) — they will continue using the old token until a cold start occurs. To force immediate pickup, trigger a Lambda redeploy (see lambda-redeploy.md) or any configuration change that replaces existing runtimes.
+3. Confirm the old token has been revoked in the Discogs developer console **only after** confirming the new token is in use — revoking while warm runtimes hold the old token will cause Discogs API failures.
 
 ---
 
@@ -105,5 +113,5 @@ The parameter name in SSM and the value of `discogs_token_ssm_name` in `infra/te
 ## Security Rules
 
 - Never log or print the raw token value.
-- Never store the token value in source control, `.env` files, or shell history.
+- Never store the token value in source control, `.env` files, or shell history. Use `read -rs` to read the token interactively, as shown above.
 - Use `--with-decryption` only when the retrieved value is immediately consumed — do not pass decrypted output to logs.
