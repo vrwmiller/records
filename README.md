@@ -37,6 +37,72 @@ The system is designed to:
   - Discogs integration: [docs/design-discogs.md](docs/design-discogs.md)
 - Runbooks: [docs/runbooks/](docs/runbooks/)
 
+## Directory Structure
+
+```
+records/
+├── .github/
+│   ├── agents/          # Agent definitions (architect, database, docs-qa, fullstack, security)
+│   ├── instructions/    # Per-scope coding instructions
+│   └── prompts/         # Reusable prompt files (e.g. review.prompt.md)
+├── app/                 # FastAPI backend (Lambda entrypoint via Mangum)
+│   ├── models/          # SQLAlchemy ORM models
+│   ├── routers/         # Route handlers (health, inventory, discogs)
+│   ├── schemas/         # Pydantic request/response schemas
+│   ├── services/        # Business logic (inventory, pressing, discogs)
+│   ├── auth.py          # Cognito JWT verification
+│   ├── config.py        # pydantic-settings — env-based application settings
+│   ├── db.py            # SQLAlchemy engine and session factory
+│   ├── handler.py       # Mangum adapter — Lambda handler entrypoint
+│   └── main.py          # FastAPI app factory
+├── docs/
+│   ├── runbooks/        # Operational runbooks (deploy, migrations, backup, Cognito, secrets)
+│   ├── architecture.md
+│   ├── design.md
+│   ├── design-discogs.md
+│   ├── design-import.md
+│   ├── discogs-api.md
+│   └── proposal.md
+├── infra/               # Terraform — all AWS resource definitions
+│   ├── tests/           # Terraform test files (apigw.tftest.hcl)
+│   ├── apigw.tf         # API Gateway (HTTP API + routes)
+│   ├── auth.tf          # Cognito user pool and app client
+│   ├── database.tf      # RDS PostgreSQL
+│   ├── lambda.tf        # Lambda function, IAM role, and policies
+│   ├── main.tf          # Provider config and S3 backend
+│   ├── networking.tf    # VPC, subnets, and security groups
+│   ├── outputs.tf
+│   ├── secrets.tf       # Secrets Manager resources
+│   ├── storage.tf       # S3 image bucket
+│   ├── variables.tf
+│   ├── terraform.tfvars         # Real values — gitignored
+│   └── terraform.tfvars.example # Committed placeholder
+├── migrations/          # Alembic schema migrations
+│   └── versions/
+├── scripts/
+│   ├── check-terraform-secrets.sh  # Pre-commit secret safety check for Terraform files
+│   └── install-hooks.sh            # Installs git pre-commit hooks
+├── tests/               # pytest test suite
+│   ├── conftest.py
+│   ├── test_db.py
+│   ├── test_discogs_api.py
+│   ├── test_handler.py
+│   ├── test_health.py
+│   ├── test_inventory_api.py
+│   ├── test_inventory_models.py
+│   └── test_pressing_models.py
+├── ui/                  # React + TypeScript frontend (Vite)
+│   └── src/
+│       ├── api/         # API client modules and unit tests
+│       ├── components/  # Shared UI components
+│       ├── pages/       # Page-level components and tests
+│       └── test/        # Vitest setup
+├── alembic.ini
+├── env.sh.example       # Dev environment template — copy to env.sh (gitignored)
+├── requirements.txt
+└── README.md
+```
+
 ## Infrastructure Bootstrap
 
 Before running `terraform init` for the first time, one AWS resource must be created manually. It cannot be managed by the Terraform configuration it supports.
