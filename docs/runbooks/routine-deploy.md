@@ -110,7 +110,7 @@ REPO_ROOT=$(pwd)
 cd /tmp/lambda-package && zip -r "$REPO_ROOT/lambda.zip" . && cd "$REPO_ROOT"
 
 aws lambda update-function-code \
-  --function-name records-dev \
+  --function-name records-<env> \
   --zip-file fileb://lambda.zip \
   --profile records \
   --region us-east-1

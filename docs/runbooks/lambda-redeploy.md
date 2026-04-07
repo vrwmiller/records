@@ -7,10 +7,10 @@ Rebuild and push a new Lambda deployment package when Python application code or
 ## Preconditions
 
 - AWS CLI configured for the `records` profile.
-- Python 3.13 available locally.
+- Python 3.14 venv available locally.
 - `requirements.txt` is up to date.
 - `ui/dist/` has been built if any frontend changes are included (see `ui/` build instructions).
-- Run from the repository root: `/Users/vmiller/records`.
+- Run from the repository root.
 
 ```bash
 aws sts get-caller-identity --profile records
@@ -74,7 +74,7 @@ Expected size: ~48 MB. A significantly smaller zip (< 10 MB) suggests dependenci
 
 ```bash
 aws lambda update-function-code \
-  --function-name records-dev \
+  --function-name records-<env> \
   --zip-file fileb://lambda.zip \
   --profile records \
   --region us-east-1
@@ -84,7 +84,7 @@ The response includes `CodeSize` and `State`. Wait for `State: Active` before te
 
 ```bash
 aws lambda get-function-configuration \
-  --function-name records-dev \
+  --function-name records-<env> \
   --profile records \
   --region us-east-1 \
   --query '[State, LastUpdateStatus]'
@@ -103,7 +103,7 @@ Expected response: `{"status":"ok"}`.
 Check CloudWatch for errors from the first few invocations:
 
 ```bash
-aws logs tail /aws/lambda/records-dev \
+aws logs tail /aws/lambda/records-<env> \
   --since 5m \
   --profile records \
   --region us-east-1 \
@@ -134,7 +134,7 @@ Alternatively, if the previous version was published as a Lambda version:
 
 ```bash
 aws lambda update-function-configuration \
-  --function-name records-dev \
+  --function-name records-<env> \
   --profile records \
   --region us-east-1 \
   # (set alias target to previous version number)
