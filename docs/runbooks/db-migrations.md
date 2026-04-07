@@ -151,7 +151,7 @@ The RDS instance is in a private subnet with `PubliclyAccessible: False`. There 
 
 ```bash
 aws lambda get-function-configuration \
-  --function-name records-dev \
+  --function-name records-<env> \
   --profile records \
   --region us-east-1 \
   --query 'VpcConfig'
@@ -202,14 +202,14 @@ def handler(event, context):
     }
 ```
 
-> **Key env var name:** The application uses `DB_SECRET_ID` (not `DB_SECRET_ARN`) — confirm with `aws lambda get-function-configuration --function-name records-dev --query Environment`.
+> **Key env var name:** The application uses `DB_SECRET_ID` (not `DB_SECRET_ARN`) — confirm with `aws lambda get-function-configuration --function-name records-<env> --query Environment`.
 > **`%` password issue:** AWS-generated RDS passwords can contain `%` characters. Python's `configparser` (used by Alembic internally) treats `%` as an interpolation prefix and raises `InterpolationSyntaxError`. The `.replace("%", "%%")` call escapes them before the URL is passed to Alembic.
 
 ### Step 3 — Bundle the Handler into the Existing Zip
 
 ```bash
 cp /tmp/migrate_handler.py /tmp/lambda-package/
-REPO_ROOT=/Users/vmiller/records
+REPO_ROOT=$(pwd)  # run from the repository root
 cd /tmp/lambda-package && zip -r "$REPO_ROOT/migrate.zip" . && cd "$REPO_ROOT"
 ```
 
@@ -218,23 +218,23 @@ cd /tmp/lambda-package && zip -r "$REPO_ROOT/migrate.zip" . && cd "$REPO_ROOT"
 ```bash
 # Retrieve values from the application Lambda
 ROLE=$(aws lambda get-function-configuration \
-  --function-name records-dev --profile records --region us-east-1 \
+  --function-name records-<env> --profile records --region us-east-1 \
   --query 'Role' --output text)
 
 SUBNETS=$(aws lambda get-function-configuration \
-  --function-name records-dev --profile records --region us-east-1 \
+  --function-name records-<env> --profile records --region us-east-1 \
   --query 'VpcConfig.SubnetIds' --output text | tr '\t' ',')
 
 SGS=$(aws lambda get-function-configuration \
-  --function-name records-dev --profile records --region us-east-1 \
+  --function-name records-<env> --profile records --region us-east-1 \
   --query 'VpcConfig.SecurityGroupIds' --output text | tr '\t' ',')
 
 DB_SECRET=$(aws lambda get-function-configuration \
-  --function-name records-dev --profile records --region us-east-1 \
+  --function-name records-<env> --profile records --region us-east-1 \
   --query 'Environment.Variables.DB_SECRET_ID' --output text)
 
 aws lambda create-function \
-  --function-name records-dev-migrate-tmp \
+  --function-name records-<env>-migrate-tmp \
   --runtime python3.13 \
   --handler migrate_handler.handler \
   --role "$ROLE" \
@@ -250,7 +250,7 @@ Wait for the function to reach `Active` state:
 
 ```bash
 aws lambda get-function-configuration \
-  --function-name records-dev-migrate-tmp \
+  --function-name records-<env>-migrate-tmp \
   --profile records --region us-east-1 \
   --query '[State, LastUpdateStatus]'
 ```
@@ -259,7 +259,7 @@ aws lambda get-function-configuration \
 
 ```bash
 aws lambda invoke \
-  --function-name records-dev-migrate-tmp \
+  --function-name records-<env>-migrate-tmp \
   --profile records \
   --region us-east-1 \
   /tmp/migrate-result.json
@@ -275,7 +275,7 @@ If `status` is `"error"`, check `stderr` in the result for the Alembic traceback
 
 ```bash
 aws lambda delete-function \
-  --function-name records-dev-migrate-tmp \
+  --function-name records-<env>-migrate-tmp \
   --profile records \
   --region us-east-1
 
