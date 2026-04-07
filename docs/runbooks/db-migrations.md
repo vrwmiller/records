@@ -114,8 +114,10 @@ alembic branches       # shows divergent heads; resolve before deploying
 
 ## Production Deployment Pattern
 
+> **Note:** The production RDS instance is VPC-isolated (`PubliclyAccessible: False`). Running `alembic upgrade head` from a laptop will be blocked by the VPC. Use the [VPC-Isolated Pattern](#applying-migrations-against-private-rds-vpc-isolated-pattern) below for production deploys.
+
 1. Deploy new application code (do not start serving traffic yet if schema is required first)
-2. Run `alembic upgrade head` against the production database
+2. Run `alembic upgrade head` against the production database (via VPC-isolated Lambda — see below)
 3. Verify with `alembic current` — confirm expected revision ID
 4. Start or restart the application service
 
@@ -132,3 +134,156 @@ Rollback:
 - `DATABASE_URL` must use the `postgresql+psycopg://` driver prefix in this environment (Python 3.14, psycopg v3)
 - `psycopg2-binary` is not available on Python 3.14 — do not use the `postgresql://` or `postgresql+psycopg2://` prefix
 - The FK from `inventory_transaction` → `inventory_item` uses `ON DELETE RESTRICT` — physical row deletion of inventory items is not permitted; use soft-delete (`deleted_at`, `status = 'deleted'`) instead
+
+---
+
+## Applying Migrations Against Private RDS (VPC-Isolated Pattern)
+
+The RDS instance is in a private subnet with `PubliclyAccessible: False`. There is no bastion host or EC2 instance. Migrations cannot be run directly from a laptop.
+
+**Solution:** create a temporary Lambda function in the same VPC as the application Lambda, invoke it to run `alembic upgrade head`, then delete it.
+
+### Prerequisites
+
+- AWS CLI configured for the `records` profile.
+- Lambda zip already includes the `migrations/` directory and `alembic.ini` (see lambda-redeploy.md Step 2 notes).
+- Existing application Lambda configuration is used for VPC/role settings — do not hardcode these values.
+
+### Step 1 — Retrieve Application Lambda VPC Configuration
+
+```bash
+aws lambda get-function-configuration \
+  --function-name records-<env> \
+  --profile records \
+  --region us-east-1 \
+  --query 'VpcConfig'
+```
+
+Note the `SubnetIds` and `SecurityGroupIds` arrays. The migration Lambda must use the same values.
+
+### Step 2 — Write the Migration Handler
+
+Create `/tmp/migrate_handler.py`:
+
+```python
+import json, os, subprocess, sys
+from urllib.parse import quote
+
+def handler(event, context):
+    import boto3
+    secrets = boto3.client("secretsmanager", region_name="us-east-1")
+
+    # DB_SECRET_ID holds the secret name (not ARN) — matches the application Lambda env var
+    outer = json.loads(
+        secrets.get_secret_value(SecretId=os.environ["DB_SECRET_ID"])["SecretString"]
+    )
+    inner = json.loads(
+        secrets.get_secret_value(
+            SecretId=outer["master_user_secret_arn"]
+        )["SecretString"]
+    )
+
+    host = outer["host"]
+    port = outer.get("port", 5432)
+    dbname = outer["dbname"]
+    user = inner["username"]
+    # URL-encode the password to handle special chars (@, :, /) that break URL parsing,
+    # then escape % for configparser interpolation used by Alembic's set_main_option.
+    password = quote(inner["password"], safe="").replace("%", "%%")
+
+    db_url = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{dbname}"
+
+    env = {**os.environ, "DATABASE_URL": db_url}
+    result = subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        capture_output=True, text=True, env=env
+    )
+    return {
+        "status": "ok" if result.returncode == 0 else "error",
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "current_revision": result.stdout.strip().split()[-1] if result.returncode == 0 else None,
+    }
+```
+
+> **Key env var name:** The application uses `DB_SECRET_ID` (not `DB_SECRET_ARN`) — confirm with `aws lambda get-function-configuration --function-name records-<env> --query Environment`.
+> **`%` password issue:** AWS-generated RDS passwords can contain `%` characters. Python's `configparser` (used by Alembic internally) treats `%` as an interpolation prefix and raises `InterpolationSyntaxError`. The `.replace("%", "%%")` call escapes them before the URL is passed to Alembic.
+
+### Step 3 — Bundle the Handler into the Existing Zip
+
+```bash
+cp /tmp/migrate_handler.py /tmp/lambda-package/
+REPO_ROOT=$(pwd)  # run from the repository root
+cd /tmp/lambda-package && zip -r "$REPO_ROOT/migrate.zip" . && cd "$REPO_ROOT"
+```
+
+### Step 4 — Create the Temporary Migration Lambda
+
+```bash
+# Retrieve values from the application Lambda
+ROLE=$(aws lambda get-function-configuration \
+  --function-name records-<env> --profile records --region us-east-1 \
+  --query 'Role' --output text)
+
+SUBNETS=$(aws lambda get-function-configuration \
+  --function-name records-<env> --profile records --region us-east-1 \
+  --query 'VpcConfig.SubnetIds' --output text | tr '\t' ',')
+
+SGS=$(aws lambda get-function-configuration \
+  --function-name records-<env> --profile records --region us-east-1 \
+  --query 'VpcConfig.SecurityGroupIds' --output text | tr '\t' ',')
+
+DB_SECRET=$(aws lambda get-function-configuration \
+  --function-name records-<env> --profile records --region us-east-1 \
+  --query 'Environment.Variables.DB_SECRET_ID' --output text)
+
+aws lambda create-function \
+  --function-name records-<env>-migrate-tmp \
+  --runtime python3.13 \
+  --handler migrate_handler.handler \
+  --role "$ROLE" \
+  --zip-file fileb://migrate.zip \
+  --timeout 120 \
+  --environment "Variables={DB_SECRET_ID=$DB_SECRET}" \
+  --vpc-config "SubnetIds=$SUBNETS,SecurityGroupIds=$SGS" \
+  --profile records \
+  --region us-east-1
+```
+
+Wait for the function to reach `Active` state:
+
+```bash
+aws lambda get-function-configuration \
+  --function-name records-<env>-migrate-tmp \
+  --profile records --region us-east-1 \
+  --query '[State, LastUpdateStatus]'
+```
+
+### Step 5 — Invoke and Verify
+
+```bash
+aws lambda invoke \
+  --function-name records-<env>-migrate-tmp \
+  --profile records \
+  --region us-east-1 \
+  /tmp/migrate-result.json
+
+cat /tmp/migrate-result.json
+```
+
+Expected: `{"status": "ok", "current_revision": "<head-revision-id>", ...}`.
+
+If `status` is `"error"`, check `stderr` in the result for the Alembic traceback.
+
+### Step 6 — Clean Up
+
+```bash
+aws lambda delete-function \
+  --function-name records-<env>-migrate-tmp \
+  --profile records \
+  --region us-east-1
+
+rm migrate.zip /tmp/migrate_handler.py /tmp/migrate-result.json
+```
+
+Delete the temporary function immediately after confirming success. Do not leave it running.
