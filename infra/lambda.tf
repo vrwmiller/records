@@ -29,46 +29,50 @@ resource "aws_iam_role_policy" "lambda" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
-        # Allow the handler to fetch DB connection info and the RDS-managed
-        # master password at cold start. The managed master secret ARN starts
-        # with "rds!" and is not known until the DB instance is created.
-        Sid    = "SecretsManagerRead"
-        Effect = "Allow"
-        Action = "secretsmanager:GetSecretValue"
-        Resource = [
-          aws_secretsmanager_secret.db_connection_info.arn,
-          aws_db_instance.main.master_user_secret[0].secret_arn
-        ]
-      },
-      {
-        Sid    = "S3Images"
-        Effect = "Allow"
-        Action = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:DeleteObject",
-          "s3:ListBucket"
-        ]
-        Resource = [
-          aws_s3_bucket.images.arn,
-          "${aws_s3_bucket.images.arn}/*"
-        ]
-      },
-      {
-        # Allow the handler to resolve the Discogs API token from SSM at
-        # runtime. The token value is stored as a SecureString and is never
-        # passed through Terraform. Omitted when discogs_token_ssm_name is
-        # empty (the condition keeps the policy valid in that case).
-        Sid    = "SSMDiscogsToken"
-        Effect = "Allow"
-        Action = "ssm:GetParameter"
-        Resource = var.discogs_token_ssm_name != "" ? [
-          "arn:aws:ssm:${var.aws_region}:*:parameter${var.discogs_token_ssm_name}"
-        ] : []
-      }
-    ]
+    Statement = concat(
+      [
+        {
+          # Allow the handler to fetch DB connection info and the RDS-managed
+          # master password at cold start. The managed master secret ARN starts
+          # with "rds!" and is not known until the DB instance is created.
+          Sid    = "SecretsManagerRead"
+          Effect = "Allow"
+          Action = "secretsmanager:GetSecretValue"
+          Resource = [
+            aws_secretsmanager_secret.db_connection_info.arn,
+            aws_db_instance.main.master_user_secret[0].secret_arn
+          ]
+        },
+        {
+          Sid    = "S3Images"
+          Effect = "Allow"
+          Action = [
+            "s3:GetObject",
+            "s3:PutObject",
+            "s3:DeleteObject",
+            "s3:ListBucket"
+          ]
+          Resource = [
+            aws_s3_bucket.images.arn,
+            "${aws_s3_bucket.images.arn}/*"
+          ]
+        }
+      ],
+      var.discogs_token_ssm_name != "" ? [
+        {
+          # Allow the handler to resolve the Discogs API token from SSM at
+          # runtime. The token value is stored as a SecureString and is never
+          # passed through Terraform. This statement is omitted entirely when
+          # discogs_token_ssm_name is empty so the IAM policy remains valid.
+          # Uses the default AWS-managed SSM key (alias/aws/ssm); explicit
+          # kms:Decrypt is not required for AWS-managed keys.
+          Sid      = "SSMDiscogsToken"
+          Effect   = "Allow"
+          Action   = "ssm:GetParameter"
+          Resource = ["arn:aws:ssm:${var.aws_region}:*:parameter${var.discogs_token_ssm_name}"]
+        }
+      ] : []
+    )
   })
 }
 
