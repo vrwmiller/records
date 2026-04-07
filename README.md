@@ -51,7 +51,7 @@ records/
 │   ├── schemas/         # Pydantic request/response schemas
 │   ├── services/        # Business logic (inventory, pressing, discogs)
 │   ├── auth.py          # Cognito JWT verification
-│   ├── config.py        # pydantic-settings — env vars and SSM config names
+│   ├── config.py        # pydantic-settings — env-based application settings
 │   ├── db.py            # SQLAlchemy engine and session factory
 │   ├── handler.py       # Mangum adapter — Lambda handler entrypoint
 │   └── main.py          # FastAPI app factory
