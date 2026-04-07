@@ -203,7 +203,6 @@ def handler(event, context):
 ```
 
 > **Key env var name:** The application uses `DB_SECRET_ID` (not `DB_SECRET_ARN`) — confirm with `aws lambda get-function-configuration --function-name records-dev --query Environment`.
-
 > **`%` password issue:** AWS-generated RDS passwords can contain `%` characters. Python's `configparser` (used by Alembic internally) treats `%` as an interpolation prefix and raises `InterpolationSyntaxError`. The `.replace("%", "%%")` call escapes them before the URL is passed to Alembic.
 
 ### Step 3 — Bundle the Handler into the Existing Zip

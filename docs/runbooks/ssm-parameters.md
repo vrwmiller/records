@@ -22,13 +22,13 @@ Confirm account `920835814440` is returned before proceeding.
 
 All parameters follow the pattern:
 
-```
+```bash
 /records/<env>/<secret-name>
 ```
 
-| Parameter | Purpose |
-|-----------|---------|
-| `/records/dev/discogs-token` | Discogs API token for the dev Lambda |
+| Parameter                     | Purpose                               |
+|-------------------------------|---------------------------------------|
+| `/records/dev/discogs-token`  | Discogs API token for the dev Lambda  |
 | `/records/prod/discogs-token` | Discogs API token for the prod Lambda |
 
 The Terraform variable `discogs_token_ssm_name` in `infra/terraform.tfvars` must match the parameter name for the target environment. The Lambda reads the SSM name from its `DISCOGS_TOKEN_SSM_NAME` environment variable, which Terraform sets to the value of that variable.

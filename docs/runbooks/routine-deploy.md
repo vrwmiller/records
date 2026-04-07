@@ -20,14 +20,14 @@ Confirm account `920835814440` before proceeding.
 
 ## Decision Tree — What to Run
 
-| What changed? | Phases required (in order) |
-|---|---|
-| SSM parameter needs to be created or rotated | Phase 1 only |
+| What changed?                                                     | Phases required (in order)        |
+|-------------------------------------------------------------------|-----------------------------------|
+| SSM parameter needs to be created or rotated                      | Phase 1 only                      |
 | Terraform configuration changed (`.tf` files, `terraform.tfvars`) | Phase 1 (if SSM needed) → Phase 2 |
-| Python code or dependencies changed (`app/`, `requirements.txt`) | Phase 3 |
-| Frontend changed (`ui/`) | Phase 3 (rebuild ui first) |
-| New Alembic migration added | Phase 4 |
-| Any code change | Phase 5 (always) |
+| Python code or dependencies changed (`app/`, `requirements.txt`)  | Phase 3                           |
+| Frontend changed (`ui/`)                                          | Phase 3 (rebuild ui first)        |
+| New Alembic migration added                                       | Phase 4                           |
+| Any code change                                                   | Phase 5 (always)                  |
 
 Phases are independent unless a cross-dependency is noted. Run them in numeric order when multiple phases apply.
 
@@ -171,11 +171,11 @@ No output is the expected result. Any ERROR lines require investigation before c
 
 ## Rollback
 
-| Phase | Rollback action |
-|---|---|
-| Phase 1 (SSM) | Rotate back to previous token value using `--overwrite` |
-| Phase 2 (Terraform) | Revert `.tf` changes, re-plan, re-apply |
-| Phase 3 (Lambda code) | Rebuild from previous git revision and re-upload |
-| Phase 4 (Migrations) | Run `alembic downgrade -1` via the VPC-isolated Lambda pattern |
+| Phase                 | Rollback action                                                |
+|-----------------------|----------------------------------------------------------------|
+| Phase 1 (SSM)         | Rotate back to previous token value using `--overwrite`        |
+| Phase 2 (Terraform)   | Revert `.tf` changes, re-plan, re-apply                        |
+| Phase 3 (Lambda code) | Rebuild from previous git revision and re-upload               |
+| Phase 4 (Migrations)  | Run `alembic downgrade -1` via the VPC-isolated Lambda pattern |
 
 > There is no automatic rollback mechanism. Each phase requires manual reversal. Always confirm the previous known-good state before beginning a rollback.
