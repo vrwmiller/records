@@ -114,8 +114,10 @@ alembic branches       # shows divergent heads; resolve before deploying
 
 ## Production Deployment Pattern
 
+> **Note:** The production RDS instance is VPC-isolated (`PubliclyAccessible: False`). Running `alembic upgrade head` from a laptop will be blocked by the VPC. Use the [VPC-Isolated Pattern](#applying-migrations-against-private-rds-vpc-isolated-pattern) below for production deploys.
+
 1. Deploy new application code (do not start serving traffic yet if schema is required first)
-2. Run `alembic upgrade head` against the production database
+2. Run `alembic upgrade head` against the production database (via VPC-isolated Lambda — see below)
 3. Verify with `alembic current` — confirm expected revision ID
 4. Start or restart the application service
 

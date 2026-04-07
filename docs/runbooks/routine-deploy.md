@@ -34,7 +34,7 @@ Phases are independent unless a cross-dependency is noted. Run them in numeric o
 
 ## Phase 1 — SSM Parameters
 
-Required when: a new SSM parameter must exist before `terraform apply`, or a token has been rotated.
+Required when: a new SSM parameter must exist before Lambda invocation or the smoke test, or a token has been rotated.
 
 Follow **ssm-parameters.md** for full steps. Summary:
 
@@ -45,7 +45,8 @@ aws ssm put-parameter \
   --name "/records/<env>/discogs-token" \
   --value "$DISCOGS_TOKEN" \
   --type SecureString \
-  --profile records
+  --profile records \
+  --region us-east-1
 unset DISCOGS_TOKEN
 
 # Verify (character count only — never print raw value)
@@ -53,6 +54,7 @@ aws ssm get-parameter \
   --name "/records/<env>/discogs-token" \
   --with-decryption \
   --profile records \
+  --region us-east-1 \
   --query Parameter.Value \
   --output text | wc -c
 ```

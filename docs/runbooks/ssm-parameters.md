@@ -45,7 +45,8 @@ aws ssm put-parameter \
   --name "/records/<env>/discogs-token" \
   --value "$DISCOGS_TOKEN" \
   --type SecureString \
-  --profile records
+  --profile records \
+  --region us-east-1
 unset DISCOGS_TOKEN
 ```
 
@@ -64,6 +65,7 @@ aws ssm get-parameter \
   --name "/records/<env>/discogs-token" \
   --with-decryption \
   --profile records \
+  --region us-east-1 \
   --query Parameter.Value \
   --output text | wc -c
 ```
@@ -81,7 +83,8 @@ aws ssm put-parameter \
   --value "$DISCOGS_TOKEN" \
   --type SecureString \
   --overwrite \
-  --profile records
+  --profile records \
+  --region us-east-1
 unset DISCOGS_TOKEN
 ```
 
@@ -100,7 +103,7 @@ The parameter name in SSM and the value of `discogs_token_ssm_name` in `infra/te
 **Required sequence when provisioning a new environment:**
 
 1. Create the SSM parameter (`aws ssm put-parameter`).
-2. Set `discogs_token_ssm_name` in `terraform.tfvars`.
+2. Set `discogs_token_ssm_name` in `infra/terraform.tfvars`.
 3. Run `terraform apply`.
 
 ---
