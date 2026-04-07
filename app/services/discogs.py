@@ -21,14 +21,45 @@ _USER_AGENT = "RecordRanch/1.0 +https://github.com/vrwmiller/records"
 _ACCEPT = "application/vnd.discogs.v2.discogs+json"
 _TIMEOUT = 10.0
 
+# Cached SSM-resolved token for production. Only populated when the SSM path
+# is used; reset to None on cold start. Not shared with the direct env-var path
+# so that tests can mock settings.discogs_token freely without interference.
+_ssm_token_cache: str | None = None
+
+
+def _get_token() -> str:
+    """Resolve the Discogs API token.
+
+    Checks in priority order:
+    1. ``settings.discogs_token`` — set directly in the environment (local dev).
+    2. ``settings.discogs_token_ssm_name`` — SSM SecureString parameter name;
+       fetched on demand the first time a fresh runtime needs it, then cached
+       in ``_ssm_token_cache`` for the lifetime of that runtime.
+    """
+    global _ssm_token_cache
+    if settings.discogs_token:
+        return settings.discogs_token
+    if settings.discogs_token_ssm_name:
+        if _ssm_token_cache is None:
+            import boto3  # noqa: PLC0415 — lazy import; boto3 unused in local dev
+            ssm = boto3.client("ssm", region_name=settings.aws_region)
+            resp = ssm.get_parameter(
+                Name=settings.discogs_token_ssm_name,
+                WithDecryption=True,
+            )
+            _ssm_token_cache = resp["Parameter"]["Value"]
+        return _ssm_token_cache
+    return ""
+
 
 def _headers() -> dict[str, str]:
     h: dict[str, str] = {
         "User-Agent": _USER_AGENT,
         "Accept": _ACCEPT,
     }
-    if settings.discogs_token:
-        h["Authorization"] = f"Discogs token={settings.discogs_token}"
+    token = _get_token()
+    if token:
+        h["Authorization"] = f"Discogs token={token}"
     return h
 
 

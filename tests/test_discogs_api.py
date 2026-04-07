@@ -219,11 +219,45 @@ class TestDiscogsService:
             instance.get.return_value = mock_resp
             with patch("app.services.discogs.settings") as mock_settings:
                 mock_settings.discogs_token = "test-token-abc"
+                mock_settings.discogs_token_ssm_name = ""
                 search_releases("test")
 
         headers = instance.get.call_args.kwargs["headers"]
         assert "Authorization" in headers
         assert headers["Authorization"] == "Discogs token=test-token-abc"
+
+    def test_search_releases_resolves_token_from_ssm(self) -> None:
+        import app.services.discogs as discogs_module
+        from app.services.discogs import search_releases
+
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"results": [], "pagination": {}}
+
+        mock_ssm_client = MagicMock()
+        mock_ssm_client.get_parameter.return_value = {
+            "Parameter": {"Value": "ssm-resolved-token"}
+        }
+
+        original_cache = discogs_module._ssm_token_cache
+        discogs_module._ssm_token_cache = None
+        try:
+            with patch("httpx.Client") as mock_client_cls:
+                instance = mock_client_cls.return_value.__enter__.return_value
+                instance.get.return_value = mock_resp
+                with patch("app.services.discogs.settings") as mock_settings:
+                    mock_settings.discogs_token = ""
+                    mock_settings.discogs_token_ssm_name = "/records/dev/discogs-token"
+                    mock_settings.aws_region = "us-east-1"
+                    with patch("boto3.client", return_value=mock_ssm_client):
+                        search_releases("test")
+        finally:
+            discogs_module._ssm_token_cache = original_cache
+
+        mock_ssm_client.get_parameter.assert_called_once_with(
+            Name="/records/dev/discogs-token", WithDecryption=True
+        )
+        headers = instance.get.call_args.kwargs["headers"]
+        assert headers["Authorization"] == "Discogs token=ssm-resolved-token"
 
     def test_get_release_builds_correct_url(self) -> None:
         from app.services.discogs import get_release
