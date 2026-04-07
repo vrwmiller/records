@@ -20,14 +20,13 @@ Confirm account `920835814440` before proceeding.
 
 ## Decision Tree — What to Run
 
-| What changed?                                                     | Phases required (in order)        |
-|-------------------------------------------------------------------|-----------------------------------|
-| SSM parameter needs to be created or rotated                      | Phase 1 only                      |
-| Terraform configuration changed (`.tf` files, `terraform.tfvars`) | Phase 1 (if SSM needed) → Phase 2 |
-| Python code or dependencies changed (`app/`, `requirements.txt`)  | Phase 3                           |
-| Frontend changed (`ui/`)                                          | Phase 3 (rebuild ui first)        |
-| New Alembic migration added                                       | Phase 4                           |
-| Any code change                                                   | Phase 5 (always)                  |
+| What changed?                                                     | Phases required (in order)                     |
+|-------------------------------------------------------------------|------------------------------------------------|
+| SSM parameter needs to be created or rotated                      | Phase 1 → Phase 5                              |
+| Terraform configuration changed (`.tf` files, `terraform.tfvars`) | Phase 1 (if SSM needed) → Phase 2 → Phase 5    |
+| Python code or dependencies changed (`app/`, `requirements.txt`)  | Phase 3 → Phase 5                              |
+| Frontend changed (`ui/`)                                          | Phase 3 (rebuild ui first) → Phase 5           |
+| New Alembic migration added                                       | Phase 4 → Phase 5                              |
 
 Phases are independent unless a cross-dependency is noted. Run them in numeric order when multiple phases apply.
 
@@ -40,12 +39,14 @@ Required when: a new SSM parameter must exist before `terraform apply`, or a tok
 Follow **ssm-parameters.md** for full steps. Summary:
 
 ```bash
-# First-time create
+# First-time create (enter token at prompt — not captured in shell history)
+read -rs DISCOGS_TOKEN
 aws ssm put-parameter \
   --name "/records/<env>/discogs-token" \
-  --value "<token>" \
+  --value "$DISCOGS_TOKEN" \
   --type SecureString \
   --profile records
+unset DISCOGS_TOKEN
 
 # Verify (character count only — never print raw value)
 aws ssm get-parameter \

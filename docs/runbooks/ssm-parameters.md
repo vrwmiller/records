@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Create, verify, and rotate SecureString parameters in AWS Systems Manager Parameter Store for Record Ranch. These parameters hold runtime secrets (e.g. the Discogs API token) that the Lambda function reads at invocation time. They must exist before any `terraform apply` that references them.
+Create, verify, and rotate SecureString parameters in AWS Systems Manager Parameter Store for Record Ranch. These parameters hold runtime secrets (e.g. the Discogs API token) that the Lambda function reads at invocation time. Terraform only passes the parameter name into the Lambda environment, so `terraform apply` can succeed even if the parameter is missing. The parameter must exist before invoking the Lambda path that reads it, or the function will fail with `ParameterNotFound`.
 
 ## Preconditions
 
