@@ -33,7 +33,8 @@ def _get_token() -> str:
     Checks in priority order:
     1. ``settings.discogs_token`` — set directly in the environment (local dev).
     2. ``settings.discogs_token_ssm_name`` — SSM SecureString parameter name;
-       fetched once per Lambda cold start and cached in ``_ssm_token_cache``.
+       fetched on demand the first time a fresh runtime needs it, then cached
+       in ``_ssm_token_cache`` for the lifetime of that runtime.
     """
     global _ssm_token_cache
     if settings.discogs_token:

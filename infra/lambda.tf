@@ -69,7 +69,7 @@ resource "aws_iam_role_policy" "lambda" {
           Sid      = "SSMDiscogsToken"
           Effect   = "Allow"
           Action   = "ssm:GetParameter"
-          Resource = ["arn:aws:ssm:${var.aws_region}:*:parameter${var.discogs_token_ssm_name}"]
+          Resource = ["arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${var.discogs_token_ssm_name}"]
         }
       ] : []
     )

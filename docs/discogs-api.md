@@ -21,7 +21,7 @@ The `User-Agent` header is required — requests without it return an empty resp
 Token is resolved at runtime by `app/services/discogs._get_token()` in priority order:
 
 1. **Local dev:** `DISCOGS_TOKEN` environment variable (set in `env.sh`, gitignored).
-2. **Production:** `DISCOGS_TOKEN_SSM_NAME` environment variable holds the SSM parameter name. The Lambda fetches the token from SSM SecureString at cold start (`WithDecryption=True`) and caches it for the lifetime of the instance. The token value never enters Terraform state.
+2. **Production:** `DISCOGS_TOKEN_SSM_NAME` environment variable holds the SSM parameter name. On the first Discogs request in a fresh Lambda execution environment, the token is fetched from SSM SecureString (`WithDecryption=True`) and cached for the lifetime of that environment. The token value never enters Terraform state.
 
 The SSM parameter must be created out-of-band before `terraform apply`:
 
