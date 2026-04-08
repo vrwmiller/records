@@ -369,53 +369,55 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
           <ul className="inventory-list">
             {items.map(item => (
               <li key={item.id} className="inventory-item">
-                <div className="item-badges">
-                  <span className={`collection-badge ${item.collection_type.toLowerCase()}`}>
-                    {item.collection_type}
-                  </span>
-                  <span className="status-badge">{item.status}</span>
-                </div>
-                <div className="item-detail">
-                  {item.pressing && (
-                    <span className="item-pressing">
-                      {item.pressing.title ?? '—'}
-                      {item.pressing.artists_sort && ` · ${item.pressing.artists_sort}`}
-                      {item.pressing.year != null && ` (${item.pressing.year})`}
-                      {item.pressing.country && ` · ${item.pressing.country}`}
+                <div className="item-row">
+                  <div className="item-badges">
+                    <span className={`collection-badge ${item.collection_type.toLowerCase()}`}>
+                      {item.collection_type}
                     </span>
+                    <span className="status-badge">{item.status}</span>
+                  </div>
+                  <div className="item-detail">
+                    {item.pressing && (
+                      <span className="item-pressing">
+                        {item.pressing.title ?? '—'}
+                        {item.pressing.artists_sort && ` · ${item.pressing.artists_sort}`}
+                        {item.pressing.year != null && ` (${item.pressing.year})`}
+                        {item.pressing.country && ` · ${item.pressing.country}`}
+                      </span>
+                    )}
+                    {item.condition_media && (
+                      <span>Media: {item.condition_media}</span>
+                    )}
+                    {item.condition_sleeve && (
+                      <span>Sleeve: {item.condition_sleeve}</span>
+                    )}
+                    {item.notes && (
+                      <span className="item-notes">{item.notes}</span>
+                    )}
+                    <span className="item-date">
+                      Added {new Date(item.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {isAdmin && (
+                    <button
+                      className="edit-btn"
+                      onClick={() =>
+                        setEditingItemId(id => (id === item.id ? null : item.id))
+                      }
+                      aria-label="Edit item"
+                    >
+                      ✎
+                    </button>
                   )}
-                  {item.condition_media && (
-                    <span>Media: {item.condition_media}</span>
-                  )}
-                  {item.condition_sleeve && (
-                    <span>Sleeve: {item.condition_sleeve}</span>
-                  )}
-                  {item.notes && (
-                    <span className="item-notes">{item.notes}</span>
-                  )}
-                  <span className="item-date">
-                    Added {new Date(item.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                {isAdmin && (
                   <button
-                    className="edit-btn"
-                    onClick={() =>
-                      setEditingItemId(id => (id === item.id ? null : item.id))
-                    }
-                    aria-label="Edit item"
+                    className="delete-btn"
+                    onClick={() => void handleDelete(item.id)}
+                    aria-label="Delete item"
+                    hidden={!isAdmin}
                   >
-                    ✎
+                    ×
                   </button>
-                )}
-                <button
-                  className="delete-btn"
-                  onClick={() => void handleDelete(item.id)}
-                  aria-label="Delete item"
-                  hidden={!isAdmin}
-                >
-                  ×
-                </button>
+                </div>
                 {editingItemId === item.id && (
                   <EditItemPanel
                     item={item}
