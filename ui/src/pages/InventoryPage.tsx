@@ -251,11 +251,9 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                       onClick={() => handleSelectResult(r)}
                     >
                       <span className="result-title">{r.title}</span>
-                      {r.year && <span className="result-meta">{r.year}</span>}
-                      {r.country && <span className="result-meta">{r.country}</span>}
-                      {r.label && r.label.length > 0 && (
-                        <span className="result-meta">{r.label[0]}</span>
-                      )}
+                      <span className="result-meta">
+                        {[r.year, r.country, r.label?.[0]].filter(Boolean).join(' · ')}
+                      </span>
                     </button>
                   </li>
                 ))}
