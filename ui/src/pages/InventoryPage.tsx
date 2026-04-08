@@ -256,7 +256,15 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                     <tr
                       key={r.id}
                       className="discogs-result-row"
+                      role="button"
+                      tabIndex={0}
                       onClick={() => handleSelectResult(r)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          handleSelectResult(r)
+                        }
+                      }}
                     >
                       <td>{r.title}</td>
                       <td>{r.year ?? '—'}</td>
