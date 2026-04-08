@@ -242,22 +242,30 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
             {discogsError && <p className="error-msg">{discogsError}</p>}
 
             {discogsResults.length > 0 && (
-              <ul className="discogs-results">
-                {discogsResults.map(r => (
-                  <li key={r.id}>
-                    <button
-                      type="button"
-                      className="discogs-result-btn"
+              <table className="discogs-results">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Year</th>
+                    <th>Country</th>
+                    <th>Label</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {discogsResults.map(r => (
+                    <tr
+                      key={r.id}
+                      className="discogs-result-row"
                       onClick={() => handleSelectResult(r)}
                     >
-                      <span className="result-title">{r.title}</span>
-                      <span className="result-meta">
-                        {[r.year, r.country, r.label?.[0]].filter(Boolean).join(' · ')}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+                      <td>{r.title}</td>
+                      <td>{r.year ?? '—'}</td>
+                      <td>{r.country ?? '—'}</td>
+                      <td>{r.label?.[0] ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
 
             {selectedPressing && (

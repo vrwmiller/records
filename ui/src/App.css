@@ -135,6 +135,44 @@
   min-width: 140px;
 }
 
+/* Discogs search results table */
+.discogs-results {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.discogs-results thead th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted, #6b7280);
+  padding: 0.25rem 0.75rem;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.discogs-result-row {
+  cursor: pointer;
+}
+
+.discogs-result-row td {
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  color: var(--color-text, #374151);
+}
+
+.discogs-result-row:last-child td {
+  border-bottom: none;
+}
+
+.discogs-result-row:hover td {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
 .acquire-actions {
   display: flex;
   gap: 0.5rem;
