@@ -483,6 +483,7 @@ table.discogs-results thead th {
 
   .acquire-form {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .acquire-form label {
