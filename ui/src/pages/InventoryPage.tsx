@@ -242,13 +242,13 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
             {discogsError && <p className="error-msg">{discogsError}</p>}
 
             {discogsResults.length > 0 && (
-              <table className="discogs-results">
+              <table className="discogs-results" aria-label="Discogs search results">
                 <thead>
                   <tr>
-                    <th>Title</th>
-                    <th>Year</th>
-                    <th>Country</th>
-                    <th>Label</th>
+                    <th scope="col">Title</th>
+                    <th scope="col">Year</th>
+                    <th scope="col">Country</th>
+                    <th scope="col">Label</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -256,7 +256,6 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                     <tr
                       key={r.id}
                       className="discogs-result-row"
-                      role="button"
                       tabIndex={0}
                       onClick={() => handleSelectResult(r)}
                       onKeyDown={e => {
