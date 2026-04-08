@@ -461,3 +461,57 @@ table.discogs-results thead th {
   gap: 0.5rem;
 }
 
+/* ── Mobile breakpoint (≤639px — portrait phones) ─────────────────────── */
+@media (max-width: 639px) {
+  .app-header {
+    padding: 0 1rem;
+  }
+
+  .app-content {
+    padding: 1rem;
+  }
+
+  .inventory-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .summary-counts {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .acquire-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .acquire-form label {
+    width: 100%;
+  }
+
+  .acquire-form select,
+  .acquire-form input[type='number'],
+  .acquire-form input[type='search'] {
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Hide Country + Label columns on narrow screens — Title and Year are sufficient */
+  table.discogs-results thead th:nth-child(3),
+  table.discogs-results thead th:nth-child(4),
+  table.discogs-results tbody td:nth-child(3),
+  table.discogs-results tbody td:nth-child(4) {
+    display: none;
+  }
+
+  .item-row {
+    gap: 0.5rem;
+  }
+
+  .item-badges {
+    min-width: 70px;
+  }
+}
+
