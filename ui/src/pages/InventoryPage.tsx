@@ -242,24 +242,37 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
             {discogsError && <p className="error-msg">{discogsError}</p>}
 
             {discogsResults.length > 0 && (
-              <ul className="discogs-results">
-                {discogsResults.map(r => (
-                  <li key={r.id}>
-                    <button
-                      type="button"
-                      className="discogs-result-btn"
+              <table className="discogs-results" aria-label="Discogs search results">
+                <thead>
+                  <tr>
+                    <th scope="col">Title</th>
+                    <th scope="col">Year</th>
+                    <th scope="col">Country</th>
+                    <th scope="col">Label</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {discogsResults.map(r => (
+                    <tr
+                      key={r.id}
+                      className="discogs-result-row"
+                      tabIndex={0}
                       onClick={() => handleSelectResult(r)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          handleSelectResult(r)
+                        }
+                      }}
                     >
-                      <span className="result-title">{r.title}</span>
-                      {r.year && <span className="result-meta">{r.year}</span>}
-                      {r.country && <span className="result-meta">{r.country}</span>}
-                      {r.label && r.label.length > 0 && (
-                        <span className="result-meta">{r.label[0]}</span>
-                      )}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+                      <td>{r.title}</td>
+                      <td>{r.year ?? '—'}</td>
+                      <td>{r.country ?? '—'}</td>
+                      <td>{r.label?.[0] ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
 
             {selectedPressing && (
