@@ -1,7 +1,6 @@
 :root {
   /* Typography */
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
 
   /* Light mode tokens */
   --color-bg: #ffffff;
