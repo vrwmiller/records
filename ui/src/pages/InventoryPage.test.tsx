@@ -260,6 +260,7 @@ describe('InventoryPage — Discogs search-and-select', () => {
     await user.click(screen.getByText('Never Gonna Give You Up'))
 
     expect(screen.getByText(/Selected:/)).toBeInTheDocument()
+    expect(screen.getByText(/RCA PB 9693/)).toBeInTheDocument()
 
     await user.click(screen.getByText('Confirm'))
     await waitFor(() => expect(mockAcquireItems).toHaveBeenCalledOnce())

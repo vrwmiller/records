@@ -100,15 +100,16 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
   }
 
   async function handleSave() {
-    // Await any in-flight matrix fetch so the pressing payload includes matrix
-    // if the user saves before the best-effort detail request has resolved.
-    if (matrixFetch.current) {
-      await matrixFetch.current
-      matrixFetch.current = null
-    }
+    if (saving) return
     setSaving(true)
     setSaveError(null)
     try {
+      // Await any in-flight matrix fetch so the pressing payload includes matrix
+      // if the user saves before the best-effort detail request has resolved.
+      if (matrixFetch.current) {
+        await matrixFetch.current
+        matrixFetch.current = null
+      }
       const request: UpdateRequest = {
         ...(selectedPressing ? { pressing: selectedPressing } : {}),
         condition_media: conditionMedia || null,
