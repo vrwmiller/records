@@ -157,6 +157,7 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
           {selectedPressing.year != null && ` (${selectedPressing.year})`}
           {selectedPressing.country && ` · ${selectedPressing.country}`}
           {selectedPressing.catalog_number && ` · ${selectedPressing.catalog_number}`}
+          {selectedPressing.matrix && ` · Matrix: ${selectedPressing.matrix}`}
           <button
             type="button"
             className="clear-pressing-btn"
