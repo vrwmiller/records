@@ -27,9 +27,11 @@ def upsert_pressing(db: Session, pressing_in: DiscogsPressingIn) -> uuid.UUID:
     stmt = text(
         """
         INSERT INTO pressing
-            (discogs_release_id, discogs_resource_url, title, artists_sort, year, country)
+            (discogs_release_id, discogs_resource_url, title, artists_sort, year, country,
+             catalog_number, matrix)
         VALUES
-            (:discogs_release_id, :discogs_resource_url, :title, :artists_sort, :year, :country)
+            (:discogs_release_id, :discogs_resource_url, :title, :artists_sort, :year, :country,
+             :catalog_number, :matrix)
         ON CONFLICT (discogs_release_id)
         WHERE discogs_release_id IS NOT NULL
         DO UPDATE SET
@@ -37,7 +39,9 @@ def upsert_pressing(db: Session, pressing_in: DiscogsPressingIn) -> uuid.UUID:
             title                = EXCLUDED.title,
             artists_sort         = EXCLUDED.artists_sort,
             year                 = EXCLUDED.year,
-            country              = EXCLUDED.country
+            country              = EXCLUDED.country,
+            catalog_number       = EXCLUDED.catalog_number,
+            matrix               = EXCLUDED.matrix
         RETURNING id
         """
     )
@@ -50,6 +54,8 @@ def upsert_pressing(db: Session, pressing_in: DiscogsPressingIn) -> uuid.UUID:
             "artists_sort": pressing_in.artists_sort,
             "year": pressing_in.year,
             "country": pressing_in.country,
+            "catalog_number": pressing_in.catalog_number,
+            "matrix": pressing_in.matrix,
         },
     )
     return row.scalar_one()

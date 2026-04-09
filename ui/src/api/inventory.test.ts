@@ -163,6 +163,8 @@ describe('updateItem', () => {
       artists_sort: null,
       year: 1987,
       country: 'UK',
+      catalog_number: null,
+      matrix: null,
     }
     await updateItem('item-1', { pressing })
     const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit]

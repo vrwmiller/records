@@ -27,12 +27,14 @@ vi.mock('../api/inventory', () => ({
 // Mock the Discogs API module
 vi.mock('../api/discogs', () => ({
   searchDiscogs: vi.fn(),
+  getDiscogsRelease: vi.fn(),
 }))
 
 import * as inventoryApi from '../api/inventory'
 import * as discogsApi from '../api/discogs'
 
 const mockSearchDiscogs = vi.mocked(discogsApi.searchDiscogs)
+const mockGetDiscogsRelease = vi.mocked(discogsApi.getDiscogsRelease)
 const mockListItems = vi.mocked(inventoryApi.listItems)
 const mockGetSummary = vi.mocked(inventoryApi.getSummary)
 const mockAcquireItems = vi.mocked(inventoryApi.acquireItems)
@@ -74,6 +76,8 @@ beforeEach(() => {
     results: [],
     pagination: { page: 1, pages: 0, per_page: 50, items: 0, urls: {} },
   })
+  // By default resolve with no matrix identifiers so existing tests are unaffected
+  mockGetDiscogsRelease.mockResolvedValue({ id: 0, title: '', identifiers: [] })
 })
 
 function renderPage() {
@@ -212,6 +216,7 @@ const sampleDiscogsResult = {
   year: '1987',
   country: 'UK',
   resource_url: 'https://api.discogs.com/releases/249504',
+  catno: 'RCA PB 9693',
 }
 
 async function openAcquireForm() {
@@ -261,6 +266,7 @@ describe('InventoryPage — Discogs search-and-select', () => {
     const req = mockAcquireItems.mock.calls[0][0]
     expect(req.pressing?.discogs_release_id).toBe(249504)
     expect(req.pressing?.title).toBe('Never Gonna Give You Up')
+    expect(req.pressing?.catalog_number).toBe('RCA PB 9693')
   })
 
   it('editing the search query after selection removes pressing from the acquire request', async () => {

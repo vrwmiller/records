@@ -53,6 +53,8 @@ class Pressing(Base):
     artists_sort: Mapped[str | None] = mapped_column(Text, nullable=True, index=True)
     year: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     country: Mapped[str | None] = mapped_column(Text, nullable=True, index=True)
+    catalog_number: Mapped[str | None] = mapped_column(Text, nullable=True)
+    matrix: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Relationships
     items: Mapped[list["InventoryItem"]] = relationship(back_populates="pressing")

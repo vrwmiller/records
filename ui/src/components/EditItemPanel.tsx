@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { searchDiscogs, type DiscogsSearchResult } from '../api/discogs'
+import { searchDiscogs, getDiscogsRelease, type DiscogsSearchResult } from '../api/discogs'
 import { updateItem, type DiscogsPressingIn, type InventoryItem, type UpdateRequest } from '../api/inventory'
 
 interface Props {
@@ -73,10 +73,25 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
       artists_sort: null,
       year: result.year != null ? Number(result.year) : null,
       country: result.country ?? null,
+      catalog_number: result.catno ?? null,
+      matrix: null,
     }
     setSelectedPressing(pressing)
     setDiscogsResults([])
     setDiscogsQuery(result.title)
+
+    // Best-effort: fetch full release to populate matrix.
+    getDiscogsRelease(result.id)
+      .then(release => {
+        const matrix = release.identifiers
+          ?.filter(i => i.type === 'Matrix / Runout')
+          .map(i => i.value)
+          .join(' / ') || null
+        if (matrix && isMounted.current) {
+          setSelectedPressing(p => p ? { ...p, matrix } : p)
+        }
+      })
+      .catch(() => { /* matrix stays null — non-critical */ })
   }
 
   async function handleSave() {
@@ -137,6 +152,7 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
           <strong>New pressing:</strong> {selectedPressing.title}
           {selectedPressing.year != null && ` (${selectedPressing.year})`}
           {selectedPressing.country && ` · ${selectedPressing.country}`}
+          {selectedPressing.catalog_number && ` · ${selectedPressing.catalog_number}`}
           <button
             type="button"
             className="clear-pressing-btn"

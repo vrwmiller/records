@@ -498,11 +498,13 @@ table.discogs-results thead th {
     box-sizing: border-box;
   }
 
-  /* Hide Country + Label columns on narrow screens — Title and Year are sufficient */
+  /* Hide Country, Label, and Catalog columns on narrow screens — Title and Year are sufficient */
   table.discogs-results thead th:nth-child(3),
   table.discogs-results thead th:nth-child(4),
+  table.discogs-results thead th:nth-child(5),
   table.discogs-results tbody td:nth-child(3),
-  table.discogs-results tbody td:nth-child(4) {
+  table.discogs-results tbody td:nth-child(4),
+  table.discogs-results tbody td:nth-child(5) {
     display: none;
   }
 
