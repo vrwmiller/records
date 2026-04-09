@@ -19,7 +19,9 @@ Both columns are TEXT NULLABLE with no index — they are display-only fields an
 are not filtered or sorted.
 
 Rollback intent:
-  Drop both columns.  No data is at risk on downgrade.
+  Drop both columns.  Any catalog_number and matrix values written after
+  this migration will be lost on downgrade; pre-existing pressing data is
+  unaffected.
 """
 
 from alembic import op

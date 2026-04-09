@@ -22,6 +22,7 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchSeq = useRef(0)
   const isMounted = useRef(true)
+  const matrixFetch = useRef<Promise<void> | null>(null)
 
   useEffect(() => {
     return () => {
@@ -83,7 +84,7 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
     // Best-effort: fetch full release to populate matrix.
     // Gate on releaseId so a stale promise cannot overwrite a newer selection.
     const releaseId = result.id
-    getDiscogsRelease(releaseId)
+    matrixFetch.current = getDiscogsRelease(releaseId)
       .then(release => {
         const matrix = release.identifiers
           ?.filter(i => i.type === 'Matrix / Runout')
@@ -99,6 +100,12 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
   }
 
   async function handleSave() {
+    // Await any in-flight matrix fetch so the pressing payload includes matrix
+    // if the user saves before the best-effort detail request has resolved.
+    if (matrixFetch.current) {
+      await matrixFetch.current
+      matrixFetch.current = null
+    }
     setSaving(true)
     setSaveError(null)
     try {
