@@ -9,6 +9,7 @@ export interface DiscogsSearchResult {
   thumb?: string
   label?: string[]
   format?: string[]
+  catno?: string
 }
 
 export interface DiscogsSearchResponse {
@@ -31,6 +32,7 @@ export interface DiscogsRelease {
   resource_url?: string
   tracklist?: unknown[]
   images?: unknown[]
+  identifiers?: { type: string; value: string; description?: string }[]
   [key: string]: unknown
 }
 

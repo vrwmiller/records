@@ -43,8 +43,9 @@ class Pressing(Base):
     )
 
     # Discogs identity and linkage — lean bookmark only.
-    # All detail data (tracks, images, credits, market signals) is fetched
-    # on demand from the Discogs API and is never stored locally.
+    # Heavyweight detail (tracks, images, credits, market signals) is fetched
+    # on demand and not stored. Lightweight pressing-level detail that aids
+    # identification (catalog_number, matrix) is persisted locally.
     discogs_release_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     discogs_resource_url: Mapped[str | None] = mapped_column(Text, nullable=True)
 
@@ -53,6 +54,8 @@ class Pressing(Base):
     artists_sort: Mapped[str | None] = mapped_column(Text, nullable=True, index=True)
     year: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     country: Mapped[str | None] = mapped_column(Text, nullable=True, index=True)
+    catalog_number: Mapped[str | None] = mapped_column(Text, nullable=True)
+    matrix: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Relationships
     items: Mapped[list["InventoryItem"]] = relationship(back_populates="pressing")

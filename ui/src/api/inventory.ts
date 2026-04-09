@@ -8,6 +8,8 @@ export interface PressingBookmark {
   artists_sort: string | null
   year: number | null
   country: string | null
+  catalog_number: string | null
+  matrix: string | null
 }
 
 export interface InventoryItem {
@@ -37,6 +39,8 @@ export interface DiscogsPressingIn {
   artists_sort: string | null
   year: number | null
   country: string | null
+  catalog_number: string | null
+  matrix: string | null
 }
 
 export interface AcquireRequest {

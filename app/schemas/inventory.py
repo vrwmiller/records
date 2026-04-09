@@ -42,6 +42,8 @@ class PressingResponse(BaseModel):
     artists_sort: str | None
     year: int | None
     country: str | None
+    catalog_number: str | None
+    matrix: str | None
 
 
 class InventoryItemResponse(BaseModel):

@@ -20,3 +20,5 @@ class DiscogsPressingIn(BaseModel):
     artists_sort: str | None = None
     year: int | None = None
     country: str | None = None
+    catalog_number: str | None = None
+    matrix: str | None = None

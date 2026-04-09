@@ -11,7 +11,7 @@ import {
   type InventoryItem,
   type SummaryResponse,
 } from '../api/inventory'
-import { searchDiscogs, type DiscogsSearchResult } from '../api/discogs'
+import { searchDiscogs, getDiscogsRelease, type DiscogsSearchResult } from '../api/discogs'
 import { EditItemPanel } from '../components/EditItemPanel'
 
 interface InventoryPageProps {
@@ -134,11 +134,36 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
       artists_sort: null,
       year: result.year != null ? Number(result.year) : null,
       country: result.country ?? null,
+      catalog_number: result.catno ?? null,
+      matrix: null,
     }
     setSelectedPressing(pressing)
     setAcquireForm(f => ({ ...f, pressing }))
     setDiscogsResults([])
     setDiscogsQuery(result.title)
+
+    // Best-effort: fetch full release to populate matrix.
+    // Non-blocking — pressing is already set; we update state if the fetch resolves.
+    // Gate on releaseId so a stale promise cannot overwrite a newer selection.
+    const releaseId = result.id
+    getDiscogsRelease(releaseId)
+      .then(release => {
+        const matrix = release.identifiers
+          ?.filter(i => i.type === 'Matrix / Runout')
+          .map(i => i.value)
+          .join(' / ') || null
+        if (matrix) {
+          setSelectedPressing(p =>
+            p && p.discogs_release_id === releaseId ? { ...p, matrix } : p
+          )
+          setAcquireForm(f =>
+            f.pressing && f.pressing.discogs_release_id === releaseId
+              ? { ...f, pressing: { ...f.pressing, matrix } }
+              : f
+          )
+        }
+      })
+      .catch(() => { /* matrix stays null — non-critical */ })
   }
 
   function resetAcquireForm() {
@@ -249,6 +274,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                     <th scope="col">Year</th>
                     <th scope="col">Country</th>
                     <th scope="col">Label</th>
+                    <th scope="col">Catalog</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -269,6 +295,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                       <td>{r.year ?? '—'}</td>
                       <td>{r.country ?? '—'}</td>
                       <td>{r.label?.[0] ?? '—'}</td>
+                      <td>{r.catno ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -280,6 +307,8 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                 <strong>Selected:</strong> {selectedPressing.title}
                 {selectedPressing.year != null && ` (${selectedPressing.year})`}
                 {selectedPressing.country && ` · ${selectedPressing.country}`}
+                {selectedPressing.catalog_number && ` · ${selectedPressing.catalog_number}`}
+                {selectedPressing.matrix && ` · Matrix: ${selectedPressing.matrix}`}
                 <button
                   type="button"
                   className="clear-pressing-btn"
@@ -383,6 +412,8 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                         {item.pressing.artists_sort && ` · ${item.pressing.artists_sort}`}
                         {item.pressing.year != null && ` (${item.pressing.year})`}
                         {item.pressing.country && ` · ${item.pressing.country}`}
+                        {item.pressing.catalog_number && ` · ${item.pressing.catalog_number}`}
+                        {item.pressing.matrix && ` · ${item.pressing.matrix}`}
                       </span>
                     )}
                     {item.condition_media && (

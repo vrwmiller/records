@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { InventoryPage } from './InventoryPage'
 
@@ -27,12 +27,14 @@ vi.mock('../api/inventory', () => ({
 // Mock the Discogs API module
 vi.mock('../api/discogs', () => ({
   searchDiscogs: vi.fn(),
+  getDiscogsRelease: vi.fn(),
 }))
 
 import * as inventoryApi from '../api/inventory'
 import * as discogsApi from '../api/discogs'
 
 const mockSearchDiscogs = vi.mocked(discogsApi.searchDiscogs)
+const mockGetDiscogsRelease = vi.mocked(discogsApi.getDiscogsRelease)
 const mockListItems = vi.mocked(inventoryApi.listItems)
 const mockGetSummary = vi.mocked(inventoryApi.getSummary)
 const mockAcquireItems = vi.mocked(inventoryApi.acquireItems)
@@ -74,6 +76,8 @@ beforeEach(() => {
     results: [],
     pagination: { page: 1, pages: 0, per_page: 50, items: 0, urls: {} },
   })
+  // By default resolve with no matrix identifiers so existing tests are unaffected
+  mockGetDiscogsRelease.mockResolvedValue({ id: 0, title: '', identifiers: [] })
 })
 
 function renderPage() {
@@ -212,6 +216,7 @@ const sampleDiscogsResult = {
   year: '1987',
   country: 'UK',
   resource_url: 'https://api.discogs.com/releases/249504',
+  catno: 'RCA PB 9693',
 }
 
 async function openAcquireForm() {
@@ -255,12 +260,14 @@ describe('InventoryPage — Discogs search-and-select', () => {
     await user.click(screen.getByText('Never Gonna Give You Up'))
 
     expect(screen.getByText(/Selected:/)).toBeInTheDocument()
+    expect(screen.getByText(/RCA PB 9693/)).toBeInTheDocument()
 
     await user.click(screen.getByText('Confirm'))
     await waitFor(() => expect(mockAcquireItems).toHaveBeenCalledOnce())
     const req = mockAcquireItems.mock.calls[0][0]
     expect(req.pressing?.discogs_release_id).toBe(249504)
     expect(req.pressing?.title).toBe('Never Gonna Give You Up')
+    expect(req.pressing?.catalog_number).toBe('RCA PB 9693')
   })
 
   it('editing the search query after selection removes pressing from the acquire request', async () => {
@@ -308,6 +315,66 @@ describe('InventoryPage — Discogs search-and-select', () => {
     })
     // The search results list should never appear because reset invalidated the request
     expect(screen.queryByText('Never Gonna Give You Up')).not.toBeInTheDocument()
+  })
+
+  it('populates matrix on the acquire request when getDiscogsRelease resolves with identifiers', async () => {
+    mockSearchDiscogs.mockResolvedValue({
+      results: [sampleDiscogsResult],
+      pagination: { page: 1, pages: 1, per_page: 50, items: 1, urls: {} },
+    })
+    // Use a deferred promise so we control exactly when the release fetch resolves.
+    let resolveRelease!: (v: Awaited<ReturnType<typeof discogsApi.getDiscogsRelease>>) => void
+    mockGetDiscogsRelease.mockReturnValue(
+      new Promise(res => { resolveRelease = res }),
+    )
+    await openAcquireForm()
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText('Artist, title, label…'), 'Rick')
+    await waitFor(() =>
+      expect(screen.getByText('Never Gonna Give You Up')).toBeInTheDocument(),
+      { timeout: 1500 },
+    )
+    await user.click(screen.getByText('Never Gonna Give You Up'))
+
+    // Resolve the fetch inside act() so React flushes the setAcquireForm state
+    // update before the Confirm click — prevents a race where matrix is still null.
+    await act(async () => {
+      resolveRelease({
+        id: 249504,
+        title: 'Never Gonna Give You Up',
+        identifiers: [
+          { type: 'Matrix / Runout', value: 'YEX 773-1 HAGG', description: 'Side A' },
+          { type: 'Matrix / Runout', value: 'YEX 774-1 HAGG', description: 'Side B' },
+          { type: 'Barcode', value: '5 099746 350529' },
+        ],
+      })
+    })
+
+    await user.click(screen.getByText('Confirm'))
+    await waitFor(() => expect(mockAcquireItems).toHaveBeenCalledOnce())
+    const req = mockAcquireItems.mock.calls[0][0]
+    expect(req.pressing?.matrix).toBe('YEX 773-1 HAGG / YEX 774-1 HAGG')
+  })
+
+  it('acquire proceeds with matrix null when getDiscogsRelease rejects', async () => {
+    mockSearchDiscogs.mockResolvedValue({
+      results: [sampleDiscogsResult],
+      pagination: { page: 1, pages: 1, per_page: 50, items: 1, urls: {} },
+    })
+    mockGetDiscogsRelease.mockRejectedValue(new Error('network error'))
+    await openAcquireForm()
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText('Artist, title, label…'), 'Rick')
+    await waitFor(() =>
+      expect(screen.getByText('Never Gonna Give You Up')).toBeInTheDocument(),
+      { timeout: 1500 },
+    )
+    await user.click(screen.getByText('Never Gonna Give You Up'))
+
+    await user.click(screen.getByText('Confirm'))
+    await waitFor(() => expect(mockAcquireItems).toHaveBeenCalledOnce())
+    const req = mockAcquireItems.mock.calls[0][0]
+    expect(req.pressing?.matrix).toBeNull()
   })
 })
 
