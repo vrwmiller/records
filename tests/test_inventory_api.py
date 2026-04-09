@@ -621,6 +621,8 @@ class TestPressingService:
             artists_sort="Astley, Rick",
             year=1987,
             country="UK",
+            catalog_number="RCA PB 9693",
+            matrix="YEX 773-1 HAGG",
         )
 
     def test_upsert_pressing_executes_insert_on_conflict(self) -> None:
@@ -658,6 +660,8 @@ class TestPressingService:
         assert params["artists_sort"] == pressing_in.artists_sort
         assert params["year"] == pressing_in.year
         assert params["country"] == pressing_in.country
+        assert params["catalog_number"] == pressing_in.catalog_number
+        assert params["matrix"] == pressing_in.matrix
 
     def test_upsert_pressing_returns_scalar_uuid(self) -> None:
         """upsert_pressing() propagates scalar_one() directly to the caller."""
