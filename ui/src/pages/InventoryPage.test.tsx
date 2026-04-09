@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { InventoryPage } from './InventoryPage'
 
@@ -321,15 +321,11 @@ describe('InventoryPage — Discogs search-and-select', () => {
       results: [sampleDiscogsResult],
       pagination: { page: 1, pages: 1, per_page: 50, items: 1, urls: {} },
     })
-    mockGetDiscogsRelease.mockResolvedValue({
-      id: 249504,
-      title: 'Never Gonna Give You Up',
-      identifiers: [
-        { type: 'Matrix / Runout', value: 'YEX 773-1 HAGG', description: 'Side A' },
-        { type: 'Matrix / Runout', value: 'YEX 774-1 HAGG', description: 'Side B' },
-        { type: 'Barcode', value: '5 099746 350529' },
-      ],
-    })
+    // Use a deferred promise so we control exactly when the release fetch resolves.
+    let resolveRelease!: (v: Awaited<ReturnType<typeof discogsApi.getDiscogsRelease>>) => void
+    mockGetDiscogsRelease.mockReturnValue(
+      new Promise(res => { resolveRelease = res }),
+    )
     await openAcquireForm()
     const user = userEvent.setup()
     await user.type(screen.getByPlaceholderText('Artist, title, label…'), 'Rick')
@@ -338,6 +334,20 @@ describe('InventoryPage — Discogs search-and-select', () => {
       { timeout: 1500 },
     )
     await user.click(screen.getByText('Never Gonna Give You Up'))
+
+    // Resolve the fetch inside act() so React flushes the setAcquireForm state
+    // update before the Confirm click — prevents a race where matrix is still null.
+    await act(async () => {
+      resolveRelease({
+        id: 249504,
+        title: 'Never Gonna Give You Up',
+        identifiers: [
+          { type: 'Matrix / Runout', value: 'YEX 773-1 HAGG', description: 'Side A' },
+          { type: 'Matrix / Runout', value: 'YEX 774-1 HAGG', description: 'Side B' },
+          { type: 'Barcode', value: '5 099746 350529' },
+        ],
+      })
+    })
 
     await user.click(screen.getByText('Confirm'))
     await waitFor(() => expect(mockAcquireItems).toHaveBeenCalledOnce())
