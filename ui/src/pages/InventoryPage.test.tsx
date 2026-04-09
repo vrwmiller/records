@@ -315,6 +315,56 @@ describe('InventoryPage — Discogs search-and-select', () => {
     // The search results list should never appear because reset invalidated the request
     expect(screen.queryByText('Never Gonna Give You Up')).not.toBeInTheDocument()
   })
+
+  it('populates matrix on the acquire request when getDiscogsRelease resolves with identifiers', async () => {
+    mockSearchDiscogs.mockResolvedValue({
+      results: [sampleDiscogsResult],
+      pagination: { page: 1, pages: 1, per_page: 50, items: 1, urls: {} },
+    })
+    mockGetDiscogsRelease.mockResolvedValue({
+      id: 249504,
+      title: 'Never Gonna Give You Up',
+      identifiers: [
+        { type: 'Matrix / Runout', value: 'YEX 773-1 HAGG', description: 'Side A' },
+        { type: 'Matrix / Runout', value: 'YEX 774-1 HAGG', description: 'Side B' },
+        { type: 'Barcode', value: '5 099746 350529' },
+      ],
+    })
+    await openAcquireForm()
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText('Artist, title, label…'), 'Rick')
+    await waitFor(() =>
+      expect(screen.getByText('Never Gonna Give You Up')).toBeInTheDocument(),
+      { timeout: 1500 },
+    )
+    await user.click(screen.getByText('Never Gonna Give You Up'))
+
+    await user.click(screen.getByText('Confirm'))
+    await waitFor(() => expect(mockAcquireItems).toHaveBeenCalledOnce())
+    const req = mockAcquireItems.mock.calls[0][0]
+    expect(req.pressing?.matrix).toBe('YEX 773-1 HAGG / YEX 774-1 HAGG')
+  })
+
+  it('acquire proceeds with matrix null when getDiscogsRelease rejects', async () => {
+    mockSearchDiscogs.mockResolvedValue({
+      results: [sampleDiscogsResult],
+      pagination: { page: 1, pages: 1, per_page: 50, items: 1, urls: {} },
+    })
+    mockGetDiscogsRelease.mockRejectedValue(new Error('network error'))
+    await openAcquireForm()
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText('Artist, title, label…'), 'Rick')
+    await waitFor(() =>
+      expect(screen.getByText('Never Gonna Give You Up')).toBeInTheDocument(),
+      { timeout: 1500 },
+    )
+    await user.click(screen.getByText('Never Gonna Give You Up'))
+
+    await user.click(screen.getByText('Confirm'))
+    await waitFor(() => expect(mockAcquireItems).toHaveBeenCalledOnce())
+    const req = mockAcquireItems.mock.calls[0][0]
+    expect(req.pressing?.matrix).toBeNull()
+  })
 })
 
 describe('InventoryPage — edit flow', () => {

@@ -40,8 +40,8 @@ def upsert_pressing(db: Session, pressing_in: DiscogsPressingIn) -> uuid.UUID:
             artists_sort         = EXCLUDED.artists_sort,
             year                 = EXCLUDED.year,
             country              = EXCLUDED.country,
-            catalog_number       = EXCLUDED.catalog_number,
-            matrix               = EXCLUDED.matrix
+            catalog_number       = COALESCE(EXCLUDED.catalog_number, pressing.catalog_number),
+            matrix               = COALESCE(EXCLUDED.matrix, pressing.matrix)
         RETURNING id
         """
     )

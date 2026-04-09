@@ -81,14 +81,18 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
     setDiscogsQuery(result.title)
 
     // Best-effort: fetch full release to populate matrix.
-    getDiscogsRelease(result.id)
+    // Gate on releaseId so a stale promise cannot overwrite a newer selection.
+    const releaseId = result.id
+    getDiscogsRelease(releaseId)
       .then(release => {
         const matrix = release.identifiers
           ?.filter(i => i.type === 'Matrix / Runout')
           .map(i => i.value)
           .join(' / ') || null
         if (matrix && isMounted.current) {
-          setSelectedPressing(p => p ? { ...p, matrix } : p)
+          setSelectedPressing(p =>
+            p && p.discogs_release_id === releaseId ? { ...p, matrix } : p
+          )
         }
       })
       .catch(() => { /* matrix stays null — non-critical */ })

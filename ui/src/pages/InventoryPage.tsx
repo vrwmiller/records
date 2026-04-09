@@ -144,15 +144,23 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
 
     // Best-effort: fetch full release to populate matrix.
     // Non-blocking — pressing is already set; we update state if the fetch resolves.
-    getDiscogsRelease(result.id)
+    // Gate on releaseId so a stale promise cannot overwrite a newer selection.
+    const releaseId = result.id
+    getDiscogsRelease(releaseId)
       .then(release => {
         const matrix = release.identifiers
           ?.filter(i => i.type === 'Matrix / Runout')
           .map(i => i.value)
           .join(' / ') || null
         if (matrix) {
-          setSelectedPressing(p => p ? { ...p, matrix } : p)
-          setAcquireForm(f => f.pressing ? { ...f, pressing: { ...f.pressing, matrix } } : f)
+          setSelectedPressing(p =>
+            p && p.discogs_release_id === releaseId ? { ...p, matrix } : p
+          )
+          setAcquireForm(f =>
+            f.pressing && f.pressing.discogs_release_id === releaseId
+              ? { ...f, pressing: { ...f.pressing, matrix } }
+              : f
+          )
         }
       })
       .catch(() => { /* matrix stays null — non-critical */ })
