@@ -578,4 +578,27 @@ describe('InventoryPage — text search', () => {
     await waitFor(() => expect(screen.getByText(/Blue Monday/)).toBeInTheDocument(), { timeout: 2000 })
     expect(screen.getByText(/Never Gonna Give You Up/)).toBeInTheDocument()
   })
+
+  it('closes an open detail panel when its item is filtered out and does not re-open on clear', async () => {
+    mockListItems.mockResolvedValue([itemRick, itemNew])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    renderPage()
+    await waitFor(() => screen.getByText(/Never Gonna Give You Up/))
+    const user = userEvent.setup()
+    // Open the detail panel for Rick by clicking his row
+    const rickRow = screen.getAllByRole('button', { name: /PRIVATE|AVAILABLE/ }).find(el =>
+      el.closest('li')?.textContent?.includes('Never Gonna Give You Up'),
+    ) ?? screen.getByText(/Never Gonna Give You Up/).closest('[role="button"]')!
+    await user.click(rickRow as HTMLElement)
+    // Panel should be open — ItemDetailPanel renders a close button
+    await waitFor(() => expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument(), { timeout: 2000 })
+    // Type a query that excludes Rick
+    await user.type(screen.getByRole('searchbox', { name: 'Search inventory' }), 'Blue')
+    // Rick's row and panel disappear; close button gone
+    await waitFor(() => expect(screen.queryByRole('button', { name: /close/i })).not.toBeInTheDocument(), { timeout: 2000 })
+    // Clearing the search restores Rick but the panel must NOT re-open
+    await user.clear(screen.getByRole('searchbox', { name: 'Search inventory' }))
+    await waitFor(() => screen.getByText(/Never Gonna Give You Up/), { timeout: 2000 })
+    expect(screen.queryByRole('button', { name: /close/i })).not.toBeInTheDocument()
+  })
 })

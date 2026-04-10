@@ -115,6 +115,22 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
     })
   }, [items, normalizedQuery])
 
+  // Close any open detail or edit panel when the selected item is filtered out
+  // by the text search. Without this, clearing the search re-opens the panel
+  // automatically because viewingItemId/editingItemId remain set while the
+  // item's <li> is absent from the DOM — inconsistent with the filter-change
+  // behavior that explicitly clears these IDs.
+  useEffect(() => {
+    if (viewingItemId == null && editingItemId == null) return
+    const visibleIds = new Set(filteredItems.map(item => item.id))
+    if (viewingItemId != null && !visibleIds.has(viewingItemId)) {
+      setViewingItemId(null)
+    }
+    if (editingItemId != null && !visibleIds.has(editingItemId)) {
+      setEditingItemId(null)
+    }
+  }, [filteredItems, viewingItemId, editingItemId])
+
   function handleDiscogsQueryChange(q: string) {
     setDiscogsQuery(q)
     setSelectedPressing(null)
