@@ -207,9 +207,14 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
     setEditingItemId(null)
   }
 
-  function handleTransferred(updated: InventoryItem) {
-    setItems(prev => prev.map(i => (i.id === updated.id ? updated : i)))
-    setViewingItemId(null)
+  async function handleTransferred(_updated: InventoryItem) {
+    setError(null)
+    try {
+      await load()
+      setViewingItemId(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Refresh after transfer failed')
+    }
   }
 
   async function handleDelete(id: string) {
