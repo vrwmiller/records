@@ -13,6 +13,7 @@ import {
 } from '../api/inventory'
 import { searchDiscogs, getDiscogsRelease, type DiscogsSearchResult } from '../api/discogs'
 import { EditItemPanel } from '../components/EditItemPanel'
+import { WordMark } from '../components/WordMark'
 
 interface InventoryPageProps {
   user: AuthUser
@@ -216,7 +217,9 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
   return (
     <main className="app-shell">
       <header className="app-header">
-        <h1>Record Ranch</h1>
+        <h1 className="site-wordmark" aria-label="Record Ranch">
+          <WordMark />
+        </h1>
         <span className="user-id">
           {user?.signInDetails?.loginId ?? 'collector'}
         </span>
