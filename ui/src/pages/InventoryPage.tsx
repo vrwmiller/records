@@ -14,6 +14,7 @@ import {
 import { searchDiscogs, getDiscogsRelease, type DiscogsSearchResult } from '../api/discogs'
 import { EditItemPanel } from '../components/EditItemPanel'
 import { ItemDetailPanel } from '../components/ItemDetailPanel'
+import { Link } from 'react-router-dom'
 import { WordMark } from '../components/WordMark'
 
 interface InventoryPageProps {
@@ -226,7 +227,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
     <main className="app-shell">
       <header className="app-header">
         <h1 className="site-wordmark" aria-label="Record Ranch">
-          <WordMark />
+          <Link to="/" className="wordmark-link"><WordMark /></Link>
         </h1>
         <span className="user-id">
           {user?.signInDetails?.loginId ?? 'collector'}

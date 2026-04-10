@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import '@aws-amplify/ui-react/styles.css'
 import './App.css'
 import { InventoryPage } from './pages/InventoryPage'
+import { LandingPage } from './pages/LandingPage'
 
 function App() {
   return (
@@ -10,7 +11,7 @@ function App() {
       {({ signOut, user }) => (
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/inventory" replace />} />
+            <Route path="/" element={<LandingPage user={user!} signOut={signOut!} />} />
             <Route
               path="/inventory"
               element={<InventoryPage user={user!} signOut={signOut!} />}

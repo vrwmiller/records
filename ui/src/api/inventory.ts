@@ -118,6 +118,14 @@ export async function updateItem(id: string, request: UpdateRequest): Promise<In
   return res.json() as Promise<InventoryItem>
 }
 
+export async function getRecentItems(limit = 5): Promise<InventoryItem[]> {
+  const headers = await authHeaders()
+  const params = new URLSearchParams({ limit: String(limit), offset: '0' })
+  const res = await fetch(`/api/inventory?${params}`, { headers })
+  if (!res.ok) throw new Error(`Failed to fetch recent items (${res.status})`)
+  return res.json() as Promise<InventoryItem[]>
+}
+
 export async function transferItem(id: string, targetCollection: 'PERSONAL' | 'DISTRIBUTION'): Promise<InventoryItem> {
   const headers = await authHeaders()
   const res = await fetch(`/api/inventory/${id}/transfer`, {
