@@ -543,10 +543,14 @@ table.discogs-results thead th {
   cursor: pointer;
 }
 
-.item-row:hover,
+.item-row:hover {
+  background: var(--color-surface-hover, rgba(255,255,255,0.04));
+}
+
 .item-row:focus-visible {
   background: var(--color-surface-hover, rgba(255,255,255,0.04));
-  outline: none;
+  outline: 2px solid var(--color-border-strong, #7dd3fc);
+  outline-offset: -2px;
 }
 
 .item-row.item-row-active {

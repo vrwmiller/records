@@ -346,6 +346,15 @@ class TestRoleEnforcement:
         response = client_no_role.delete(f"/api/inventory/{uuid.uuid4()}")
         assert response.status_code == 403
 
+    def test_transfer_returns_403_without_admin_role(
+        self, client_no_role: TestClient
+    ) -> None:
+        response = client_no_role.post(
+            f"/api/inventory/{uuid.uuid4()}/transfer",
+            json={"target_collection": "DISTRIBUTION"},
+        )
+        assert response.status_code == 403
+
     def test_list_returns_200_without_admin_role(
         self, client_no_role: TestClient
     ) -> None:

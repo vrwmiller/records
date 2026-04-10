@@ -340,7 +340,7 @@ GET  /imports/{id}/errors
 
 - Role membership is determined by the `cognito:groups` claim in the Cognito ID token.
 - The `admin` Cognito group grants write access to all state-changing inventory endpoints.
-- Users not in the `admin` group are read-only: they may use `GET /inventory` and `GET /inventory/summary` but receive `403 Forbidden` on `POST /inventory/acquire`, `PATCH /inventory/{id}`, and `DELETE /inventory/{id}`.
+- Users not in the `admin` group are read-only: they may use `GET /inventory` and `GET /inventory/summary` but receive `403 Forbidden` on `POST /inventory/acquire`, `PATCH /inventory/{id}`, `DELETE /inventory/{id}`, and `POST /inventory/{id}/transfer`.
 - Group membership is managed in Cognito by an administrator; it is not self-assignable.
 - The `admin` group is provisioned via Terraform (`infra/auth.tf`).
 
@@ -357,10 +357,8 @@ GET  /imports/{id}/errors
 ### Landing Page and Default Mode
 
 - If user is not authenticated, the landing page presents a login prompt
-- After users are authenticated, the landing page defaults to read mode
-- The logged-in landing page displays total inventory counts grouped by collection
-- In read mode, a search form is presented by default
-- Collection counts include totals for both PERSONAL and DISTRIBUTION collections
+- After users are authenticated, the landing page displays the 5 most recently added inventory items (title, artist, year, collection badge) and a link to the full inventory view
+- The landing page does not default to a search form; the full inventory with search and filter is available at `/inventory`
 - Inventory results expose controls to invoke transfer, update, and delete actions
 - Transfer, update, and delete controls may be presented as buttons or menus
 - Search-result actions assume operator intent to manage item lifecycle after lookup
