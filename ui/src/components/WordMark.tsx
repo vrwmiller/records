@@ -2,10 +2,9 @@ export function WordMark() {
   return (
     <svg
       viewBox="0 0 138 36"
-      width="138"
-      height="36"
       aria-hidden="true"
       xmlns="http://www.w3.org/2000/svg"
+      style={{ height: '2.25rem', width: 'auto' }}
     >
       {/* Vinyl record body */}
       <circle cx="18" cy="18" r="17" fill="#1c1c1e" />
