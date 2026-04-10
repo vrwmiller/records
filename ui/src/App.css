@@ -561,7 +561,7 @@ table.discogs-results thead th {
 .item-detail-panel {
   padding: 1rem 1.25rem;
   border-top: 1px solid var(--color-border);
-  background: var(--color-surface-alt, rgba(255,255,255,0.02));
+  background: var(--color-surface);
 }
 
 .item-detail-panel-header {
@@ -670,7 +670,7 @@ table.discogs-results thead th {
 
 .landing-inventory-link {
   font-size: 0.9rem;
-  color: var(--color-accent, #c0392b);
+  color: var(--color-row-hover-text);
   text-decoration: none;
 }
 
