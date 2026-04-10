@@ -540,18 +540,29 @@ describe('InventoryPage — text search', () => {
   })
 
   it('composes search filter with collection filter', async () => {
-    mockListItems.mockResolvedValue([itemRick])
+    // ALL (no arg) returns both items; PRIVATE returns only itemRick.
+    // This verifies composition: collection filter narrows the server-side list,
+    // then text search further filters the client-side result.
+    mockListItems.mockImplementation((collection?: string) =>
+      Promise.resolve(collection === 'PRIVATE' ? [itemRick] : [itemRick, itemNew]),
+    )
     mockGetSummary.mockResolvedValue(filledSummary)
     renderPage()
-    // Filter to Private — only itemRick (PRIVATE) is in results
-    await waitFor(() => screen.getByText('Private'))
+    // Initial ALL load — both items visible
+    await waitFor(() => {
+      expect(screen.getByText(/Never Gonna Give You Up/)).toBeInTheDocument()
+      expect(screen.getByText(/Blue Monday/)).toBeInTheDocument()
+    })
     const user = userEvent.setup()
+    // Switch to Private — server returns only PRIVATE items; itemNew disappears
     await user.click(screen.getByText('Private'))
-    // itemNew is PUBLIC — after re-load mockListItems returns only PRIVATE items
+    await waitFor(() => expect(screen.queryByText(/Blue Monday/)).not.toBeInTheDocument())
     await waitFor(() => screen.getByText(/Never Gonna Give You Up/))
-    // Search within already-filtered list
+    // Text search within the already-filtered list
     await user.type(screen.getByRole('searchbox', { name: 'Search inventory' }), 'Never')
     await waitFor(() => expect(screen.getByText(/Never Gonna Give You Up/)).toBeInTheDocument(), { timeout: 2000 })
+    // itemNew must still be absent — it was excluded by the collection filter, not just the text filter
+    expect(screen.queryByText(/Blue Monday/)).not.toBeInTheDocument()
   })
 
   it('clearing search restores full list', async () => {
