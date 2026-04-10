@@ -14,8 +14,8 @@ applyTo: "**/*.py, **/*.ts, **/*.tsx, **/*.js, **/*.jsx, requirements.txt"
 
 ## Frontend
 
-- Make PERSONAL vs DISTRIBUTION distinctions clear in UI behavior and labels.
-- Require explicit sale confirmation for PERSONAL items.
+- Make PRIVATE vs PUBLIC distinctions clear in UI behavior and labels.
+- Require explicit sale confirmation for PRIVATE items.
 - Avoid exposing dangerous actions without clear user intent.
 
 ## Discogs Integration

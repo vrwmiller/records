@@ -51,7 +51,7 @@ def _make_item(**overrides: object) -> MagicMock:
     item.pressing_id = None
     item.pressing = None
     item.acquisition_batch_id = uuid.UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
-    item.collection_type = "PERSONAL"
+    item.collection_type = "PRIVATE"
     item.condition_media = None
     item.condition_sleeve = None
     item.status = "active"
@@ -68,14 +68,14 @@ def _make_item(**overrides: object) -> MagicMock:
 # ---------------------------------------------------------------------------
 
 class TestAcquireRequest:
-    def test_personal_collection_accepted(self) -> None:
-        r = AcquireRequest(collection_type="PERSONAL")
-        assert r.collection_type == "PERSONAL"
+    def test_private_collection_accepted(self) -> None:
+        r = AcquireRequest(collection_type="PRIVATE")
+        assert r.collection_type == "PRIVATE"
         assert r.quantity == 1
 
-    def test_distribution_collection_accepted(self) -> None:
-        r = AcquireRequest(collection_type="DISTRIBUTION")
-        assert r.collection_type == "DISTRIBUTION"
+    def test_public_collection_accepted(self) -> None:
+        r = AcquireRequest(collection_type="PUBLIC")
+        assert r.collection_type == "PUBLIC"
 
     def test_invalid_collection_type_rejected(self) -> None:
         with pytest.raises(ValidationError):
@@ -83,33 +83,33 @@ class TestAcquireRequest:
 
     def test_quantity_zero_rejected(self) -> None:
         with pytest.raises(ValidationError):
-            AcquireRequest(collection_type="PERSONAL", quantity=0)
+            AcquireRequest(collection_type="PRIVATE", quantity=0)
 
     def test_quantity_101_rejected(self) -> None:
         with pytest.raises(ValidationError):
-            AcquireRequest(collection_type="PERSONAL", quantity=101)
+            AcquireRequest(collection_type="PRIVATE", quantity=101)
 
     def test_extra_field_rejected(self) -> None:
         with pytest.raises(ValidationError):
-            AcquireRequest(collection_type="PERSONAL", unknown_field="oops")
+            AcquireRequest(collection_type="PRIVATE", unknown_field="oops")
 
     def test_quantity_100_accepted(self) -> None:
-        r = AcquireRequest(collection_type="PERSONAL", quantity=100)
+        r = AcquireRequest(collection_type="PRIVATE", quantity=100)
         assert r.quantity == 100
 
     def test_optional_fields_default_none(self) -> None:
-        r = AcquireRequest(collection_type="PERSONAL")
+        r = AcquireRequest(collection_type="PRIVATE")
         assert r.pressing_id is None
         assert r.price is None
         assert r.notes is None
         assert r.is_sealed is None
 
     def test_is_sealed_true_accepted(self) -> None:
-        r = AcquireRequest(collection_type="PERSONAL", is_sealed=True)
+        r = AcquireRequest(collection_type="PRIVATE", is_sealed=True)
         assert r.is_sealed is True
 
     def test_is_sealed_false_accepted(self) -> None:
-        r = AcquireRequest(collection_type="PERSONAL", is_sealed=False)
+        r = AcquireRequest(collection_type="PRIVATE", is_sealed=False)
         assert r.is_sealed is False
 
 
@@ -166,7 +166,7 @@ class TestAcquireRoute:
             mock_acquire.return_value = [_make_item()]
             response = client.post(
                 "/api/inventory/acquire",
-                json={"collection_type": "PERSONAL"},
+                json={"collection_type": "PRIVATE"},
             )
         assert response.status_code == 201
         assert len(response.json()) == 1
@@ -176,7 +176,7 @@ class TestAcquireRoute:
             mock_acquire.return_value = [_make_item() for _ in range(5)]
             response = client.post(
                 "/api/inventory/acquire",
-                json={"collection_type": "DISTRIBUTION", "quantity": 5},
+                json={"collection_type": "PUBLIC", "quantity": 5},
             )
         assert response.status_code == 201
         assert len(response.json()) == 5
@@ -184,7 +184,7 @@ class TestAcquireRoute:
     def test_quantity_101_rejected_before_service(self, client: TestClient) -> None:
         response = client.post(
             "/api/inventory/acquire",
-            json={"collection_type": "PERSONAL", "quantity": 101},
+            json={"collection_type": "PRIVATE", "quantity": 101},
         )
         assert response.status_code == 422
 
@@ -207,10 +207,10 @@ class TestListRoute:
     def test_collection_filter_passed_to_service(self, client: TestClient) -> None:
         with patch("app.routers.inventory.svc.list_items") as mock_list:
             mock_list.return_value = []
-            response = client.get("/api/inventory?collection=PERSONAL")
+            response = client.get("/api/inventory?collection=PRIVATE")
         assert response.status_code == 200
         mock_list.assert_called_once()
-        assert mock_list.call_args.kwargs["collection"] == "PERSONAL"
+        assert mock_list.call_args.kwargs["collection"] == "PRIVATE"
 
     def test_invalid_collection_param_rejected(self, client: TestClient) -> None:
         response = client.get("/api/inventory?collection=BADVALUE")
@@ -220,12 +220,12 @@ class TestListRoute:
 class TestSummaryRoute:
     def test_returns_200_with_counts(self, client: TestClient) -> None:
         with patch("app.routers.inventory.svc.get_summary") as mock_summary:
-            mock_summary.return_value = {"personal": 3, "distribution": 2, "total": 5}
+            mock_summary.return_value = {"private": 3, "public": 2, "total": 5}
             response = client.get("/api/inventory/summary")
         assert response.status_code == 200
         body = response.json()
-        assert body["personal"] == 3
-        assert body["distribution"] == 2
+        assert body["private"] == 3
+        assert body["public"] == 2
         assert body["total"] == 5
 
 
@@ -271,13 +271,13 @@ class TestDeleteRoute:
 
 
 class TestTransferRequest:
-    def test_personal_accepted(self) -> None:
-        req = TransferRequest(target_collection="PERSONAL")
-        assert req.target_collection == "PERSONAL"
+    def test_private_accepted(self) -> None:
+        req = TransferRequest(target_collection="PRIVATE")
+        assert req.target_collection == "PRIVATE"
 
-    def test_distribution_accepted(self) -> None:
-        req = TransferRequest(target_collection="DISTRIBUTION")
-        assert req.target_collection == "DISTRIBUTION"
+    def test_public_accepted(self) -> None:
+        req = TransferRequest(target_collection="PUBLIC")
+        assert req.target_collection == "PUBLIC"
 
     def test_invalid_value_rejected(self) -> None:
         with pytest.raises(ValidationError):
@@ -285,34 +285,34 @@ class TestTransferRequest:
 
     def test_extra_field_rejected(self) -> None:
         with pytest.raises(ValidationError):
-            TransferRequest(target_collection="PERSONAL", foo="bar")  # type: ignore[call-arg]
+            TransferRequest(target_collection="PRIVATE", foo="bar")  # type: ignore[call-arg]
 
 
 class TestTransferRoute:
     def test_returns_200_with_updated_item(self, client: TestClient) -> None:
         item_id = uuid.uuid4()
         with patch("app.routers.inventory.svc.transfer_item") as mock_transfer:
-            mock_transfer.return_value = _make_item(id=item_id, collection_type="DISTRIBUTION")
+            mock_transfer.return_value = _make_item(id=item_id, collection_type="PUBLIC")
             response = client.post(
                 f"/api/inventory/{item_id}/transfer",
-                json={"target_collection": "DISTRIBUTION"},
+                json={"target_collection": "PUBLIC"},
             )
         assert response.status_code == 200
-        assert response.json()["collection_type"] == "DISTRIBUTION"
+        assert response.json()["collection_type"] == "PUBLIC"
 
     def test_not_found_returns_404(self, client: TestClient) -> None:
         with patch("app.routers.inventory.svc.transfer_item", side_effect=NotFoundError):
             response = client.post(
                 f"/api/inventory/{uuid.uuid4()}/transfer",
-                json={"target_collection": "DISTRIBUTION"},
+                json={"target_collection": "PUBLIC"},
             )
         assert response.status_code == 404
 
     def test_same_collection_returns_422(self, client: TestClient) -> None:
-        with patch("app.routers.inventory.svc.transfer_item", side_effect=ValueError("already in PERSONAL")):
+        with patch("app.routers.inventory.svc.transfer_item", side_effect=ValueError("already in PRIVATE")):
             response = client.post(
                 f"/api/inventory/{uuid.uuid4()}/transfer",
-                json={"target_collection": "PERSONAL"},
+                json={"target_collection": "PRIVATE"},
             )
         assert response.status_code == 422
 
@@ -344,7 +344,7 @@ class TestRoleEnforcement:
     ) -> None:
         response = client_no_role.post(
             "/api/inventory/acquire",
-            json={"collection_type": "PERSONAL"},
+            json={"collection_type": "PRIVATE"},
         )
         assert response.status_code == 403
 
@@ -368,7 +368,7 @@ class TestRoleEnforcement:
     ) -> None:
         response = client_no_role.post(
             f"/api/inventory/{uuid.uuid4()}/transfer",
-            json={"target_collection": "DISTRIBUTION"},
+            json={"target_collection": "PUBLIC"},
         )
         assert response.status_code == 403
 
@@ -384,7 +384,7 @@ class TestRoleEnforcement:
         self, client_no_role: TestClient
     ) -> None:
         with patch("app.routers.inventory.svc.get_summary") as mock_summary:
-            mock_summary.return_value = {"personal": 0, "distribution": 0, "total": 0}
+            mock_summary.return_value = {"private": 0, "public": 0, "total": 0}
             response = client_no_role.get("/api/inventory/summary")
         assert response.status_code == 200
 
@@ -396,32 +396,32 @@ class TestRoleEnforcement:
 class TestAcquireService:
     def test_single_item_creates_one_item_and_one_transaction(self) -> None:
         db = MagicMock()
-        acquire(db, AcquireRequest(collection_type="PERSONAL"))
+        acquire(db, AcquireRequest(collection_type="PRIVATE"))
         assert db.add.call_count == 2  # 1 item + 1 transaction
         assert db.flush.call_count == 1
         assert db.commit.call_count == 1
 
     def test_quantity_three_creates_six_db_adds(self) -> None:
         db = MagicMock()
-        acquire(db, AcquireRequest(collection_type="DISTRIBUTION", quantity=3))
+        acquire(db, AcquireRequest(collection_type="PUBLIC", quantity=3))
         assert db.add.call_count == 6  # 3 items + 3 transactions
         assert db.flush.call_count == 3
         assert db.commit.call_count == 1
 
     def test_all_items_share_acquisition_batch_id(self) -> None:
         db = MagicMock()
-        items = acquire(db, AcquireRequest(collection_type="PERSONAL", quantity=3))
+        items = acquire(db, AcquireRequest(collection_type="PRIVATE", quantity=3))
         batch_ids = {item.acquisition_batch_id for item in items}
         assert len(batch_ids) == 1
 
     def test_returns_list_of_correct_length(self) -> None:
         db = MagicMock()
-        result = acquire(db, AcquireRequest(collection_type="PERSONAL", quantity=4))
+        result = acquire(db, AcquireRequest(collection_type="PRIVATE", quantity=4))
         assert len(result) == 4
 
     def test_transaction_references_item_id_and_type(self) -> None:
         db = MagicMock()
-        acquire(db, AcquireRequest(collection_type="PERSONAL"))
+        acquire(db, AcquireRequest(collection_type="PRIVATE"))
         added = [c.args[0] for c in db.add.call_args_list]
         item_obj, tx_obj = added[0], added[1]
         assert isinstance(item_obj, InventoryItem)
@@ -431,7 +431,7 @@ class TestAcquireService:
 
     def test_item_ids_are_set_explicitly(self) -> None:
         db = MagicMock()
-        items = acquire(db, AcquireRequest(collection_type="PERSONAL", quantity=2))
+        items = acquire(db, AcquireRequest(collection_type="PRIVATE", quantity=2))
         assert all(isinstance(i.id, uuid.UUID) for i in items)
         assert items[0].id != items[1].id
 
@@ -451,7 +451,7 @@ class TestAcquireService:
             country="UK",
         )
         with patch("app.services.inventory.upsert_pressing", return_value=pressing_uuid) as mock_upsert:
-            items = acquire(db, AcquireRequest(collection_type="PERSONAL", pressing=pressing_in))
+            items = acquire(db, AcquireRequest(collection_type="PRIVATE", pressing=pressing_in))
 
         mock_upsert.assert_called_once_with(db, pressing_in)
         assert items[0].pressing_id == pressing_uuid
@@ -459,7 +459,7 @@ class TestAcquireService:
     def test_pressing_upsert_not_called_without_pressing(self) -> None:
         db = MagicMock()
         with patch("app.services.inventory.upsert_pressing") as mock_upsert:
-            acquire(db, AcquireRequest(collection_type="PERSONAL"))
+            acquire(db, AcquireRequest(collection_type="PRIVATE"))
         mock_upsert.assert_not_called()
 
     def test_pressing_object_eagerly_assigned_to_avoid_n_plus_one(self) -> None:
@@ -475,7 +475,7 @@ class TestAcquireService:
 
         pressing_in = DiscogsPressingIn(discogs_release_id=1)
         with patch("app.services.inventory.upsert_pressing", return_value=pressing_uuid):
-            acquire(db, AcquireRequest(collection_type="PERSONAL", quantity=3, pressing=pressing_in))
+            acquire(db, AcquireRequest(collection_type="PRIVATE", quantity=3, pressing=pressing_in))
 
         db.get.assert_called_once_with(Pressing, pressing_uuid)
 
@@ -484,7 +484,7 @@ class TestAcquireService:
         from app.models.pressing import Pressing
 
         db = MagicMock()
-        acquire(db, AcquireRequest(collection_type="PERSONAL"))
+        acquire(db, AcquireRequest(collection_type="PRIVATE"))
 
         for call in db.get.call_args_list:
             assert call.args[0] is not Pressing, "db.get(Pressing, ...) must not be called when pressing_id is None"
@@ -492,7 +492,7 @@ class TestAcquireService:
     def test_is_sealed_passed_to_inventory_item(self) -> None:
         """acquire() must forward is_sealed from the request to each InventoryItem."""
         db = MagicMock()
-        acquire(db, AcquireRequest(collection_type="PERSONAL", is_sealed=True))
+        acquire(db, AcquireRequest(collection_type="PRIVATE", is_sealed=True))
 
         add_calls = db.add.call_args_list
         items = [c.args[0] for c in add_calls if isinstance(c.args[0], InventoryItem)]
@@ -502,7 +502,7 @@ class TestAcquireService:
     def test_is_sealed_none_when_not_provided(self) -> None:
         """acquire() must leave is_sealed as None when not specified in request."""
         db = MagicMock()
-        acquire(db, AcquireRequest(collection_type="PERSONAL"))
+        acquire(db, AcquireRequest(collection_type="PRIVATE"))
 
         add_calls = db.add.call_args_list
         items = [c.args[0] for c in add_calls if isinstance(c.args[0], InventoryItem)]
@@ -544,7 +544,7 @@ class TestTransferItemService:
         db = MagicMock()
         db.get.return_value = None
         with pytest.raises(NotFoundError):
-            transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="DISTRIBUTION"))
+            transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="PUBLIC"))
 
     def test_raises_not_found_when_item_deleted(self) -> None:
         db = MagicMock()
@@ -552,33 +552,33 @@ class TestTransferItemService:
         item.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
         db.get.return_value = item
         with pytest.raises(NotFoundError):
-            transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="DISTRIBUTION"))
+            transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="PUBLIC"))
 
     def test_raises_value_error_when_same_collection(self) -> None:
         db = MagicMock()
         item = MagicMock()
         item.deleted_at = None
-        item.collection_type = "PERSONAL"
+        item.collection_type = "PRIVATE"
         db.get.return_value = item
-        with pytest.raises(ValueError, match="already in PERSONAL"):
-            transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="PERSONAL"))
+        with pytest.raises(ValueError, match="already in PRIVATE"):
+            transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="PRIVATE"))
 
     def test_updates_collection_type(self) -> None:
         db = MagicMock()
         item = MagicMock()
         item.deleted_at = None
-        item.collection_type = "PERSONAL"
+        item.collection_type = "PRIVATE"
         db.get.return_value = item
-        transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="DISTRIBUTION"))
-        assert item.collection_type == "DISTRIBUTION"
+        transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="PUBLIC"))
+        assert item.collection_type == "PUBLIC"
 
     def test_adds_transfer_collection_transaction(self) -> None:
         db = MagicMock()
         item = MagicMock()
         item.deleted_at = None
-        item.collection_type = "PERSONAL"
+        item.collection_type = "PRIVATE"
         db.get.return_value = item
-        transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="DISTRIBUTION"))
+        transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="PUBLIC"))
         added = [c.args[0] for c in db.add.call_args_list]
         assert len(added) == 1
         assert isinstance(added[0], InventoryTransaction)
@@ -589,9 +589,9 @@ class TestTransferItemService:
         db = MagicMock()
         item = MagicMock()
         item.deleted_at = None
-        item.collection_type = "PERSONAL"
+        item.collection_type = "PRIVATE"
         db.get.return_value = item
-        transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="DISTRIBUTION"))
+        transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="PUBLIC"))
         db.commit.assert_called_once()
         db.refresh.assert_called_once_with(item)
 
@@ -724,24 +724,24 @@ class TestGetSummaryService:
     def test_returns_correct_counts(self) -> None:
         db = MagicMock()
         db.execute.return_value.all.return_value = [
-            ("PERSONAL", 4),
-            ("DISTRIBUTION", 7),
+            ("PRIVATE", 4),
+            ("PUBLIC", 7),
         ]
         result = get_summary(db)
-        assert result == {"personal": 4, "distribution": 7, "total": 11}
+        assert result == {"private": 4, "public": 7, "total": 11}
 
     def test_returns_zeros_when_empty(self) -> None:
         db = MagicMock()
         db.execute.return_value.all.return_value = []
         result = get_summary(db)
-        assert result == {"personal": 0, "distribution": 0, "total": 0}
+        assert result == {"private": 0, "public": 0, "total": 0}
 
     def test_handles_single_collection(self) -> None:
         db = MagicMock()
-        db.execute.return_value.all.return_value = [("PERSONAL", 3)]
+        db.execute.return_value.all.return_value = [("PRIVATE", 3)]
         result = get_summary(db)
-        assert result["personal"] == 3
-        assert result["distribution"] == 0
+        assert result["private"] == 3
+        assert result["public"] == 0
         assert result["total"] == 3
 
 

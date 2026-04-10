@@ -21,8 +21,8 @@ from app.models.pressing import Pressing  # noqa: F401 — registers Pressing on
 
 
 class CollectionType(str, enum.Enum):
-    PERSONAL = "PERSONAL"
-    DISTRIBUTION = "DISTRIBUTION"
+    PRIVATE = "PRIVATE"
+    PUBLIC = "PUBLIC"
 
 
 class ItemStatus(str, enum.Enum):
@@ -45,7 +45,7 @@ class InventoryItem(Base):
     __tablename__ = "inventory_item"
     __table_args__ = (
         CheckConstraint(
-            "collection_type IN ('PERSONAL', 'DISTRIBUTION')",
+            "collection_type IN ('PRIVATE', 'PUBLIC')",
             name="ck_inventory_item_collection_type",
         ),
         CheckConstraint(

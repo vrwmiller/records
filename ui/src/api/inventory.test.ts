@@ -37,9 +37,9 @@ describe('listItems', () => {
 
   it('appends collection param when provided', async () => {
     mockFetch.mockReturnValue(jsonResponse([]))
-    await listItems('PERSONAL')
+    await listItems('PRIVATE')
     const [url] = mockFetch.mock.calls[0] as [string, RequestInit]
-    expect(url).toContain('collection=PERSONAL')
+    expect(url).toContain('collection=PRIVATE')
   })
 
   it('throws on non-ok response', async () => {
@@ -85,7 +85,7 @@ describe('listItems', () => {
 
 describe('getSummary', () => {
   it('returns summary data', async () => {
-    const data = { personal: 2, distribution: 3, total: 5 }
+    const data = { private: 2, public: 3, total: 5 }
     mockFetch.mockReturnValue(jsonResponse(data))
     const result = await getSummary()
     expect(result).toEqual(data)
@@ -102,16 +102,16 @@ describe('getSummary', () => {
 describe('acquireItems', () => {
   it('POSTs with correct body', async () => {
     mockFetch.mockReturnValue(jsonResponse([]))
-    await acquireItems({ collection_type: 'PERSONAL', quantity: 2 })
+    await acquireItems({ collection_type: 'PRIVATE', quantity: 2 })
     const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit]
     expect(url).toBe('/api/inventory/acquire')
     expect(opts.method).toBe('POST')
-    expect(JSON.parse(opts.body as string)).toEqual({ collection_type: 'PERSONAL', quantity: 2 })
+    expect(JSON.parse(opts.body as string)).toEqual({ collection_type: 'PRIVATE', quantity: 2 })
   })
 
   it('throws on non-ok response', async () => {
     mockFetch.mockReturnValue(jsonResponse({}, 422))
-    await expect(acquireItems({ collection_type: 'DISTRIBUTION' })).rejects.toThrow('Acquire failed (422)')
+    await expect(acquireItems({ collection_type: 'PUBLIC' })).rejects.toThrow('Acquire failed (422)')
   })
 })
 
@@ -136,7 +136,7 @@ describe('updateItem', () => {
     pressing_id: null,
     pressing: null,
     acquisition_batch_id: null,
-    collection_type: 'PERSONAL',
+    collection_type: 'PRIVATE',
     condition_media: 'NM',
     condition_sleeve: null,
     status: 'AVAILABLE',

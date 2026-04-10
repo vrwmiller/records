@@ -127,7 +127,7 @@ flowchart TD
   - `POST /inventory/bulk/transfer`
   - `POST /inventory/bulk/update`
   - `POST /inventory/bulk/delete`
-  - `GET /inventory?collection=PERSONAL|DISTRIBUTION`
+  - `GET /inventory?collection=PRIVATE|PUBLIC`
   - `GET /inventory/summary`
   - `GET /transactions`
   - `POST /imports/access/validate`
@@ -148,8 +148,8 @@ flowchart TD
 - Read mode surfaces Discogs market/value signals when available for user decision support
 - Acquire flow: user enters search text, selects a matching Discogs pressing from returned candidates, then confirms acquisition details; if the release is not in Discogs, the user may enter metadata manually
 - Edit flow: same Discogs search-and-select UX to re-link or update pressing on an existing inventory item; manual update is available as a fallback when no Discogs match is found
-- Distinguishes PERSONAL vs DISTRIBUTION visually
-- Sale confirmation for personal items
+- Distinguishes PRIVATE vs PUBLIC visually
+- Sale confirmation for private items
 - Listing optimized for quick sales workflows
 
 ### 3a. AWS Microservice Profile
@@ -214,7 +214,7 @@ Current baseline infrastructure is defined as Terraform in `infra/` and includes
 1. **Acquisition**
    - User adds record → creates `inventory_item` + `inventory_transaction`
 2. **Transfer**
-   - PERSONAL ↔ DISTRIBUTION
+   - PRIVATE ↔ PUBLIC
    - Transaction created with type `transfer_collection`
    - Item collection type updated
 3. **Sale**
@@ -241,16 +241,16 @@ flowchart TD
 
   F[User initiates transfer] --> G[POST /inventory/:id/transfer]
   G --> H{Current collection type}
-  H -->|PERSONAL| I[Set collection_type to DISTRIBUTION]
-  H -->|DISTRIBUTION| J[Set collection_type to PERSONAL]
+  H -->|PRIVATE| I[Set collection_type to PUBLIC]
+  H -->|PUBLIC| J[Set collection_type to PRIVATE]
   I --> K[Create inventory_transaction: transfer_collection]
   J --> K
   K --> L[Audit trail updated]
 
   M[User initiates sale] --> N[POST /inventory/:id/sell]
   N --> O{collection type}
-  O -->|PERSONAL| P[Require explicit confirmation]
-  O -->|DISTRIBUTION| Q[Standard sale workflow]
+  O -->|PRIVATE| P[Require explicit confirmation]
+  O -->|PUBLIC| Q[Standard sale workflow]
   P --> R[Create inventory_transaction: sale]
   Q --> R
   R --> S[Update inventory status]
@@ -280,7 +280,7 @@ flowchart TD
 
 - Discogs: release search and metadata enrichment for acquire and edit flows
 - Analytics dashboards (future)
-- Automated premium pricing for PERSONAL collection (future)
+- Automated premium pricing for PRIVATE collection (future)
 
 ### Discogs Integration (High Level)
 

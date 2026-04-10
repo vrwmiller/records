@@ -22,7 +22,7 @@ interface InventoryPageProps {
   signOut: () => void
 }
 
-type CollectionFilter = 'ALL' | 'PERSONAL' | 'DISTRIBUTION'
+type CollectionFilter = 'ALL' | 'PRIVATE' | 'PUBLIC'
 
 export function InventoryPage({ user, signOut }: InventoryPageProps) {
   const [items, setItems] = useState<InventoryItem[]>([])
@@ -32,7 +32,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
   const [error, setError] = useState<string | null>(null)
   const [showAcquire, setShowAcquire] = useState(false)
   const [acquireForm, setAcquireForm] = useState<AcquireRequest>({
-    collection_type: 'PERSONAL',
+    collection_type: 'PRIVATE',
     is_sealed: false,
   })
   const [acquiring, setAcquiring] = useState(false)
@@ -181,7 +181,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
     }
     ++searchSeq.current
     setDiscogsSearching(false)
-    setAcquireForm({ collection_type: 'PERSONAL', is_sealed: false })
+    setAcquireForm({ collection_type: 'PRIVATE', is_sealed: false })
     setDiscogsQuery('')
     setDiscogsResults([])
     setSelectedPressing(null)
@@ -249,8 +249,8 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
             <h2>Inventory</h2>
             {summary && (
               <div className="summary-counts">
-                <span>Personal: <strong>{summary.personal}</strong></span>
-                <span>Distribution: <strong>{summary.distribution}</strong></span>
+                <span>Private: <strong>{summary.private}</strong></span>
+                <span>Public: <strong>{summary.public}</strong></span>
                 <span className="summary-total">Total: <strong>{summary.total}</strong></span>
               </div>
             )}
@@ -355,12 +355,12 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                 onChange={e =>
                   setAcquireForm(f => ({
                     ...f,
-                    collection_type: e.target.value as 'PERSONAL' | 'DISTRIBUTION',
+                    collection_type: e.target.value as 'PRIVATE' | 'PUBLIC',
                   }))
                 }
               >
-                <option value="PERSONAL">Personal</option>
-                <option value="DISTRIBUTION">Distribution</option>
+                <option value="PRIVATE">Private</option>
+                <option value="PUBLIC">Public</option>
               </select>
             </label>
             <label className="checkbox-label">
@@ -407,7 +407,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
         )}
 
         <div className="filter-group">
-          {(['ALL', 'PERSONAL', 'DISTRIBUTION'] as CollectionFilter[]).map(f => (
+          {(['ALL', 'PRIVATE', 'PUBLIC'] as CollectionFilter[]).map(f => (
             <button
               key={f}
               className={`filter-btn${filter === f ? ' active' : ''}`}

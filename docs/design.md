@@ -111,8 +111,8 @@ Application runtime must be configurable with infrastructure-produced values, in
 
 Each inventory item belongs to one of:
 
-- PERSONAL
-- DISTRIBUTION
+- PRIVATE
+- PUBLIC
 
 ---
 
@@ -125,7 +125,7 @@ inventory_item (
   id                   UUID PK,
   pressing_id          UUID NULL,           -- FK to pressing; populated during acquire/edit via Discogs search-and-select (Phase A); nullable to support manual entry without a Discogs match
   acquisition_batch_id UUID NULL,          -- shared across batch-acquired copies
-  collection_type      TEXT NOT NULL CHECK (collection_type IN ('PERSONAL','DISTRIBUTION')),
+  collection_type      TEXT NOT NULL CHECK (collection_type IN ('PRIVATE','PUBLIC')),
   condition_media      TEXT NULL,
   condition_sleeve     TEXT NULL,
   is_sealed            BOOLEAN NULL,        -- NULL = not recorded; TRUE = factory sealed; FALSE = confirmed open
@@ -187,7 +187,7 @@ FK constraint uses `ON DELETE RESTRICT`: transactions cannot be orphaned; invent
 
 ## Collection Rules
 
-### PERSONAL Collection
+### PRIVATE Collection
 
 - Default: not for sale
 - Sale requires explicit action
@@ -197,7 +197,7 @@ FK constraint uses `ON DELETE RESTRICT`: transactions cannot be orphaned; invent
 
 ---
 
-### DISTRIBUTION Collection
+### PUBLIC Collection
 
 - Default: available for sale
 - Standard workflows apply
@@ -257,7 +257,7 @@ Result:
 
 ## Transfer Workflow (Critical)
 
-### PERSONAL → DISTRIBUTION
+### PRIVATE → PUBLIC
 
 Use case:
 
@@ -268,11 +268,11 @@ Action:
 - Create transaction:
   - type: transfer_collection
 - Update:
-  - collection_type = DISTRIBUTION
+  - collection_type = PUBLIC
 
 ---
 
-### DISTRIBUTION → PERSONAL
+### PUBLIC → PRIVATE
 
 Use case:
 
@@ -286,14 +286,14 @@ Same transaction model
 flowchart TD
   A[Transfer requested] --> B{Direction}
 
-  B -->|PERSONAL to DISTRIBUTION| C[Use case: collector decides to sell]
+  B -->|PRIVATE to PUBLIC| C[Use case: collector decides to sell]
   C --> D[Create transaction: transfer_collection]
-  D --> E[Update collection_type to DISTRIBUTION]
-  E --> F[Item becomes sale-eligible in distribution workflows]
+  D --> E[Update collection_type to PUBLIC]
+  E --> F[Item becomes sale-eligible in public inventory workflows]
 
-  B -->|DISTRIBUTION to PERSONAL| G[Use case: collector retains item]
+  B -->|PUBLIC to PRIVATE| G[Use case: collector retains item]
   G --> H[Create transaction: transfer_collection]
-  H --> I[Update collection_type to PERSONAL]
+  H --> I[Update collection_type to PRIVATE]
   I --> J[Item exits default for-sale inventory]
 
   F --> K[No silent reclassification]
@@ -313,7 +313,7 @@ POST /inventory/{id}/transfer
 POST /inventory/bulk/transfer
 POST /inventory/bulk/update
 POST /inventory/bulk/delete
-GET  /inventory?collection=PERSONAL|DISTRIBUTION
+GET  /inventory?collection=PRIVATE|PUBLIC
 GET  /inventory/summary
 GET  /transactions
 GET  /discogs/releases?q=... (release search proxy — requires app authentication (Cognito JWT); proxies to Discogs public database search, which does not require Discogs user auth; rate-limited; returns candidate pressings for selection in acquire and edit flows)
@@ -419,13 +419,13 @@ GET  /imports/{id}/errors
 - If Discogs market data is unavailable or the on-demand fetch fails, the interface must display an explicit unavailable state.
 - Signals must not be retrieved in the background or pre-fetched for list views; fetches are user-triggered only.
 
-### Personal Collection Pricing
+### Private Collection Pricing
 
 - Visually distinct (badge/label)
 - Sale action requires confirmation
 - Possibly hidden from “for sale” views
 
-### Distribution Inventory
+### Public Inventory
 
 - Default listing view
 - Optimized for quick sales workflows
@@ -442,7 +442,7 @@ GET  /imports/{id}/errors
 ### Distribution
 
 - Market-based pricing (Discogs integration later)
-- Discogs market/value signals should be visible in distribution workflows to inform operator pricing decisions
+- Discogs market/value signals should be visible in public inventory workflows to inform operator pricing decisions
 
 ---
 
