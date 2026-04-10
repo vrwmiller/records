@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -11,9 +13,9 @@ def client() -> TestClient:
     return TestClient(app)
 
 
-def test_spa_nav_route_served_as_html(tmp_path: object, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_spa_nav_route_served_as_html(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """GET /inventory with Accept: text/html serves index.html (200)."""
-    index = tmp_path / "index.html"  # type: ignore[operator]
+    index = tmp_path / "index.html"
     index.write_text("<!doctype html><html><body>SPA</body></html>")
 
     import app.main as main_module
