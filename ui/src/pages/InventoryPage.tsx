@@ -459,7 +459,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
           <p className="error-msg">{error}</p>
         ) : filteredItems.length === 0 ? (
           <p className="status-msg">
-            {normalizedQuery ? `No results for "${searchQuery}".` : isAdmin ? 'No records yet. Use Add to add one.' : 'No records yet.'}
+            {normalizedQuery ? `No results for "${debouncedQuery.trim()}".` : isAdmin ? 'No records yet. Use Add to add one.' : 'No records yet.'}
           </p>
         ) : (
           <ul className="inventory-list">
