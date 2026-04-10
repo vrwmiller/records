@@ -33,6 +33,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
   const [showAcquire, setShowAcquire] = useState(false)
   const [acquireForm, setAcquireForm] = useState<AcquireRequest>({
     collection_type: 'PERSONAL',
+    is_sealed: false,
   })
   const [acquiring, setAcquiring] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -180,7 +181,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
     }
     ++searchSeq.current
     setDiscogsSearching(false)
-    setAcquireForm({ collection_type: 'PERSONAL' })
+    setAcquireForm({ collection_type: 'PERSONAL', is_sealed: false })
     setDiscogsQuery('')
     setDiscogsResults([])
     setSelectedPressing(null)
