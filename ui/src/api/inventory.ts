@@ -22,6 +22,7 @@ export interface InventoryItem {
   condition_sleeve: string | null
   status: string
   notes: string | null
+  is_sealed: boolean | null
   created_at: string
   deleted_at: string | null
 }
@@ -50,6 +51,7 @@ export interface AcquireRequest {
   condition_media?: string
   condition_sleeve?: string
   notes?: string
+  is_sealed?: boolean
 }
 
 async function authHeaders(): Promise<HeadersInit> {
@@ -105,6 +107,7 @@ export interface UpdateRequest {
   condition_media?: string | null
   condition_sleeve?: string | null
   notes?: string | null
+  is_sealed?: boolean | null
 }
 
 export async function updateItem(id: string, request: UpdateRequest): Promise<InventoryItem> {

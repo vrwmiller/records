@@ -304,6 +304,27 @@ table.discogs-results thead th {
   text-transform: capitalize;
 }
 
+.sealed-badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-badge-personal-text);
+  background: var(--color-badge-personal-bg);
+  border-radius: 3px;
+  padding: 0.1em 0.4em;
+}
+
+.checkbox-label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem !important;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
 .item-detail {
   flex: 1;
   display: flex;

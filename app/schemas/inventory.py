@@ -19,6 +19,7 @@ class AcquireRequest(BaseModel):
     condition_media: str | None = None
     condition_sleeve: str | None = None
     notes: str | None = None
+    is_sealed: bool | None = None
     price: Decimal | None = None
     counterparty: str | None = None
 
@@ -58,6 +59,7 @@ class InventoryItemResponse(BaseModel):
     condition_sleeve: str | None
     status: str
     notes: str | None
+    is_sealed: bool | None
     created_at: datetime
     deleted_at: datetime | None
 
@@ -68,6 +70,7 @@ class UpdateRequest(BaseModel):
     condition_media: str | None = None
     condition_sleeve: str | None = None
     notes: str | None = None
+    is_sealed: bool | None = None
     pressing_id: uuid.UUID | None = None
     pressing: DiscogsPressingIn | None = None
 

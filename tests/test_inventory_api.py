@@ -102,9 +102,15 @@ class TestAcquireRequest:
         assert r.pressing_id is None
         assert r.price is None
         assert r.notes is None
+        assert r.is_sealed is None
 
+    def test_is_sealed_true_accepted(self) -> None:
+        r = AcquireRequest(collection_type="PERSONAL", is_sealed=True)
+        assert r.is_sealed is True
 
-class TestUpdateRequest:
+    def test_is_sealed_false_accepted(self) -> None:
+        r = AcquireRequest(collection_type="PERSONAL", is_sealed=False)
+        assert r.is_sealed is False
     def test_extra_fields_rejected(self) -> None:
         with pytest.raises(ValidationError):
             UpdateRequest(status="sold")  # status is not patchable via this endpoint
@@ -112,6 +118,14 @@ class TestUpdateRequest:
     def test_empty_request_accepted(self) -> None:
         r = UpdateRequest()
         assert r.model_dump(exclude_unset=True) == {}
+
+    def test_is_sealed_included_in_dump_when_set(self) -> None:
+        r = UpdateRequest(is_sealed=True)
+        assert r.model_dump(exclude_unset=True) == {"is_sealed": True}
+
+    def test_is_sealed_false_included_in_dump_when_set(self) -> None:
+        r = UpdateRequest(is_sealed=False)
+        assert r.model_dump(exclude_unset=True) == {"is_sealed": False}
 
 
 # ---------------------------------------------------------------------------
@@ -472,10 +486,25 @@ class TestAcquireService:
         for call in db.get.call_args_list:
             assert call.args[0] is not Pressing, "db.get(Pressing, ...) must not be called when pressing_id is None"
 
+    def test_is_sealed_passed_to_inventory_item(self) -> None:
+        """acquire() must forward is_sealed from the request to each InventoryItem."""
+        db = MagicMock()
+        acquire(db, AcquireRequest(collection_type="PERSONAL", is_sealed=True))
 
-# ---------------------------------------------------------------------------
-# Service tests — soft_delete
-# ---------------------------------------------------------------------------
+        add_calls = db.add.call_args_list
+        items = [c.args[0] for c in add_calls if isinstance(c.args[0], InventoryItem)]
+        assert len(items) == 1
+        assert items[0].is_sealed is True
+
+    def test_is_sealed_none_when_not_provided(self) -> None:
+        """acquire() must leave is_sealed as None when not specified in request."""
+        db = MagicMock()
+        acquire(db, AcquireRequest(collection_type="PERSONAL"))
+
+        add_calls = db.add.call_args_list
+        items = [c.args[0] for c in add_calls if isinstance(c.args[0], InventoryItem)]
+        assert len(items) == 1
+        assert items[0].is_sealed is None
 
 class TestSoftDeleteService:
     def test_raises_not_found_when_item_missing(self) -> None:
