@@ -38,6 +38,39 @@ unset TEMP_PASSWORD
 
 ---
 
+## Add a User to a Group
+
+Record Ranch uses Cognito groups for role-based access. The `admin` group grants full inventory management access (add, edit, delete). Users without this group get read-only access.
+
+```bash
+aws cognito-idp admin-add-user-to-group \
+  --user-pool-id "$COGNITO_USER_POOL_ID" \
+  --username "<email>" \
+  --group-name admin
+```
+
+Verify the assignment:
+
+```bash
+aws cognito-idp admin-list-groups-for-user \
+  --user-pool-id "$COGNITO_USER_POOL_ID" \
+  --username "<email>" \
+  --query 'Groups[*].GroupName'
+```
+
+Remove from a group:
+
+```bash
+aws cognito-idp admin-remove-user-from-group \
+  --user-pool-id "$COGNITO_USER_POOL_ID" \
+  --username "<email>" \
+  --group-name admin
+```
+
+> The `admin` group name is hardcoded in the frontend (`cognito:groups` claim check in `InventoryPage.tsx`). Do not rename the group without a corresponding frontend change.
+
+---
+
 ## List Users
 
 ```bash
