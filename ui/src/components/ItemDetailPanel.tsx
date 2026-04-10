@@ -23,6 +23,8 @@ export function ItemDetailPanel({ item, isAdmin, onTransferred, onClose }: Props
   }, [])
 
   // Auto-fetch Discogs release when panel opens, if pressing has a release ID.
+  // Track the requested ID so a stale response from a prior item cannot
+  // overwrite state for the currently displayed item.
   useEffect(() => {
     const releaseId = item.pressing?.discogs_release_id
     setRelease(null)
@@ -32,10 +34,11 @@ export function ItemDetailPanel({ item, isAdmin, onTransferred, onClose }: Props
       return
     }
     setReleaseLoading(true)
+    const requestedId = releaseId
     getDiscogsRelease(releaseId)
-      .then(r => { if (isMounted.current) setRelease(r) })
-      .catch(e => { if (isMounted.current) setReleaseError(e instanceof Error ? e.message : 'Failed to load Discogs data') })
-      .finally(() => { if (isMounted.current) setReleaseLoading(false) })
+      .then(r => { if (isMounted.current && item.pressing?.discogs_release_id === requestedId) setRelease(r) })
+      .catch(e => { if (isMounted.current && item.pressing?.discogs_release_id === requestedId) setReleaseError(e instanceof Error ? e.message : 'Failed to load Discogs data') })
+      .finally(() => { if (isMounted.current && item.pressing?.discogs_release_id === requestedId) setReleaseLoading(false) })
   }, [item.pressing?.discogs_release_id])
 
   async function handleTransfer() {
