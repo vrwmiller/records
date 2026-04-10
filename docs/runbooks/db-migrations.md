@@ -198,11 +198,21 @@ def handler(event, context):
         [sys.executable, "-m", "alembic", "upgrade", "head"],
         capture_output=True, text=True, env=env
     )
+    # Alembic writes upgrade progress to stderr, not stdout. Derive current
+    # revision by running `alembic current` after the upgrade — its output
+    # goes to stdout and is safe to split.
+    current_revision = None
+    if result.returncode == 0:
+        current = subprocess.run(
+            [sys.executable, "-m", "alembic", "current"],
+            capture_output=True, text=True, env=env
+        )
+        current_revision = current.stdout.strip().split()[0] if current.stdout.strip() else None
     return {
         "status": "ok" if result.returncode == 0 else "error",
         "stdout": result.stdout,
         "stderr": result.stderr,
-        "current_revision": result.stdout.strip().split()[-1] if result.returncode == 0 else None,
+        "current_revision": current_revision,
     }
 ```
 
