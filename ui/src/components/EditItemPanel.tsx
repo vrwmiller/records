@@ -17,7 +17,7 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
   const [conditionMedia, setConditionMedia] = useState(item.condition_media ?? '')
   const [conditionSleeve, setConditionSleeve] = useState(item.condition_sleeve ?? '')
   const [notes, setNotes] = useState(item.notes ?? '')
-  const [isSealed, setIsSealed] = useState(item.is_sealed ?? false)
+  const [isSealed, setIsSealed] = useState<boolean | null>(item.is_sealed ?? null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -116,7 +116,7 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
         condition_media: conditionMedia || null,
         condition_sleeve: conditionSleeve || null,
         notes: notes || null,
-        is_sealed: isSealed,
+        ...(isSealed !== null ? { is_sealed: isSealed } : {}),
       }
       const updated = await updateItem(item.id, request)
       if (isMounted.current) onSave(updated)
@@ -217,7 +217,7 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
       <label className="checkbox-label">
         <input
           type="checkbox"
-          checked={isSealed}
+          checked={isSealed === true}
           onChange={e => setIsSealed(e.target.checked)}
         />
         Sealed

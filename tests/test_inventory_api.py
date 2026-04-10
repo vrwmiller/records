@@ -111,6 +111,9 @@ class TestAcquireRequest:
     def test_is_sealed_false_accepted(self) -> None:
         r = AcquireRequest(collection_type="PERSONAL", is_sealed=False)
         assert r.is_sealed is False
+
+
+class TestUpdateRequest:
     def test_extra_fields_rejected(self) -> None:
         with pytest.raises(ValidationError):
             UpdateRequest(status="sold")  # status is not patchable via this endpoint
@@ -693,6 +696,24 @@ class TestUpdateItemService:
             update_item(db, uuid.uuid4(), UpdateRequest(condition_media="VG"))
 
         mock_upsert.assert_not_called()
+
+    def test_is_sealed_true_applied_via_setattr_loop(self) -> None:
+        """update_item() must apply is_sealed=True through the setattr loop."""
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = None
+        db.get.return_value = item
+        update_item(db, uuid.uuid4(), UpdateRequest(is_sealed=True))
+        assert item.is_sealed is True
+
+    def test_is_sealed_false_applied_via_setattr_loop(self) -> None:
+        """update_item() must apply is_sealed=False; falsy values must not be dropped by the loop."""
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = None
+        db.get.return_value = item
+        update_item(db, uuid.uuid4(), UpdateRequest(is_sealed=False))
+        assert item.is_sealed is False
 
 
 # ---------------------------------------------------------------------------
