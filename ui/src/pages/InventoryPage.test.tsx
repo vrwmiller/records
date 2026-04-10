@@ -84,6 +84,17 @@ function renderPage() {
   return render(<InventoryPage user={mockUser} signOut={mockSignOut} />)
 }
 
+describe('InventoryPage — wordmark accessibility', () => {
+  it('renders a level-1 heading with accessible name "Record Ranch"', () => {
+    mockListItems.mockReturnValue(new Promise(() => {}))
+    mockGetSummary.mockReturnValue(new Promise(() => {}))
+    renderPage()
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Record Ranch' }),
+    ).toBeInTheDocument()
+  })
+})
+
 describe('InventoryPage — loading state', () => {
   it('shows loading indicator while fetching', () => {
     // Never resolve so loading stays true
