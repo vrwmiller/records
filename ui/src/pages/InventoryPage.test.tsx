@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, act } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import userEvent from '@testing-library/user-event'
 import { InventoryPage } from './InventoryPage'
 
@@ -82,7 +83,11 @@ beforeEach(() => {
 })
 
 function renderPage() {
-  return render(<InventoryPage user={mockUser} signOut={mockSignOut} />)
+  return render(
+    <MemoryRouter>
+      <InventoryPage user={mockUser} signOut={mockSignOut} />
+    </MemoryRouter>,
+  )
 }
 
 describe('InventoryPage — wordmark accessibility', () => {
@@ -110,7 +115,7 @@ describe('InventoryPage — empty state', () => {
   it('shows empty message when no items', async () => {
     renderPage()
     await waitFor(() =>
-      expect(screen.getByText('No records yet. Use Acquire to add one.')).toBeInTheDocument(),
+      expect(screen.getByText('No records yet. Use Add to add one.')).toBeInTheDocument(),
     )
   })
 
@@ -156,10 +161,10 @@ describe('InventoryPage — acquire flow', () => {
   it('toggles acquire form on button click', async () => {
     renderPage()
     await waitFor(() =>
-      expect(screen.getByText('No records yet. Use Acquire to add one.')).toBeInTheDocument(),
+      expect(screen.getByText('No records yet. Use Add to add one.')).toBeInTheDocument(),
     )
     const user = userEvent.setup()
-    await user.click(screen.getByText('+ Acquire'))
+    await user.click(screen.getByText('+ Add'))
     expect(screen.getByText('Confirm')).toBeInTheDocument()
     await user.click(screen.getByText('Cancel'))
     expect(screen.queryByText('Confirm')).not.toBeInTheDocument()
@@ -168,10 +173,10 @@ describe('InventoryPage — acquire flow', () => {
   it('calls acquireItems and reloads on confirm', async () => {
     renderPage()
     await waitFor(() =>
-      expect(screen.getByText('No records yet. Use Acquire to add one.')).toBeInTheDocument(),
+      expect(screen.getByText('No records yet. Use Add to add one.')).toBeInTheDocument(),
     )
     const user = userEvent.setup()
-    await user.click(screen.getByText('+ Acquire'))
+    await user.click(screen.getByText('+ Add'))
     await user.click(screen.getByText('Confirm'))
     await waitFor(() => expect(mockAcquireItems).toHaveBeenCalledOnce())
     expect(mockListItems).toHaveBeenCalledTimes(2) // initial + reload
@@ -234,9 +239,9 @@ const sampleDiscogsResult = {
 async function openAcquireForm() {
   renderPage()
   await waitFor(() =>
-    expect(screen.getByText('No records yet. Use Acquire to add one.')).toBeInTheDocument(),
+    expect(screen.getByText('No records yet. Use Add to add one.')).toBeInTheDocument(),
   )
-  await userEvent.setup().click(screen.getByText('+ Acquire'))
+  await userEvent.setup().click(screen.getByText('+ Add'))
 }
 
 describe('InventoryPage — Discogs search-and-select', () => {
@@ -459,5 +464,141 @@ describe('InventoryPage — edit flow', () => {
     // Switch to Public filter — panel should close
     await user.click(screen.getByText('Public'))
     expect(screen.queryByPlaceholderText('Search Discogs to change pressing…')).not.toBeInTheDocument()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Fixtures for search tests
+// ---------------------------------------------------------------------------
+const pressingRick = {
+  id: 'pressing-rick',
+  discogs_release_id: 249504,
+  discogs_resource_url: null,
+  title: 'Never Gonna Give You Up',
+  artists_sort: 'Astley, Rick',
+  year: 1987,
+  country: 'UK',
+  catalog_number: 'RCA PB 9693',
+  matrix: null,
+}
+
+const pressingNew = {
+  id: 'pressing-new',
+  discogs_release_id: 12345,
+  discogs_resource_url: null,
+  title: 'Blue Monday',
+  artists_sort: 'New Order',
+  year: 1983,
+  country: 'UK',
+  catalog_number: 'FAC 73',
+  matrix: null,
+}
+
+const itemRick = { ...sampleItem, id: 'item-rick', pressing_id: 'pressing-rick', pressing: pressingRick }
+const itemNew = { ...sampleItem, id: 'item-new', pressing_id: 'pressing-new', pressing: pressingNew, collection_type: 'PUBLIC' as const }
+
+describe('InventoryPage — text search', () => {
+  it('renders the search input', async () => {
+    renderPage()
+    await waitFor(() => screen.getByRole('searchbox', { name: 'Search inventory' }))
+    const input = screen.getByRole('searchbox', { name: 'Search inventory' })
+    expect(input).toHaveAttribute('placeholder', 'Search title, artist, catalog…')
+  })
+
+  it('filters items by pressing title', async () => {
+    mockListItems.mockResolvedValue([itemRick, itemNew])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    renderPage()
+    await waitFor(() => screen.getByText(/Never Gonna Give You Up/))
+    const user = userEvent.setup()
+    await user.type(screen.getByRole('searchbox', { name: 'Search inventory' }), 'Never')
+    // Wait for Blue Monday to be filtered out (proves debounce fired)
+    await waitFor(() => expect(screen.queryByText(/Blue Monday/)).not.toBeInTheDocument(), { timeout: 2000 })
+    expect(screen.getByText(/Never Gonna Give You Up/)).toBeInTheDocument()
+  })
+
+  it('filters items by artists_sort', async () => {
+    mockListItems.mockResolvedValue([itemRick, itemNew])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    renderPage()
+    await waitFor(() => screen.getByText(/Astley, Rick/))
+    const user = userEvent.setup()
+    await user.type(screen.getByRole('searchbox', { name: 'Search inventory' }), 'Astley')
+    // Wait for New Order to be filtered out (proves debounce fired)
+    await waitFor(() => expect(screen.queryByText(/New Order/)).not.toBeInTheDocument(), { timeout: 2000 })
+    expect(screen.getByText(/Astley, Rick/)).toBeInTheDocument()
+  })
+
+  it('shows no-results message when query matches nothing', async () => {
+    mockListItems.mockResolvedValue([itemRick])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    renderPage()
+    await waitFor(() => screen.getByText(/Never Gonna Give You Up/))
+    const user = userEvent.setup()
+    await user.type(screen.getByRole('searchbox', { name: 'Search inventory' }), 'zzz')
+    await waitFor(() => expect(screen.getByText('No results for "zzz".')).toBeInTheDocument(), { timeout: 2000 })
+  })
+
+  it('composes search filter with collection filter', async () => {
+    // ALL (no arg) returns both items; PRIVATE returns only itemRick.
+    // This verifies composition: collection filter narrows the server-side list,
+    // then text search further filters the client-side result.
+    mockListItems.mockImplementation((collection?: string) =>
+      Promise.resolve(collection === 'PRIVATE' ? [itemRick] : [itemRick, itemNew]),
+    )
+    mockGetSummary.mockResolvedValue(filledSummary)
+    renderPage()
+    // Initial ALL load — both items visible
+    await waitFor(() => {
+      expect(screen.getByText(/Never Gonna Give You Up/)).toBeInTheDocument()
+      expect(screen.getByText(/Blue Monday/)).toBeInTheDocument()
+    })
+    const user = userEvent.setup()
+    // Switch to Private — server returns only PRIVATE items; itemNew disappears
+    await user.click(screen.getByText('Private'))
+    await waitFor(() => expect(screen.queryByText(/Blue Monday/)).not.toBeInTheDocument())
+    await waitFor(() => screen.getByText(/Never Gonna Give You Up/))
+    // Text search within the already-filtered list
+    await user.type(screen.getByRole('searchbox', { name: 'Search inventory' }), 'Never')
+    await waitFor(() => expect(screen.getByText(/Never Gonna Give You Up/)).toBeInTheDocument(), { timeout: 2000 })
+    // itemNew must still be absent — it was excluded by the collection filter, not just the text filter
+    expect(screen.queryByText(/Blue Monday/)).not.toBeInTheDocument()
+  })
+
+  it('clearing search restores full list', async () => {
+    mockListItems.mockResolvedValue([itemRick, itemNew])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    renderPage()
+    await waitFor(() => screen.getByText(/Never Gonna Give You Up/))
+    const user = userEvent.setup()
+    const input = screen.getByRole('searchbox', { name: 'Search inventory' })
+    await user.type(input, 'Never')
+    await waitFor(() => expect(screen.queryByText(/Blue Monday/)).not.toBeInTheDocument(), { timeout: 2000 })
+    await user.clear(input)
+    await waitFor(() => expect(screen.getByText(/Blue Monday/)).toBeInTheDocument(), { timeout: 2000 })
+    expect(screen.getByText(/Never Gonna Give You Up/)).toBeInTheDocument()
+  })
+
+  it('closes an open detail panel when its item is filtered out and does not re-open on clear', async () => {
+    mockListItems.mockResolvedValue([itemRick, itemNew])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    renderPage()
+    await waitFor(() => screen.getByText(/Never Gonna Give You Up/))
+    const user = userEvent.setup()
+    // Open the detail panel for Rick by clicking his row
+    const rickRow = screen.getAllByRole('button', { name: /PRIVATE|AVAILABLE/ }).find(el =>
+      el.closest('li')?.textContent?.includes('Never Gonna Give You Up'),
+    ) ?? screen.getByText(/Never Gonna Give You Up/).closest('[role="button"]')!
+    await user.click(rickRow as HTMLElement)
+    // Panel should be open — ItemDetailPanel renders a close button
+    await waitFor(() => expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument(), { timeout: 2000 })
+    // Type a query that excludes Rick
+    await user.type(screen.getByRole('searchbox', { name: 'Search inventory' }), 'Blue')
+    // Rick's row and panel disappear; close button gone
+    await waitFor(() => expect(screen.queryByRole('button', { name: /close/i })).not.toBeInTheDocument(), { timeout: 2000 })
+    // Clearing the search restores Rick but the panel must NOT re-open
+    await user.clear(screen.getByRole('searchbox', { name: 'Search inventory' }))
+    await waitFor(() => screen.getByText(/Never Gonna Give You Up/), { timeout: 2000 })
+    expect(screen.queryByRole('button', { name: /close/i })).not.toBeInTheDocument()
   })
 })

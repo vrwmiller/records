@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AuthUser } from 'aws-amplify/auth'
 import { fetchAuthSession } from 'aws-amplify/auth'
 import {
@@ -39,6 +39,8 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
   const [isAdmin, setIsAdmin] = useState(false)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [viewingItemId, setViewingItemId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
 
   // Discogs search state
   const [discogsQuery, setDiscogsQuery] = useState('')
@@ -89,6 +91,45 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
     setEditingItemId(null)
     setViewingItemId(null)
   }, [filter])
+
+  // Debounce the search query so the filter only runs after the user pauses
+  // typing. Avoids O(n * fields) toLowerCase work on every keystroke for large
+  // collections.
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQuery(searchQuery), 300)
+    return () => clearTimeout(id)
+  }, [searchQuery])
+
+  const normalizedQuery = useMemo(() => debouncedQuery.trim().toLowerCase(), [debouncedQuery])
+  const filteredItems = useMemo(() => {
+    if (!normalizedQuery) return items
+    return items.filter(item => {
+      const p = item.pressing
+      return [
+        p?.title,
+        p?.artists_sort,
+        p?.catalog_number,
+        p?.country,
+        item.notes,
+      ].some(field => field?.toLowerCase().includes(normalizedQuery))
+    })
+  }, [items, normalizedQuery])
+
+  // Close any open detail or edit panel when the selected item is filtered out
+  // by the text search. Without this, clearing the search re-opens the panel
+  // automatically because viewingItemId/editingItemId remain set while the
+  // item's <li> is absent from the DOM — inconsistent with the filter-change
+  // behavior that explicitly clears these IDs.
+  useEffect(() => {
+    if (viewingItemId == null && editingItemId == null) return
+    const visibleIds = new Set(filteredItems.map(item => item.id))
+    if (viewingItemId != null && !visibleIds.has(viewingItemId)) {
+      setViewingItemId(null)
+    }
+    if (editingItemId != null && !visibleIds.has(editingItemId)) {
+      setEditingItemId(null)
+    }
+  }, [filteredItems, viewingItemId, editingItemId])
 
   function handleDiscogsQueryChange(q: string) {
     setDiscogsQuery(q)
@@ -254,6 +295,16 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                 <span className="summary-total">Total: <strong>{summary.total}</strong></span>
               </div>
             )}
+          </div>
+          <div className="search-wrapper">
+            <input
+              type="search"
+              className="inventory-search"
+              placeholder="Search title, artist, catalog…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              aria-label="Search inventory"
+            />
           </div>
           {isAdmin && (
             <button
@@ -422,13 +473,13 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
           <p className="status-msg">Loading…</p>
         ) : error ? (
           <p className="error-msg">{error}</p>
-        ) : items.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <p className="status-msg">
-            {isAdmin ? 'No records yet. Use Add to add one.' : 'No records yet.'}
+            {normalizedQuery ? `No results for "${debouncedQuery.trim()}".` : isAdmin ? 'No records yet. Use Add to add one.' : 'No records yet.'}
           </p>
         ) : (
           <ul className="inventory-list">
-            {items.map(item => (
+            {filteredItems.map(item => (
               <li key={item.id} className="inventory-item">
                 <div
                   className={`item-row${viewingItemId === item.id ? ' item-row-active' : ''}`}
