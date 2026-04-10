@@ -434,12 +434,12 @@ GET  /imports/{id}/errors
 
 ## Pricing Behavior
 
-### Personal Collection
+### Private Collection
 
 - Manual pricing
 - Optional premium multiplier (future)
 
-### Distribution
+### Public
 
 - Market-based pricing (Discogs integration later)
 - Discogs market/value signals should be visible in public inventory workflows to inform operator pricing decisions
