@@ -26,8 +26,8 @@ class AcquireRequest(BaseModel):
     @field_validator("collection_type")
     @classmethod
     def validate_collection_type(cls, v: str) -> str:
-        if v not in ("PERSONAL", "DISTRIBUTION"):
-            raise ValueError("collection_type must be PERSONAL or DISTRIBUTION")
+        if v not in ("PRIVATE", "PUBLIC"):
+            raise ValueError("collection_type must be PRIVATE or PUBLIC")
         return v
 
 
@@ -83,12 +83,12 @@ class TransferRequest(BaseModel):
     @field_validator("target_collection")
     @classmethod
     def validate_target_collection(cls, v: str) -> str:
-        if v not in ("PERSONAL", "DISTRIBUTION"):
-            raise ValueError("target_collection must be PERSONAL or DISTRIBUTION")
+        if v not in ("PRIVATE", "PUBLIC"):
+            raise ValueError("target_collection must be PRIVATE or PUBLIC")
         return v
 
 
 class SummaryResponse(BaseModel):
-    personal: int
-    distribution: int
+    private: int
+    public: int
     total: int

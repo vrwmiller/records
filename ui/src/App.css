@@ -288,12 +288,12 @@ table.discogs-results thead th {
   width: fit-content;
 }
 
-.collection-badge.personal {
+.collection-badge.private {
   background: var(--color-badge-personal-bg);
   color: var(--color-badge-personal-text);
 }
 
-.collection-badge.distribution {
+.collection-badge.public {
   background: var(--color-badge-distribution-bg);
   color: var(--color-badge-distribution-text);
 }

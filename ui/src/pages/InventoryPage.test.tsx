@@ -48,15 +48,15 @@ const mockUser = {
 }
 const mockSignOut = vi.fn()
 
-const emptySummary = { personal: 0, distribution: 0, total: 0 }
-const filledSummary = { personal: 1, distribution: 2, total: 3 }
+const emptySummary = { private: 0, public: 0, total: 0 }
+const filledSummary = { private: 1, public: 2, total: 3 }
 
 const sampleItem = {
   id: 'item-1',
   pressing_id: null,
   pressing: null,
   acquisition_batch_id: null,
-  collection_type: 'PERSONAL' as const,
+  collection_type: 'PRIVATE' as const,
   condition_media: 'VG+',
   condition_sleeve: null,
   status: 'AVAILABLE',
@@ -118,8 +118,8 @@ describe('InventoryPage — empty state', () => {
     mockGetSummary.mockResolvedValue(filledSummary)
     renderPage()
     await waitFor(() => expect(screen.getByText('3')).toBeInTheDocument()) // total
-    expect(screen.getByText('1')).toBeInTheDocument() // personal
-    expect(screen.getByText('2')).toBeInTheDocument() // distribution
+    expect(screen.getByText('1')).toBeInTheDocument() // private
+    expect(screen.getByText('2')).toBeInTheDocument() // public
   })
 })
 
@@ -146,7 +146,7 @@ describe('InventoryPage — item list', () => {
     mockListItems.mockResolvedValue([sampleItem])
     mockGetSummary.mockResolvedValue(filledSummary)
     renderPage()
-    await waitFor(() => expect(screen.getByText('PERSONAL')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('PRIVATE')).toBeInTheDocument())
     expect(screen.getByText('AVAILABLE')).toBeInTheDocument()
     expect(screen.getByText('Media: VG+')).toBeInTheDocument()
   })
@@ -179,19 +179,19 @@ describe('InventoryPage — acquire flow', () => {
 })
 
 describe('InventoryPage — filter buttons', () => {
-  it('renders All, Personal, Distribution filter buttons', async () => {
+  it('renders All, Private, Public filter buttons', async () => {
     renderPage()
     await waitFor(() => expect(screen.getByText('All')).toBeInTheDocument())
-    expect(screen.getByText('Personal')).toBeInTheDocument()
-    expect(screen.getByText('Distribution')).toBeInTheDocument()
+    expect(screen.getByText('Private')).toBeInTheDocument()
+    expect(screen.getByText('Public')).toBeInTheDocument()
   })
 
   it('calls listItems with filter param on filter change', async () => {
     renderPage()
     await waitFor(() => expect(mockListItems).toHaveBeenCalledWith(undefined))
     const user = userEvent.setup()
-    await user.click(screen.getByText('Personal'))
-    await waitFor(() => expect(mockListItems).toHaveBeenCalledWith('PERSONAL'))
+    await user.click(screen.getByText('Private'))
+    await waitFor(() => expect(mockListItems).toHaveBeenCalledWith('PRIVATE'))
   })
 })
 
@@ -456,8 +456,8 @@ describe('InventoryPage — edit flow', () => {
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: 'Edit item' }))
     expect(screen.getByPlaceholderText('Search Discogs to change pressing…')).toBeInTheDocument()
-    // Switch to Distribution filter — panel should close
-    await user.click(screen.getByText('Distribution'))
+    // Switch to Public filter — panel should close
+    await user.click(screen.getByText('Public'))
     expect(screen.queryByPlaceholderText('Search Discogs to change pressing…')).not.toBeInTheDocument()
   })
 })

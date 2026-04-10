@@ -17,7 +17,7 @@ export interface InventoryItem {
   pressing_id: string | null
   pressing: PressingBookmark | null
   acquisition_batch_id: string | null
-  collection_type: 'PERSONAL' | 'DISTRIBUTION'
+  collection_type: 'PRIVATE' | 'PUBLIC'
   condition_media: string | null
   condition_sleeve: string | null
   status: string
@@ -28,8 +28,8 @@ export interface InventoryItem {
 }
 
 export interface SummaryResponse {
-  personal: number
-  distribution: number
+  private: number
+  public: number
   total: number
 }
 
@@ -45,7 +45,7 @@ export interface DiscogsPressingIn {
 }
 
 export interface AcquireRequest {
-  collection_type: 'PERSONAL' | 'DISTRIBUTION'
+  collection_type: 'PRIVATE' | 'PUBLIC'
   quantity?: number
   pressing?: DiscogsPressingIn
   condition_media?: string
@@ -129,7 +129,7 @@ export async function getRecentItems(limit = 5): Promise<InventoryItem[]> {
   return res.json() as Promise<InventoryItem[]>
 }
 
-export async function transferItem(id: string, targetCollection: 'PERSONAL' | 'DISTRIBUTION'): Promise<InventoryItem> {
+export async function transferItem(id: string, targetCollection: 'PRIVATE' | 'PUBLIC'): Promise<InventoryItem> {
   const headers = await authHeaders()
   const res = await fetch(`/api/inventory/${id}/transfer`, {
     method: 'POST',

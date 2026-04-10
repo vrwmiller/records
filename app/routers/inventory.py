@@ -44,7 +44,7 @@ def list_items(
     db: _DB,
     _: _Auth,
     collection: Annotated[
-        str | None, Query(pattern="^(PERSONAL|DISTRIBUTION)$")
+        str | None, Query(pattern="^(PRIVATE|PUBLIC)$")
     ] = None,
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,

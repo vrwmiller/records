@@ -42,8 +42,8 @@ export function ItemDetailPanel({ item, isAdmin, onTransferred, onClose }: Props
   }, [item.pressing?.discogs_release_id])
 
   async function handleTransfer() {
-    const target = item.collection_type === 'PERSONAL' ? 'DISTRIBUTION' : 'PERSONAL'
-    const targetLabel = item.collection_type === 'PERSONAL' ? 'Distribution' : 'Personal'
+    const target = item.collection_type === 'PRIVATE' ? 'PUBLIC' : 'PRIVATE'
+    const targetLabel = item.collection_type === 'PRIVATE' ? 'Public' : 'Private'
     if (!window.confirm(`Move this item to ${targetLabel}?`)) return
     setTransferring(true)
     setTransferError(null)
@@ -58,7 +58,7 @@ export function ItemDetailPanel({ item, isAdmin, onTransferred, onClose }: Props
   }
 
   const p = item.pressing
-  const target = item.collection_type === 'PERSONAL' ? 'Distribution' : 'Personal'
+  const target = item.collection_type === 'PRIVATE' ? 'Public' : 'Private'
 
   return (
     <div className="item-detail-panel">

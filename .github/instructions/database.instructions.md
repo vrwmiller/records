@@ -18,7 +18,7 @@ applyTo: "db/**/*.sql, migrations/**/*.sql, **/*alembic*.py, **/*models*.py, doc
 
 ## Inventory Integrity
 
-- collection_type must stay constrained to PERSONAL or DISTRIBUTION.
+- collection_type must stay constrained to PRIVATE or PUBLIC.
 - inventory_transaction must capture all state-changing operations.
 - No schema shape that allows silent reclassification.
 

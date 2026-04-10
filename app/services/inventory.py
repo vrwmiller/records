@@ -102,12 +102,12 @@ def get_summary(db: Session) -> dict[str, int]:
         .group_by(InventoryItem.collection_type)
     ).all()
     counts = {r[0]: r[1] for r in rows}
-    personal = counts.get("PERSONAL", 0)
-    distribution = counts.get("DISTRIBUTION", 0)
+    private = counts.get("PRIVATE", 0)
+    public = counts.get("PUBLIC", 0)
     return {
-        "personal": personal,
-        "distribution": distribution,
-        "total": personal + distribution,
+        "private": private,
+        "public": public,
+        "total": private + public,
     }
 
 
