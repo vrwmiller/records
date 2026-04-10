@@ -25,9 +25,13 @@ export function ItemDetailPanel({ item, isAdmin, onTransferred, onClose }: Props
   // Auto-fetch Discogs release when panel opens, if pressing has a release ID.
   useEffect(() => {
     const releaseId = item.pressing?.discogs_release_id
-    if (!releaseId) return
-    setReleaseLoading(true)
+    setRelease(null)
     setReleaseError(null)
+    if (!releaseId) {
+      setReleaseLoading(false)
+      return
+    }
+    setReleaseLoading(true)
     getDiscogsRelease(releaseId)
       .then(r => { if (isMounted.current) setRelease(r) })
       .catch(e => { if (isMounted.current) setReleaseError(e instanceof Error ? e.message : 'Failed to load Discogs data') })
