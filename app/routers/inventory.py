@@ -12,6 +12,7 @@ from app.schemas.inventory import (
     AcquireRequest,
     InventoryItemResponse,
     SummaryResponse,
+    TransferRequest,
     UpdateRequest,
 )
 from app.services import inventory as svc
@@ -50,6 +51,22 @@ def list_items(
 ) -> list[InventoryItemResponse]:
     items = svc.list_items(db, collection=collection, offset=offset, limit=limit)
     return [InventoryItemResponse.model_validate(i) for i in items]
+
+
+@router.post("/{item_id}/transfer", response_model=InventoryItemResponse)
+def transfer_item(
+    item_id: uuid.UUID,
+    body: TransferRequest,
+    db: _DB,
+    _: _AdminAuth,
+) -> InventoryItemResponse:
+    try:
+        item = svc.transfer_item(db, item_id, body)
+    except svc.NotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    return InventoryItemResponse.model_validate(item)
 
 
 @router.patch("/{item_id}", response_model=InventoryItemResponse)

@@ -152,12 +152,12 @@ curl -s https://jcaqlbm9rd.execute-api.us-east-1.amazonaws.com/api/health
 Expected response: `{"status":"ok"}`.
 
 ```bash
-# Inventory endpoint (expect 401 Unauthorized — confirms app is running and DB is reachable)
+# Inventory endpoint (expect 403 Forbidden — confirms app is running and DB is reachable)
 curl -s -o /dev/null -w "%{http_code}" \
   https://jcaqlbm9rd.execute-api.us-east-1.amazonaws.com/api/inventory
 ```
 
-Expected: `401`. A `500` indicates a database or application error.
+Expected: `403`. A `500` indicates a database or application error.
 
 ```bash
 # CloudWatch error scan (last 10 minutes)

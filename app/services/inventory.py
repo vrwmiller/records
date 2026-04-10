@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.inventory import InventoryItem, InventoryTransaction
 from app.models.pressing import Pressing
-from app.schemas.inventory import AcquireRequest, UpdateRequest
+from app.schemas.inventory import AcquireRequest, TransferRequest, UpdateRequest
 from app.services.pressing import upsert_pressing
 
 
@@ -130,6 +130,29 @@ def update_item(db: Session, item_id: uuid.UUID, request: UpdateRequest) -> Inve
     for field, value in request.model_dump(exclude_unset=True, exclude=exclude_fields).items():
         setattr(item, field, value)
 
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def transfer_item(db: Session, item_id: uuid.UUID, request: TransferRequest) -> InventoryItem:
+    """Move an item to a different collection and record a transfer_collection transaction.
+
+    Raises ValueError if the item is already in target_collection.
+    """
+    item = db.get(InventoryItem, item_id)
+    if item is None or item.deleted_at is not None:
+        raise NotFoundError(item_id)
+    if item.collection_type == request.target_collection:
+        raise ValueError(f"Item is already in {request.target_collection}")
+
+    item.collection_type = request.target_collection
+    tx = InventoryTransaction(
+        id=uuid.uuid4(),
+        inventory_item_id=item.id,
+        transaction_type="transfer_collection",
+    )
+    db.add(tx)
     db.commit()
     db.refresh(item)
     return item

@@ -20,13 +20,14 @@ from app.auth import get_current_user
 from app.db import get_db
 from app.main import app
 from app.models.inventory import InventoryItem, InventoryTransaction
-from app.schemas.inventory import AcquireRequest, UpdateRequest
+from app.schemas.inventory import AcquireRequest, TransferRequest, UpdateRequest
 from app.services.inventory import (
     NotFoundError,
     acquire,
     get_summary,
     list_items,
     soft_delete,
+    transfer_item,
     update_item,
 )
 
@@ -252,6 +253,60 @@ class TestDeleteRoute:
         assert response.status_code == 404
 
 
+class TestTransferRequest:
+    def test_personal_accepted(self) -> None:
+        req = TransferRequest(target_collection="PERSONAL")
+        assert req.target_collection == "PERSONAL"
+
+    def test_distribution_accepted(self) -> None:
+        req = TransferRequest(target_collection="DISTRIBUTION")
+        assert req.target_collection == "DISTRIBUTION"
+
+    def test_invalid_value_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            TransferRequest(target_collection="WHOLESALE")
+
+    def test_extra_field_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            TransferRequest(target_collection="PERSONAL", foo="bar")  # type: ignore[call-arg]
+
+
+class TestTransferRoute:
+    def test_returns_200_with_updated_item(self, client: TestClient) -> None:
+        item_id = uuid.uuid4()
+        with patch("app.routers.inventory.svc.transfer_item") as mock_transfer:
+            mock_transfer.return_value = _make_item(id=item_id, collection_type="DISTRIBUTION")
+            response = client.post(
+                f"/api/inventory/{item_id}/transfer",
+                json={"target_collection": "DISTRIBUTION"},
+            )
+        assert response.status_code == 200
+        assert response.json()["collection_type"] == "DISTRIBUTION"
+
+    def test_not_found_returns_404(self, client: TestClient) -> None:
+        with patch("app.routers.inventory.svc.transfer_item", side_effect=NotFoundError):
+            response = client.post(
+                f"/api/inventory/{uuid.uuid4()}/transfer",
+                json={"target_collection": "DISTRIBUTION"},
+            )
+        assert response.status_code == 404
+
+    def test_same_collection_returns_422(self, client: TestClient) -> None:
+        with patch("app.routers.inventory.svc.transfer_item", side_effect=ValueError("already in PERSONAL")):
+            response = client.post(
+                f"/api/inventory/{uuid.uuid4()}/transfer",
+                json={"target_collection": "PERSONAL"},
+            )
+        assert response.status_code == 422
+
+    def test_invalid_target_rejected(self, client: TestClient) -> None:
+        response = client.post(
+            f"/api/inventory/{uuid.uuid4()}/transfer",
+            json={"target_collection": "WHOLESALE"},
+        )
+        assert response.status_code == 422
+
+
 class TestAuthRequired:
     def test_missing_auth_header_returns_403(self) -> None:
         saved = dict(app.dependency_overrides)
@@ -289,6 +344,15 @@ class TestRoleEnforcement:
         self, client_no_role: TestClient
     ) -> None:
         response = client_no_role.delete(f"/api/inventory/{uuid.uuid4()}")
+        assert response.status_code == 403
+
+    def test_transfer_returns_403_without_admin_role(
+        self, client_no_role: TestClient
+    ) -> None:
+        response = client_no_role.post(
+            f"/api/inventory/{uuid.uuid4()}/transfer",
+            json={"target_collection": "DISTRIBUTION"},
+        )
         assert response.status_code == 403
 
     def test_list_returns_200_without_admin_role(
@@ -437,6 +501,67 @@ class TestSoftDeleteService:
         assert item.deleted_at is not None
         assert item.status == "deleted"
         db.commit.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Service tests — transfer_item
+# ---------------------------------------------------------------------------
+
+class TestTransferItemService:
+    def test_raises_not_found_when_item_missing(self) -> None:
+        db = MagicMock()
+        db.get.return_value = None
+        with pytest.raises(NotFoundError):
+            transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="DISTRIBUTION"))
+
+    def test_raises_not_found_when_item_deleted(self) -> None:
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        db.get.return_value = item
+        with pytest.raises(NotFoundError):
+            transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="DISTRIBUTION"))
+
+    def test_raises_value_error_when_same_collection(self) -> None:
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = None
+        item.collection_type = "PERSONAL"
+        db.get.return_value = item
+        with pytest.raises(ValueError, match="already in PERSONAL"):
+            transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="PERSONAL"))
+
+    def test_updates_collection_type(self) -> None:
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = None
+        item.collection_type = "PERSONAL"
+        db.get.return_value = item
+        transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="DISTRIBUTION"))
+        assert item.collection_type == "DISTRIBUTION"
+
+    def test_adds_transfer_collection_transaction(self) -> None:
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = None
+        item.collection_type = "PERSONAL"
+        db.get.return_value = item
+        transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="DISTRIBUTION"))
+        added = [c.args[0] for c in db.add.call_args_list]
+        assert len(added) == 1
+        assert isinstance(added[0], InventoryTransaction)
+        assert added[0].transaction_type == "transfer_collection"
+        assert added[0].inventory_item_id == item.id
+
+    def test_commits_and_refreshes(self) -> None:
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = None
+        item.collection_type = "PERSONAL"
+        db.get.return_value = item
+        transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="DISTRIBUTION"))
+        db.commit.assert_called_once()
+        db.refresh.assert_called_once_with(item)
 
 
 # ---------------------------------------------------------------------------

@@ -13,6 +13,8 @@ import {
 } from '../api/inventory'
 import { searchDiscogs, getDiscogsRelease, type DiscogsSearchResult } from '../api/discogs'
 import { EditItemPanel } from '../components/EditItemPanel'
+import { ItemDetailPanel } from '../components/ItemDetailPanel'
+import { Link } from 'react-router-dom'
 import { WordMark } from '../components/WordMark'
 
 interface InventoryPageProps {
@@ -35,6 +37,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
   const [acquiring, setAcquiring] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [viewingItemId, setViewingItemId] = useState<string | null>(null)
 
   // Discogs search state
   const [discogsQuery, setDiscogsQuery] = useState('')
@@ -79,10 +82,11 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
 
   useEffect(() => { void load() }, [load])
 
-  // Clear any active edit panel when the filter changes so a stale
-  // editingItemId cannot re-open the panel if the item reappears.
+  // Clear any active edit or detail panel when the filter changes so a stale
+  // id cannot re-open the panel if the item reappears.
   useEffect(() => {
     setEditingItemId(null)
+    setViewingItemId(null)
   }, [filter])
 
   function handleDiscogsQueryChange(q: string) {
@@ -203,6 +207,16 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
     setEditingItemId(null)
   }
 
+  async function handleTransferred(_updated: InventoryItem) {
+    setError(null)
+    try {
+      await load()
+      setViewingItemId(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Refresh after transfer failed')
+    }
+  }
+
   async function handleDelete(id: string) {
     if (!window.confirm('Delete this item? This cannot be undone.')) return
     setError(null)
@@ -218,7 +232,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
     <main className="app-shell">
       <header className="app-header">
         <h1 className="site-wordmark" aria-label="Record Ranch">
-          <WordMark />
+          <Link to="/" className="wordmark-link"><WordMark /></Link>
         </h1>
         <span className="user-id">
           {user?.signInDetails?.loginId ?? 'collector'}
@@ -248,7 +262,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                 if (showAcquire) resetAcquireForm()
               }}
             >
-              + Acquire
+              + Add
             </button>
           )}
         </div>
@@ -370,7 +384,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                 onClick={() => void handleAcquire()}
                 disabled={acquiring}
               >
-                {acquiring ? 'Acquiring…' : 'Confirm'}
+                {acquiring ? 'Adding…' : 'Confirm'}
               </button>
               <button
                 className="cancel-btn"
@@ -401,13 +415,29 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
           <p className="error-msg">{error}</p>
         ) : items.length === 0 ? (
           <p className="status-msg">
-            {isAdmin ? 'No records yet. Use Acquire to add one.' : 'No records yet.'}
+            {isAdmin ? 'No records yet. Use Add to add one.' : 'No records yet.'}
           </p>
         ) : (
           <ul className="inventory-list">
             {items.map(item => (
               <li key={item.id} className="inventory-item">
-                <div className="item-row">
+                <div
+                  className={`item-row${viewingItemId === item.id ? ' item-row-active' : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={viewingItemId === item.id}
+                  onClick={() => {
+                    setViewingItemId(id => (id === item.id ? null : item.id))
+                    setEditingItemId(null)
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setViewingItemId(id => (id === item.id ? null : item.id))
+                      setEditingItemId(null)
+                    }
+                  }}
+                >
                   <div className="item-badges">
                     <span className={`collection-badge ${item.collection_type.toLowerCase()}`}>
                       {item.collection_type}
@@ -422,7 +452,6 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                         {item.pressing.year != null && ` (${item.pressing.year})`}
                         {item.pressing.country && ` · ${item.pressing.country}`}
                         {item.pressing.catalog_number && ` · ${item.pressing.catalog_number}`}
-                        {item.pressing.matrix && ` · ${item.pressing.matrix}`}
                       </span>
                     )}
                     {item.condition_media && (
@@ -441,9 +470,11 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                   {isAdmin && (
                     <button
                       className="edit-btn"
-                      onClick={() =>
+                      onClick={e => {
+                        e.stopPropagation()
                         setEditingItemId(id => (id === item.id ? null : item.id))
-                      }
+                        setViewingItemId(null)
+                      }}
                       aria-label="Edit item"
                     >
                       ✎
@@ -451,13 +482,21 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                   )}
                   <button
                     className="delete-btn"
-                    onClick={() => void handleDelete(item.id)}
+                    onClick={e => { e.stopPropagation(); void handleDelete(item.id) }}
                     aria-label="Delete item"
                     hidden={!isAdmin}
                   >
                     ×
                   </button>
                 </div>
+                {viewingItemId === item.id && (
+                  <ItemDetailPanel
+                    item={item}
+                    isAdmin={isAdmin}
+                    onTransferred={handleTransferred}
+                    onClose={() => setViewingItemId(null)}
+                  />
+                )}
                 {editingItemId === item.id && (
                   <EditItemPanel
                     item={item}

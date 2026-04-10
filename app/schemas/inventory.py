@@ -72,6 +72,19 @@ class UpdateRequest(BaseModel):
     pressing: DiscogsPressingIn | None = None
 
 
+class TransferRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    target_collection: str
+
+    @field_validator("target_collection")
+    @classmethod
+    def validate_target_collection(cls, v: str) -> str:
+        if v not in ("PERSONAL", "DISTRIBUTION"):
+            raise ValueError("target_collection must be PERSONAL or DISTRIBUTION")
+        return v
+
+
 class SummaryResponse(BaseModel):
     personal: int
     distribution: int
