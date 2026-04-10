@@ -43,7 +43,8 @@ export function ItemDetailPanel({ item, isAdmin, onTransferred, onClose }: Props
 
   async function handleTransfer() {
     const target = item.collection_type === 'PERSONAL' ? 'DISTRIBUTION' : 'PERSONAL'
-    if (!window.confirm(`Move this item to ${target}?`)) return
+    const targetLabel = item.collection_type === 'PERSONAL' ? 'Distribution' : 'Personal'
+    if (!window.confirm(`Move this item to ${targetLabel}?`)) return
     setTransferring(true)
     setTransferError(null)
     try {
