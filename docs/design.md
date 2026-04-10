@@ -24,12 +24,14 @@ Operational profile assumptions:
 **Decision:** `pressing` stores a lean eight-column bookmark (id, created_at, discogs_release_id, discogs_resource_url, title, artists_sort, year, country). All Discogs detail data — tracks, images, credits, labels, identifiers, market signals, community signals, raw payload — is fetched on demand via a proxy endpoint and is never stored locally.
 
 **Rationale:**
+
 - Storage costs money. Discogs data is large and changes frequently; local copies would be expensive and stale.
 - Discogs is an authoritative, reliable read-only source; duplicating it locally provides no data safety benefit.
 - At human interaction pace, the 60 req/min authenticated rate limit is not a practical constraint.
 - On-demand model eliminates background sync jobs, stale-data detection, and sync-status bookkeeping entirely.
 
 **Consequences:**
+
 - Phase B child tables (pressing_track, pressing_identifier, pressing_image, pressing_video, pressing_credit, pressing_company, pressing_label) are cancelled.
 - Phase C background sync is cancelled.
 - The Discogs API is called only on explicit user action (search, release detail, image load). No background API calls are made.
