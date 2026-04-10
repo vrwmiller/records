@@ -720,9 +720,13 @@ table.discogs-results thead th {
 }
 
 .landing-loading,
-.landing-error,
 .landing-empty {
   font-size: 0.9rem;
   color: var(--color-text-muted);
+}
+
+.landing-error {
+  font-size: 0.9rem;
+  color: var(--color-danger);
 }
 
