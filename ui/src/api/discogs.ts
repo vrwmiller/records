@@ -29,8 +29,12 @@ export interface DiscogsRelease {
   artists_sort?: string
   year?: number
   country?: string
+  released?: string
+  genres?: string[]
+  styles?: string[]
+  formats?: { name: string; qty?: string; descriptions?: string[] }[]
+  tracklist?: { position: string; title: string; duration: string }[]
   resource_url?: string
-  tracklist?: unknown[]
   images?: unknown[]
   identifiers?: { type: string; value: string; description?: string }[]
   [key: string]: unknown

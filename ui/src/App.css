@@ -538,3 +538,109 @@ table.discogs-results thead th {
   }
 }
 
+/* ── Item row — clickable ───────────────────────────────────────── */
+.item-row {
+  cursor: pointer;
+}
+
+.item-row:hover,
+.item-row:focus-visible {
+  background: var(--color-surface-hover, rgba(255,255,255,0.04));
+  outline: none;
+}
+
+.item-row.item-row-active {
+  background: var(--color-surface-hover, rgba(255,255,255,0.04));
+}
+
+/* ── Item detail panel ──────────────────────────────────────────── */
+.item-detail-panel {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-alt, rgba(255,255,255,0.02));
+}
+
+.item-detail-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.item-detail-panel-header h3 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.panel-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0.125rem 0.375rem;
+}
+
+.panel-close-btn:hover {
+  color: var(--color-text);
+}
+
+.item-detail-fields {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+}
+
+.item-detail-fields dt {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.item-detail-fields dd {
+  margin: 0;
+}
+
+.matrix-value {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.item-detail-pressing h4,
+.item-detail-discogs h4 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.375rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.item-detail-actions {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.transfer-btn {
+  padding: 0.375rem 0.875rem;
+  background: transparent;
+  border: 1px solid var(--color-text-muted);
+  border-radius: 4px;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.transfer-btn:hover:not(:disabled) {
+  border-color: var(--color-text);
+}
+
+.transfer-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
