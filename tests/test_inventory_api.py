@@ -20,13 +20,14 @@ from app.auth import get_current_user
 from app.db import get_db
 from app.main import app
 from app.models.inventory import InventoryItem, InventoryTransaction
-from app.schemas.inventory import AcquireRequest, UpdateRequest
+from app.schemas.inventory import AcquireRequest, TransferRequest, UpdateRequest
 from app.services.inventory import (
     NotFoundError,
     acquire,
     get_summary,
     list_items,
     soft_delete,
+    transfer_item,
     update_item,
 )
 
@@ -250,6 +251,60 @@ class TestDeleteRoute:
         with patch("app.routers.inventory.svc.soft_delete", side_effect=NotFoundError):
             response = client.delete(f"/api/inventory/{uuid.uuid4()}")
         assert response.status_code == 404
+
+
+class TestTransferRequest:
+    def test_personal_accepted(self) -> None:
+        req = TransferRequest(target_collection="PERSONAL")
+        assert req.target_collection == "PERSONAL"
+
+    def test_distribution_accepted(self) -> None:
+        req = TransferRequest(target_collection="DISTRIBUTION")
+        assert req.target_collection == "DISTRIBUTION"
+
+    def test_invalid_value_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            TransferRequest(target_collection="WHOLESALE")
+
+    def test_extra_field_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            TransferRequest(target_collection="PERSONAL", foo="bar")  # type: ignore[call-arg]
+
+
+class TestTransferRoute:
+    def test_returns_200_with_updated_item(self, client: TestClient) -> None:
+        item_id = uuid.uuid4()
+        with patch("app.routers.inventory.svc.transfer_item") as mock_transfer:
+            mock_transfer.return_value = _make_item(id=item_id, collection_type="DISTRIBUTION")
+            response = client.post(
+                f"/api/inventory/{item_id}/transfer",
+                json={"target_collection": "DISTRIBUTION"},
+            )
+        assert response.status_code == 200
+        assert response.json()["collection_type"] == "DISTRIBUTION"
+
+    def test_not_found_returns_404(self, client: TestClient) -> None:
+        with patch("app.routers.inventory.svc.transfer_item", side_effect=NotFoundError):
+            response = client.post(
+                f"/api/inventory/{uuid.uuid4()}/transfer",
+                json={"target_collection": "DISTRIBUTION"},
+            )
+        assert response.status_code == 404
+
+    def test_same_collection_returns_422(self, client: TestClient) -> None:
+        with patch("app.routers.inventory.svc.transfer_item", side_effect=ValueError("already in PERSONAL")):
+            response = client.post(
+                f"/api/inventory/{uuid.uuid4()}/transfer",
+                json={"target_collection": "PERSONAL"},
+            )
+        assert response.status_code == 422
+
+    def test_invalid_target_rejected(self, client: TestClient) -> None:
+        response = client.post(
+            f"/api/inventory/{uuid.uuid4()}/transfer",
+            json={"target_collection": "WHOLESALE"},
+        )
+        assert response.status_code == 422
 
 
 class TestAuthRequired:

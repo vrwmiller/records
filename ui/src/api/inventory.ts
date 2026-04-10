@@ -118,6 +118,17 @@ export async function updateItem(id: string, request: UpdateRequest): Promise<In
   return res.json() as Promise<InventoryItem>
 }
 
+export async function transferItem(id: string, targetCollection: 'PERSONAL' | 'DISTRIBUTION'): Promise<InventoryItem> {
+  const headers = await authHeaders()
+  const res = await fetch(`/api/inventory/${id}/transfer`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ target_collection: targetCollection }),
+  })
+  if (!res.ok) throw new Error(`Transfer failed (${res.status})`)
+  return res.json() as Promise<InventoryItem>
+}
+
 export async function deleteItem(id: string): Promise<void> {
   const headers = await authHeaders()
   const res = await fetch(`/api/inventory/${id}`, {
