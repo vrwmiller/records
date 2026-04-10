@@ -43,6 +43,7 @@ def acquire(db: Session, request: AcquireRequest) -> list[InventoryItem]:
             condition_media=request.condition_media,
             condition_sleeve=request.condition_sleeve,
             notes=request.notes,
+            is_sealed=request.is_sealed,
         )
         db.add(item)
         db.flush()

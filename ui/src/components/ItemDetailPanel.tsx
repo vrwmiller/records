@@ -74,6 +74,9 @@ export function ItemDetailPanel({ item, isAdmin, onTransferred, onClose }: Props
         <dt>Status</dt>
         <dd>{item.status}</dd>
 
+        <dt>Sealed</dt>
+        <dd>{item.is_sealed === true ? 'Yes' : item.is_sealed === false ? 'No' : 'Unknown'}</dd>
+
         {item.condition_media && <><dt>Media condition</dt><dd>{item.condition_media}</dd></>}
         {item.condition_sleeve && <><dt>Sleeve condition</dt><dd>{item.condition_sleeve}</dd></>}
         {item.notes && <><dt>Notes</dt><dd>{item.notes}</dd></>}

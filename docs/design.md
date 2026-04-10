@@ -371,6 +371,7 @@ GET  /imports/{id}/errors
 - If no Discogs match exists, the user may proceed with manual entry and still complete acquisition
 - Confirmed acquisition with a Discogs selection calls `POST /inventory/acquire`; the selected pressing is upserted and the new inventory item is linked via `pressing_id` automatically
 - Confirmed acquisition via manual entry still calls `POST /inventory/acquire`; no Discogs pressing is upserted or linked, and the new inventory item is created with `pressing_id = null`
+- The Add form includes a "Sealed" checkbox; when checked, `is_sealed: true` is sent in the request body; when unchecked, `is_sealed: false` is sent; if `is_sealed` is omitted entirely the backend stores `NULL`
 
 ### Edit Flow
 
@@ -378,6 +379,7 @@ GET  /imports/{id}/errors
 - User may enter search text to find a new or corrected Discogs pressing; the app calls `GET /discogs/releases?q=...` and presents candidates
 - User selects a pressing to update the item's `pressing_id` linkage
 - If no Discogs match exists, the user may update item fields manually without re-linking a pressing
+- The edit form includes a two-state "Sealed" checkbox; items with `is_sealed = true` render checked, `is_sealed = false` render unchecked; legacy `is_sealed = NULL` rows also render unchecked and are not visually distinct from `false`; the field is omitted from `PATCH` unless the user interacts with the checkbox, so `NULL` is preserved on save if unchanged
 - Confirmed edits call `PATCH /inventory/{id}`
 
 ### Inventory Row Actions

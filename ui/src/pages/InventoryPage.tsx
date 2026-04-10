@@ -33,6 +33,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
   const [showAcquire, setShowAcquire] = useState(false)
   const [acquireForm, setAcquireForm] = useState<AcquireRequest>({
     collection_type: 'PERSONAL',
+    is_sealed: false,
   })
   const [acquiring, setAcquiring] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -180,7 +181,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
     }
     ++searchSeq.current
     setDiscogsSearching(false)
-    setAcquireForm({ collection_type: 'PERSONAL' })
+    setAcquireForm({ collection_type: 'PERSONAL', is_sealed: false })
     setDiscogsQuery('')
     setDiscogsResults([])
     setSelectedPressing(null)
@@ -362,6 +363,14 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                 <option value="DISTRIBUTION">Distribution</option>
               </select>
             </label>
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={acquireForm.is_sealed ?? false}
+                onChange={e => setAcquireForm(f => ({ ...f, is_sealed: e.target.checked }))}
+              />
+              Sealed
+            </label>
             <label>
               Quantity
               <input
@@ -443,6 +452,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                       {item.collection_type}
                     </span>
                     <span className="status-badge">{item.status}</span>
+                    {item.is_sealed && <span className="sealed-badge">SEALED</span>}
                   </div>
                   <div className="item-detail">
                     {item.pressing && (
