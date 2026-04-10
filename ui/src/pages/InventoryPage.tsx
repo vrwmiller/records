@@ -422,7 +422,6 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                         {item.pressing.year != null && ` (${item.pressing.year})`}
                         {item.pressing.country && ` · ${item.pressing.country}`}
                         {item.pressing.catalog_number && ` · ${item.pressing.catalog_number}`}
-                        {item.pressing.matrix && ` · ${item.pressing.matrix}`}
                       </span>
                     )}
                     {item.condition_media && (
