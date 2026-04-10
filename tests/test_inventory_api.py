@@ -504,6 +504,67 @@ class TestSoftDeleteService:
 
 
 # ---------------------------------------------------------------------------
+# Service tests — transfer_item
+# ---------------------------------------------------------------------------
+
+class TestTransferItemService:
+    def test_raises_not_found_when_item_missing(self) -> None:
+        db = MagicMock()
+        db.get.return_value = None
+        with pytest.raises(NotFoundError):
+            transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="DISTRIBUTION"))
+
+    def test_raises_not_found_when_item_deleted(self) -> None:
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        db.get.return_value = item
+        with pytest.raises(NotFoundError):
+            transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="DISTRIBUTION"))
+
+    def test_raises_value_error_when_same_collection(self) -> None:
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = None
+        item.collection_type = "PERSONAL"
+        db.get.return_value = item
+        with pytest.raises(ValueError, match="already in PERSONAL"):
+            transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="PERSONAL"))
+
+    def test_updates_collection_type(self) -> None:
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = None
+        item.collection_type = "PERSONAL"
+        db.get.return_value = item
+        transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="DISTRIBUTION"))
+        assert item.collection_type == "DISTRIBUTION"
+
+    def test_adds_transfer_collection_transaction(self) -> None:
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = None
+        item.collection_type = "PERSONAL"
+        db.get.return_value = item
+        transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="DISTRIBUTION"))
+        added = [c.args[0] for c in db.add.call_args_list]
+        assert len(added) == 1
+        assert isinstance(added[0], InventoryTransaction)
+        assert added[0].transaction_type == "transfer_collection"
+        assert added[0].inventory_item_id == item.id
+
+    def test_commits_and_refreshes(self) -> None:
+        db = MagicMock()
+        item = MagicMock()
+        item.deleted_at = None
+        item.collection_type = "PERSONAL"
+        db.get.return_value = item
+        transfer_item(db, uuid.uuid4(), TransferRequest(target_collection="DISTRIBUTION"))
+        db.commit.assert_called_once()
+        db.refresh.assert_called_once_with(item)
+
+
+# ---------------------------------------------------------------------------
 # Service tests — update_item
 # ---------------------------------------------------------------------------
 

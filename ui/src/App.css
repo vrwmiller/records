@@ -544,17 +544,17 @@ table.discogs-results thead th {
 }
 
 .item-row:hover {
-  background: var(--color-surface-hover, rgba(255,255,255,0.04));
+  background: var(--color-row-hover-bg);
 }
 
 .item-row:focus-visible {
-  background: var(--color-surface-hover, rgba(255,255,255,0.04));
-  outline: 2px solid var(--color-border-strong, #7dd3fc);
+  background: var(--color-row-hover-bg);
+  outline: 2px solid var(--color-focus);
   outline-offset: -2px;
 }
 
 .item-row.item-row-active {
-  background: var(--color-surface-hover, rgba(255,255,255,0.04));
+  background: var(--color-row-hover-bg);
 }
 
 /* ── Item detail panel ──────────────────────────────────────────── */
@@ -683,7 +683,7 @@ table.discogs-results thead th {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-muted, #888);
+  color: var(--color-text-muted);
   margin: 0 0 0.75rem;
 }
 
@@ -711,18 +711,18 @@ table.discogs-results thead th {
 
 .landing-recent-artist {
   font-size: 0.875rem;
-  color: var(--color-muted, #888);
+  color: var(--color-text-muted);
 }
 
 .landing-recent-year {
   font-size: 0.875rem;
-  color: var(--color-muted, #888);
+  color: var(--color-text-muted);
 }
 
 .landing-loading,
 .landing-error,
 .landing-empty {
   font-size: 0.9rem;
-  color: var(--color-muted, #888);
+  color: var(--color-text-muted);
 }
 
