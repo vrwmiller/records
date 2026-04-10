@@ -248,7 +248,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                 if (showAcquire) resetAcquireForm()
               }}
             >
-              + Acquire
+              + Add
             </button>
           )}
         </div>
@@ -370,7 +370,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                 onClick={() => void handleAcquire()}
                 disabled={acquiring}
               >
-                {acquiring ? 'Acquiring…' : 'Confirm'}
+                {acquiring ? 'Adding…' : 'Confirm'}
               </button>
               <button
                 className="cancel-btn"
@@ -401,7 +401,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
           <p className="error-msg">{error}</p>
         ) : items.length === 0 ? (
           <p className="status-msg">
-            {isAdmin ? 'No records yet. Use Acquire to add one.' : 'No records yet.'}
+            {isAdmin ? 'No records yet. Use Add to add one.' : 'No records yet.'}
           </p>
         ) : (
           <ul className="inventory-list">
