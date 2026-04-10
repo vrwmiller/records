@@ -67,7 +67,7 @@ aws cognito-idp admin-remove-user-from-group \
   --group-name admin
 ```
 
-> The `admin` group name is hardcoded in the frontend (`cognito:groups` claim check in `InventoryPage.tsx`). Do not rename the group without a corresponding frontend change.
+> The `admin` group name is coupled across infrastructure and application code: it is provisioned in `infra/auth.tf`, enforced by backend authorization in `app/routers/inventory.py` (`require_role("admin")`), and checked in the frontend via the `cognito:groups` claim in `ui/src/pages/InventoryPage.tsx`. Do not rename the group unless you update all of these together.
 
 ---
 
