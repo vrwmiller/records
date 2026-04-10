@@ -161,11 +161,17 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
 
       {selectedPressing && (
         <div className="selected-pressing">
-          <strong>New pressing:</strong> {selectedPressing.title}
-          {selectedPressing.year != null && ` (${selectedPressing.year})`}
-          {selectedPressing.country && ` · ${selectedPressing.country}`}
-          {selectedPressing.catalog_number && ` · ${selectedPressing.catalog_number}`}
-          {selectedPressing.matrix && ` · Matrix: ${selectedPressing.matrix}`}
+          <div className="selected-pressing-info">
+            <span className="selected-pressing-title">
+              <strong>New pressing:</strong> {selectedPressing.title}
+              {selectedPressing.year != null && ` (${selectedPressing.year})`}
+              {selectedPressing.country && ` · ${selectedPressing.country}`}
+              {selectedPressing.catalog_number && ` · ${selectedPressing.catalog_number}`}
+            </span>
+            {selectedPressing.matrix && (
+              <span className="selected-pressing-matrix">Matrix: {selectedPressing.matrix}</span>
+            )}
+          </div>
           <button
             type="button"
             className="clear-pressing-btn"

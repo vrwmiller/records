@@ -436,7 +436,7 @@ table.discogs-results thead th {
 
 .selected-pressing {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
   font-size: 0.875rem;
   color: var(--color-text);
@@ -444,6 +444,26 @@ table.discogs-results thead th {
   border: 1px solid var(--color-border);
   border-radius: 4px;
   padding: 0.375rem 0.5rem;
+}
+
+.selected-pressing-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.selected-pressing-title {
+  line-height: 1.4;
+}
+
+.selected-pressing-matrix {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  overflow-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.4;
 }
 
 .clear-pressing-btn {
