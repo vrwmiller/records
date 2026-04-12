@@ -96,6 +96,30 @@
   border-color: var(--color-primary);
 }
 
+.filter-btn.private {
+  background: var(--color-badge-personal-bg);
+  color: var(--color-badge-personal-text);
+  border-color: var(--color-badge-personal-text);
+}
+
+.filter-btn.private.active {
+  background: var(--color-badge-personal-text);
+  color: #fff;
+  border-color: var(--color-badge-personal-text);
+}
+
+.filter-btn.public {
+  background: var(--color-badge-distribution-bg);
+  color: var(--color-badge-distribution-text);
+  border-color: var(--color-badge-distribution-text);
+}
+
+.filter-btn.public.active {
+  background: var(--color-badge-distribution-text);
+  color: #fff;
+  border-color: var(--color-badge-distribution-text);
+}
+
 /* Inventory search */
 .search-wrapper {
   flex: 1;
