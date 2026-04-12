@@ -35,13 +35,13 @@ def upsert_pressing(db: Session, pressing_in: DiscogsPressingIn) -> uuid.UUID:
         ON CONFLICT (discogs_release_id)
         WHERE discogs_release_id IS NOT NULL
         DO UPDATE SET
-            discogs_resource_url = EXCLUDED.discogs_resource_url,
-            title                = EXCLUDED.title,
-            artists_sort         = EXCLUDED.artists_sort,
-            year                 = EXCLUDED.year,
-            country              = EXCLUDED.country,
-            catalog_number       = COALESCE(EXCLUDED.catalog_number, pressing.catalog_number),
-            matrix               = COALESCE(EXCLUDED.matrix, pressing.matrix),
+            discogs_resource_url = COALESCE(pressing.discogs_resource_url, EXCLUDED.discogs_resource_url),
+            title                = COALESCE(pressing.title, EXCLUDED.title),
+            artists_sort         = COALESCE(pressing.artists_sort, EXCLUDED.artists_sort),
+            year                 = COALESCE(pressing.year, EXCLUDED.year),
+            country              = COALESCE(pressing.country, EXCLUDED.country),
+            catalog_number       = COALESCE(pressing.catalog_number, EXCLUDED.catalog_number),
+            matrix               = COALESCE(pressing.matrix, EXCLUDED.matrix),
             label                = COALESCE(pressing.label, EXCLUDED.label)
         RETURNING id
         """

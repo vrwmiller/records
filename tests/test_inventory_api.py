@@ -798,6 +798,7 @@ class TestPressingService:
             country="UK",
             catalog_number="RCA PB 9693",
             matrix="YEX 773-1 HAGG",
+            label="RCA",
         )
 
     def test_upsert_pressing_executes_insert_on_conflict(self) -> None:
@@ -837,6 +838,35 @@ class TestPressingService:
         assert params["country"] == pressing_in.country
         assert params["catalog_number"] == pressing_in.catalog_number
         assert params["matrix"] == pressing_in.matrix
+        assert params["label"] == pressing_in.label
+
+    def test_upsert_conflict_coalesce_order_prefers_local(self) -> None:
+        """ON CONFLICT clause must use COALESCE(pressing.<col>, EXCLUDED.<col>) for
+        every updatable field so that a non-null local value is never overwritten
+        by a re-acquire from Discogs.  COALESCE(EXCLUDED.<col>, pressing.<col>)
+        would silently reverse the precedence rule."""
+        from app.services.pressing import upsert_pressing
+
+        db = MagicMock()
+        db.execute.return_value.scalar_one.return_value = uuid.uuid4()
+        upsert_pressing(db, self._make_pressing_in())
+
+        stmt_text = str(db.execute.call_args.args[0])
+        updatable_cols = [
+            "discogs_resource_url",
+            "title",
+            "artists_sort",
+            "year",
+            "country",
+            "catalog_number",
+            "matrix",
+            "label",
+        ]
+        for col in updatable_cols:
+            assert f"COALESCE(pressing.{col}, EXCLUDED.{col})" in stmt_text, (
+                f"Expected COALESCE(pressing.{col}, EXCLUDED.{col}) in ON CONFLICT "
+                f"clause; local-wins precedence rule violated for column '{col}'"
+            )
 
     def test_upsert_pressing_returns_scalar_uuid(self) -> None:
         """upsert_pressing() propagates scalar_one() directly to the caller."""
