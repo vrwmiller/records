@@ -112,6 +112,9 @@ export function ItemDetailPanel({ item, isAdmin, onTransferred, onClose }: Props
               {release.formats && release.formats.length > 0 && (
                 <><dt>Format</dt><dd>{release.formats.map(f => f.name).join(', ')}</dd></>
               )}
+              {release.labels && release.labels.length > 0 && (
+                <><dt>Label</dt><dd>{release.labels.map(l => l.name).join(', ')}</dd></>
+              )}
               {release.tracklist && release.tracklist.length > 0 && (
                 <><dt>Tracks</dt><dd>{release.tracklist.length} tracks</dd></>
               )}
