@@ -183,6 +183,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
       country: result.country ?? null,
       catalog_number: result.catno ?? null,
       matrix: null,
+      label: result.label?.[0] ?? null,
     }
     setSelectedPressing(pressing)
     setAcquireForm(f => ({ ...f, pressing }))
@@ -199,13 +200,14 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
           ?.filter(i => i.type === 'Matrix / Runout')
           .map(i => i.value)
           .join(' / ') || null
-        if (matrix) {
+        const label = release.labels?.[0]?.name ?? null
+        if (matrix || label) {
           setSelectedPressing(p =>
-            p && p.discogs_release_id === releaseId ? { ...p, matrix } : p
+            p && p.discogs_release_id === releaseId ? { ...p, matrix, label } : p
           )
           setAcquireForm(f =>
             f.pressing && f.pressing.discogs_release_id === releaseId
-              ? { ...f, pressing: { ...f.pressing, matrix } }
+              ? { ...f, pressing: { ...f.pressing, matrix, label } }
               : f
           )
         }
@@ -512,6 +514,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                         {item.pressing.year != null && ` (${item.pressing.year})`}
                         {item.pressing.country && ` · ${item.pressing.country}`}
                         {item.pressing.catalog_number && ` · ${item.pressing.catalog_number}`}
+                        {item.pressing.label && ` · ${item.pressing.label}`}
                       </span>
                     )}
                     {item.condition_media && (

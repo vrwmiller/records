@@ -238,6 +238,7 @@ const sampleDiscogsResult = {
   country: 'UK',
   resource_url: 'https://api.discogs.com/releases/249504',
   catno: 'RCA PB 9693',
+  label: ['RCA'],
 }
 
 async function openAcquireForm() {
@@ -289,6 +290,7 @@ describe('InventoryPage — Discogs search-and-select', () => {
     expect(req.pressing?.discogs_release_id).toBe(249504)
     expect(req.pressing?.title).toBe('Never Gonna Give You Up')
     expect(req.pressing?.catalog_number).toBe('RCA PB 9693')
+    expect(req.pressing?.label).toBe('RCA')
   })
 
   it('editing the search query after selection removes pressing from the acquire request', async () => {
@@ -375,6 +377,37 @@ describe('InventoryPage — Discogs search-and-select', () => {
     await waitFor(() => expect(mockAcquireItems).toHaveBeenCalledOnce())
     const req = mockAcquireItems.mock.calls[0][0]
     expect(req.pressing?.matrix).toBe('YEX 773-1 HAGG / YEX 774-1 HAGG')
+  })
+
+  it('populates label on the acquire request when getDiscogsRelease resolves with labels', async () => {
+    mockSearchDiscogs.mockResolvedValue({
+      results: [{ ...sampleDiscogsResult, label: undefined }],
+      pagination: { page: 1, pages: 1, per_page: 50, items: 1, urls: {} },
+    })
+    let resolveRelease!: (v: Awaited<ReturnType<typeof discogsApi.getDiscogsRelease>>) => void
+    mockGetDiscogsRelease.mockReturnValue(
+      new Promise(res => { resolveRelease = res }),
+    )
+    await openAcquireForm()
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText('Artist, title, label\u2026'), 'Rick')
+    await waitFor(() =>
+      expect(screen.getByText('Never Gonna Give You Up')).toBeInTheDocument(),
+      { timeout: 1500 },
+    )
+    await user.click(screen.getByText('Never Gonna Give You Up'))
+    await act(async () => {
+      resolveRelease({
+        id: 249504,
+        title: 'Never Gonna Give You Up',
+        identifiers: [],
+        labels: [{ name: 'Parlophone' }],
+      })
+    })
+    await user.click(screen.getByText('Confirm'))
+    await waitFor(() => expect(mockAcquireItems).toHaveBeenCalledOnce())
+    const req = mockAcquireItems.mock.calls[0][0]
+    expect(req.pressing?.label).toBe('Parlophone')
   })
 
   it('acquire proceeds with matrix null when getDiscogsRelease rejects', async () => {
@@ -484,6 +517,7 @@ const pressingRick = {
   country: 'UK',
   catalog_number: 'RCA PB 9693',
   matrix: null,
+  label: 'RCA',
 }
 
 const pressingNew = {
@@ -496,6 +530,7 @@ const pressingNew = {
   country: 'UK',
   catalog_number: 'FAC 73',
   matrix: null,
+  label: null,
 }
 
 const itemRick = { ...sampleItem, id: 'item-rick', pressing_id: 'pressing-rick', pressing: pressingRick }
@@ -636,5 +671,19 @@ describe('InventoryPage — item detail panel Discogs data', () => {
     // Wait for the Discogs data section and assert label is rendered
     await waitFor(() => expect(screen.getByText('RCA')).toBeInTheDocument())
     expect(screen.getByText('Label')).toBeInTheDocument()
+  })
+
+  it('renders pressing label in the inventory list row when label is set', async () => {
+    const itemWithLabel = {
+      ...sampleItem,
+      id: 'item-label-row',
+      pressing_id: 'pressing-rick',
+      pressing: { ...pressingRick, label: 'RCA' },
+    }
+    mockListItems.mockResolvedValue([itemWithLabel])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    renderPage()
+    await waitFor(() => screen.getByText(/Never Gonna Give You Up/))
+    expect(screen.getByText(/RCA/)).toBeInTheDocument()
   })
 })

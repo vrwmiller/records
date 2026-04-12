@@ -10,6 +10,7 @@ export interface PressingBookmark {
   country: string | null
   catalog_number: string | null
   matrix: string | null
+  label: string | null
 }
 
 export interface InventoryItem {
@@ -42,6 +43,7 @@ export interface DiscogsPressingIn {
   country: string | null
   catalog_number: string | null
   matrix: string | null
+  label: string | null
 }
 
 export interface AcquireRequest {
