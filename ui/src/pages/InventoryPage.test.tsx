@@ -606,3 +606,35 @@ describe('InventoryPage — text search', () => {
     expect(screen.queryByRole('button', { name: /close/i })).not.toBeInTheDocument()
   })
 })
+
+describe('InventoryPage — item detail panel Discogs data', () => {
+  it('renders record label from Discogs release payload', async () => {
+    const itemWithPressing = {
+      ...sampleItem,
+      id: 'item-label-test',
+      pressing_id: 'pressing-rick',
+      pressing: {
+        ...pressingRick,
+        id: 'pressing-rick',
+        discogs_resource_url: null,
+        matrix: null,
+      },
+    }
+    mockListItems.mockResolvedValue([itemWithPressing])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    mockGetDiscogsRelease.mockResolvedValue({
+      id: 249504,
+      title: 'Never Gonna Give You Up',
+      identifiers: [],
+      labels: [{ name: 'RCA' }],
+    })
+    renderPage()
+    await waitFor(() => screen.getByText(/Never Gonna Give You Up/))
+    const user = userEvent.setup()
+    // Open detail panel by clicking the item row
+    await user.click(screen.getByText(/Never Gonna Give You Up/).closest('[role="button"]')!)
+    // Wait for the Discogs data section and assert label is rendered
+    await waitFor(() => expect(screen.getByText('RCA')).toBeInTheDocument())
+    expect(screen.getByText('Label')).toBeInTheDocument()
+  })
+})
