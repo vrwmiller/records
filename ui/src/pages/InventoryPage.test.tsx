@@ -147,11 +147,15 @@ describe('InventoryPage — error state', () => {
 })
 
 describe('InventoryPage — item list', () => {
-  it('renders items with collection and status badges', async () => {
+  it('renders items with collection color class and status badge', async () => {
     mockListItems.mockResolvedValue([sampleItem])
     mockGetSummary.mockResolvedValue(filledSummary)
     renderPage()
-    await waitFor(() => expect(screen.getByText('PRIVATE')).toBeInTheDocument())
+    // Collection type is communicated via CSS class on the tile, not a text label.
+    await waitFor(() => {
+      const tile = document.querySelector('.inventory-item.item-private')
+      expect(tile).toBeInTheDocument()
+    })
     expect(screen.getByText('AVAILABLE')).toBeInTheDocument()
     expect(screen.getByText('Media: VG+')).toBeInTheDocument()
   })
