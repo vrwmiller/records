@@ -503,7 +503,6 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                       {item.collection_type}
                     </span>
                     <span className="status-badge">{item.status}</span>
-                    {item.is_sealed && <span className="sealed-badge">SEALED</span>}
                   </div>
                   <div className="item-detail">
                     {item.pressing && (
