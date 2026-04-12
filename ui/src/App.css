@@ -328,15 +328,13 @@ table.discogs-results thead th {
   text-transform: capitalize;
 }
 
-.sealed-badge {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: 3px;
-  padding: 0.1em 0.4em;
+/* Collection-type color accent on tile left edge */
+.inventory-item.item-private {
+  border-left: 3px solid var(--color-badge-personal-text);
+}
+
+.inventory-item.item-public {
+  border-left: 3px solid var(--color-badge-distribution-text);
 }
 
 .checkbox-label {
