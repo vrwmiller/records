@@ -203,11 +203,13 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
         const label = release.labels?.[0]?.name ?? null
         if (matrix || label) {
           setSelectedPressing(p =>
-            p && p.discogs_release_id === releaseId ? { ...p, matrix, label } : p
+            p && p.discogs_release_id === releaseId
+              ? { ...p, ...(matrix != null ? { matrix } : {}), ...(label != null ? { label } : {}) }
+              : p
           )
           setAcquireForm(f =>
             f.pressing && f.pressing.discogs_release_id === releaseId
-              ? { ...f, pressing: { ...f.pressing, matrix, label } }
+              ? { ...f, pressing: { ...f.pressing, ...(matrix != null ? { matrix } : {}), ...(label != null ? { label } : {}) } }
               : f
           )
         }

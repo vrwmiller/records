@@ -77,6 +77,7 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
       country: result.country ?? null,
       catalog_number: result.catno ?? null,
       matrix: null,
+      label: result.label?.[0] ?? null,
     }
     setSelectedPressing(pressing)
     setDiscogsResults([])
@@ -91,9 +92,12 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
           ?.filter(i => i.type === 'Matrix / Runout')
           .map(i => i.value)
           .join(' / ') || null
-        if (matrix && isMounted.current) {
+        const label = release.labels?.[0]?.name ?? null
+        if ((matrix || label) && isMounted.current) {
           setSelectedPressing(p =>
-            p && p.discogs_release_id === releaseId ? { ...p, matrix } : p
+            p && p.discogs_release_id === releaseId
+              ? { ...p, ...(matrix != null ? { matrix } : {}), ...(label != null ? { label } : {}) }
+              : p
           )
         }
       })
