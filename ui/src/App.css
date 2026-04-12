@@ -352,13 +352,15 @@ table.discogs-results thead th {
   text-transform: capitalize;
 }
 
-/* Collection-type color accent on tile left edge */
+/* Collection-type color accent — full tile tint */
 .inventory-item.item-private {
-  border-left: 3px solid var(--color-badge-personal-text);
+  background: var(--color-badge-personal-bg);
+  border-color: var(--color-badge-personal-text);
 }
 
 .inventory-item.item-public {
-  border-left: 3px solid var(--color-badge-distribution-text);
+  background: var(--color-badge-distribution-bg);
+  border-color: var(--color-badge-distribution-text);
 }
 
 /* Screen-reader-only utility — visually hidden, available to AT */
