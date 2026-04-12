@@ -74,7 +74,8 @@ Pass A: metadata and pressing resolution
 
 - Prefer `Discogs#` as external identity key when present
 - Map metadata into `pressing` (title, artists_sort, year, country)
-- Label, catalog number, and full artist text are not stored in `pressing`; they are available on demand from the Discogs API for linked releases, and are preserved in import metadata for traceability
+- Label is stored in `pressing.label` (first label name from Discogs at acquire time); catalog number is stored in `pressing.catalog_number`. Both are nullable and populated on-demand when a Discogs release is linked. Legacy rows without a Discogs link will have NULL.
+- Full artist text is not stored in `pressing`; it is available on demand from the Discogs API for linked releases and is preserved in import metadata for traceability
 - Retain legacy-only fields in import metadata for traceability
 
 Pass B: inventory item and transaction creation
@@ -92,8 +93,8 @@ Pass B: inventory item and transaction creation
 | Artist | `pressing.artists_sort` (sort key); raw Access Artist text preserved in import metadata | `pressing.artists_sort` is a normalized sort key, not the raw source text; canonical artist normalization is a later phase |
 | ArtistSort | `pressing.artists_sort` | preferred sort key |
 | Title | `pressing.title` | required for canonical display |
-| Label | available on demand from Discogs API (`labels[]` in release payload) | not stored locally; fetched via proxy endpoint when needed |
-| Number | available on demand from Discogs API (`labels[].catno` in release payload) | not stored locally; fetched via proxy endpoint when needed |
+| Label | `pressing.label` (first label name at acquire time) | Populated from Discogs `label[]` (search result) or `labels[].name` (release payload); local value wins on re-acquire conflict |
+| Number | `pressing.catalog_number` (catalog number at acquire time) | Populated from Discogs `catno` (search result) or `labels[].catno` (release payload); local value wins on re-acquire conflict |
 | Discogs# | `pressing.discogs_release_id` | primary external key if valid |
 | Year | `pressing.year` | integer coercion with validation |
 | Value | import transaction metadata | estimated value, not guaranteed cost basis |
@@ -154,7 +155,7 @@ Vinyl record identification has no industry standard. Record companies, labels, 
 - Identifies the mastering engineer or mastering house responsible for that side.
 - May incorporate part or all of the catalog number as a prefix or suffix.
 - Because matrix numbers are per-side, a single release has at least two distinct matrix values (Side A, Side B). Box sets may have many more.
-- Discogs surfaces matrix numbers via `identifiers[]` in the release payload (type `'Matrix / Runout'`). This data is available on demand from the Discogs API via the proxy endpoint and is not stored locally.
+- Discogs surfaces matrix numbers via `identifiers[]` in the release payload (type `'Matrix / Runout'`). Matrix is persisted locally in `pressing.matrix` (sides joined with ` / `) at acquire time.
 
 ### Catalog Numbers
 
@@ -162,10 +163,10 @@ Vinyl record identification has no industry standard. Record companies, labels, 
 - Typically appears on the cover and/or the record label.
 - The "record number" is often the catalog number, but not always — the terms overlap without being interchangeable.
 - Box sets frequently carry a separate catalog number for the overall set **and** distinct numbers for each individual disc inside. This relationship is not guaranteed and cannot be assumed.
-- Catalog number and label data are available on demand from the Discogs API via the proxy endpoint (`labels[]` in the release payload) and are not stored locally.
+- Catalog number is persisted locally in `pressing.catalog_number` from the Discogs `catno` field at acquire time. The full `labels[]` array (with all catalog numbers per label) remains available on demand from the proxy endpoint.
 
 ### Modeling Rationale
 
-The heterogeneity of real-world vinyl data is why identifier and label data are not forced into a single canonical local field. Discogs surfaces this complexity via `identifiers[]` and `labels[]` in the full release payload, which is available on demand from the proxy endpoint. The lean local schema (`pressing`) does not store this data; it is fetched when the user explicitly requests release detail.
+The heterogeneity of real-world vinyl data is why identifier and label data are not forced into a complex normalized local structure. Only the primary display value (first label name, first catalog number, joined matrix) is persisted locally. The full detail — `identifiers[]` and `labels[]` — is available on demand from the proxy endpoint when the user explicitly requests release detail.
 
 Do not attempt to enforce a single canonical "the catalog number" field at the pressing level. The reality is one pressing may have multiple catalog number representations across different labels and formats, and that is correct data.
