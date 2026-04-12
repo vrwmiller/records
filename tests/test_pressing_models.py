@@ -100,6 +100,12 @@ class TestPressingColumns:
         for col_name in nullable_cols:
             assert _col(self.t, col_name).nullable, f"{col_name} should be nullable"
 
+    def test_label_column_present(self) -> None:
+        assert "label" in self.t.c
+
+    def test_label_column_nullable(self) -> None:
+        assert _col(self.t, "label").nullable
+
 
 # ---------------------------------------------------------------------------
 # inventory_item Phase A additions

@@ -45,6 +45,7 @@ class PressingResponse(BaseModel):
     country: str | None
     catalog_number: str | None
     matrix: str | None
+    label: str | None
 
 
 class InventoryItemResponse(BaseModel):

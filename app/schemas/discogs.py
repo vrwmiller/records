@@ -22,3 +22,4 @@ class DiscogsPressingIn(BaseModel):
     country: str | None = None
     catalog_number: str | None = None
     matrix: str | None = None
+    label: str | None = None

@@ -56,6 +56,7 @@ class Pressing(Base):
     country: Mapped[str | None] = mapped_column(Text, nullable=True, index=True)
     catalog_number: Mapped[str | None] = mapped_column(Text, nullable=True)
     matrix: Mapped[str | None] = mapped_column(Text, nullable=True)
+    label: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Relationships
     items: Mapped[list["InventoryItem"]] = relationship(back_populates="pressing")
