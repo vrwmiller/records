@@ -461,7 +461,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
           {(['ALL', 'PRIVATE', 'PUBLIC'] as CollectionFilter[]).map(f => (
             <button
               key={f}
-              className={`filter-btn${filter === f ? ' active' : ''}`}
+              className={`filter-btn${f !== 'ALL' ? ` ${f.toLowerCase()}` : ''}${filter === f ? ' active' : ''}`}
               onClick={() => setFilter(f)}
             >
               {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
@@ -480,7 +480,7 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
         ) : (
           <ul className="inventory-list">
             {filteredItems.map(item => (
-              <li key={item.id} className="inventory-item">
+              <li key={item.id} className={`inventory-item item-${item.collection_type.toLowerCase()}`}>
                 <div
                   className={`item-row${viewingItemId === item.id ? ' item-row-active' : ''}`}
                   role="button"
@@ -499,11 +499,10 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                   }}
                 >
                   <div className="item-badges">
-                    <span className={`collection-badge ${item.collection_type.toLowerCase()}`}>
-                      {item.collection_type}
+                    <span className="sr-only">
+                      {item.collection_type.charAt(0) + item.collection_type.slice(1).toLowerCase()} collection
                     </span>
                     <span className="status-badge">{item.status}</span>
-                    {item.is_sealed && <span className="sealed-badge">SEALED</span>}
                   </div>
                   <div className="item-detail">
                     {item.pressing && (

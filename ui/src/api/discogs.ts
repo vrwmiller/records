@@ -34,6 +34,7 @@ export interface DiscogsRelease {
   styles?: string[]
   formats?: { name: string; qty?: string; descriptions?: string[] }[]
   tracklist?: { position: string; title: string; duration: string }[]
+  labels?: { name: string; catno?: string; resource_url?: string }[]
   resource_url?: string
   images?: unknown[]
   identifiers?: { type: string; value: string; description?: string }[]

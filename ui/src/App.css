@@ -96,6 +96,30 @@
   border-color: var(--color-primary);
 }
 
+.filter-btn.private {
+  background: var(--color-badge-personal-bg);
+  color: var(--color-badge-personal-text);
+  border-color: var(--color-badge-personal-text);
+}
+
+.filter-btn.private.active {
+  background: var(--color-badge-personal-text);
+  color: var(--color-bg);
+  border-color: var(--color-badge-personal-text);
+}
+
+.filter-btn.public {
+  background: var(--color-badge-distribution-bg);
+  color: var(--color-badge-distribution-text);
+  border-color: var(--color-badge-distribution-text);
+}
+
+.filter-btn.public.active {
+  background: var(--color-badge-distribution-text);
+  color: var(--color-bg);
+  border-color: var(--color-badge-distribution-text);
+}
+
 /* Inventory search */
 .search-wrapper {
   flex: 1;
@@ -328,15 +352,26 @@ table.discogs-results thead th {
   text-transform: capitalize;
 }
 
-.sealed-badge {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: 3px;
-  padding: 0.1em 0.4em;
+/* Collection-type color accent on tile left edge */
+.inventory-item.item-private {
+  border-left: 3px solid var(--color-badge-personal-text);
+}
+
+.inventory-item.item-public {
+  border-left: 3px solid var(--color-badge-distribution-text);
+}
+
+/* Screen-reader-only utility — visually hidden, available to AT */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .checkbox-label {

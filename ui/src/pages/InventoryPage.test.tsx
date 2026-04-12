@@ -147,11 +147,15 @@ describe('InventoryPage — error state', () => {
 })
 
 describe('InventoryPage — item list', () => {
-  it('renders items with collection and status badges', async () => {
+  it('renders items with collection color class and status badge', async () => {
     mockListItems.mockResolvedValue([sampleItem])
     mockGetSummary.mockResolvedValue(filledSummary)
     renderPage()
-    await waitFor(() => expect(screen.getByText('PRIVATE')).toBeInTheDocument())
+    // Collection type is communicated via CSS class on the tile, not a text label.
+    await waitFor(() => {
+      const tile = document.querySelector('.inventory-item.item-private')
+      expect(tile).toBeInTheDocument()
+    })
     expect(screen.getByText('AVAILABLE')).toBeInTheDocument()
     expect(screen.getByText('Media: VG+')).toBeInTheDocument()
   })
@@ -600,5 +604,37 @@ describe('InventoryPage — text search', () => {
     await user.clear(screen.getByRole('searchbox', { name: 'Search inventory' }))
     await waitFor(() => screen.getByText(/Never Gonna Give You Up/), { timeout: 2000 })
     expect(screen.queryByRole('button', { name: /close/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('InventoryPage — item detail panel Discogs data', () => {
+  it('renders record label from Discogs release payload', async () => {
+    const itemWithPressing = {
+      ...sampleItem,
+      id: 'item-label-test',
+      pressing_id: 'pressing-rick',
+      pressing: {
+        ...pressingRick,
+        id: 'pressing-rick',
+        discogs_resource_url: null,
+        matrix: null,
+      },
+    }
+    mockListItems.mockResolvedValue([itemWithPressing])
+    mockGetSummary.mockResolvedValue(filledSummary)
+    mockGetDiscogsRelease.mockResolvedValue({
+      id: 249504,
+      title: 'Never Gonna Give You Up',
+      identifiers: [],
+      labels: [{ name: 'RCA' }],
+    })
+    renderPage()
+    await waitFor(() => screen.getByText(/Never Gonna Give You Up/))
+    const user = userEvent.setup()
+    // Open detail panel by clicking the item row
+    await user.click(screen.getByText(/Never Gonna Give You Up/).closest('[role="button"]')!)
+    // Wait for the Discogs data section and assert label is rendered
+    await waitFor(() => expect(screen.getByText('RCA')).toBeInTheDocument())
+    expect(screen.getByText('Label')).toBeInTheDocument()
   })
 })
