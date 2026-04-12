@@ -499,6 +499,9 @@ export function InventoryPage({ user, signOut }: InventoryPageProps) {
                   }}
                 >
                   <div className="item-badges">
+                    <span className="sr-only">
+                      {item.collection_type.charAt(0) + item.collection_type.slice(1).toLowerCase()} collection
+                    </span>
                     <span className="status-badge">{item.status}</span>
                   </div>
                   <div className="item-detail">
