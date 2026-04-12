@@ -104,7 +104,7 @@
 
 .filter-btn.private.active {
   background: var(--color-badge-personal-text);
-  color: #fff;
+  color: var(--color-bg);
   border-color: var(--color-badge-personal-text);
 }
 
@@ -116,7 +116,7 @@
 
 .filter-btn.public.active {
   background: var(--color-badge-distribution-text);
-  color: #fff;
+  color: var(--color-bg);
   border-color: var(--color-badge-distribution-text);
 }
 
