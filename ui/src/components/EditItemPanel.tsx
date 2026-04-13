@@ -39,6 +39,7 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
   function handleDiscogsQueryChange(q: string) {
     setDiscogsQuery(q)
     setSelectedPressing(null)
+    matrixFetch.current = null   // cancel any in-flight fetch for the old selection
     setDiscogsError(null)
     if (searchTimer.current) clearTimeout(searchTimer.current)
     const seq = ++searchSeq.current
@@ -125,7 +126,12 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
       if (matrixFetch.current) {
         const patched = await matrixFetch.current
         matrixFetch.current = null
-        if (patched) pressingForSave = patched
+        // Only use the patched value when the selection hasn't changed since the
+        // fetch was kicked off: guard against the user clearing/changing the
+        // selection while the Discogs fetch was in flight.
+        if (patched && selectedPressing && patched.discogs_release_id === selectedPressing.discogs_release_id) {
+          pressingForSave = patched
+        }
       }
       const request: UpdateRequest = {
         ...(pressingForSave ? { pressing: pressingForSave } : {}),
