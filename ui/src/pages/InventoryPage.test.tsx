@@ -674,16 +674,17 @@ describe('InventoryPage — item detail panel Discogs data', () => {
   })
 
   it('renders pressing label in the inventory list row when label is set', async () => {
+    const uniqueLabel = 'Blue Note Records'
     const itemWithLabel = {
       ...sampleItem,
       id: 'item-label-row',
       pressing_id: 'pressing-rick',
-      pressing: { ...pressingRick, label: 'RCA' },
+      pressing: { ...pressingRick, catalog_number: null, label: uniqueLabel },
     }
     mockListItems.mockResolvedValue([itemWithLabel])
     mockGetSummary.mockResolvedValue(filledSummary)
     renderPage()
     await waitFor(() => screen.getByText(/Never Gonna Give You Up/))
-    expect(screen.getByText(/RCA/)).toBeInTheDocument()
+    expect(screen.getByText(new RegExp(uniqueLabel))).toBeInTheDocument()
   })
 })

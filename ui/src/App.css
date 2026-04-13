@@ -363,6 +363,19 @@ table.discogs-results thead th {
   border-color: var(--color-badge-distribution-text);
 }
 
+/* Preserve collection tint through hover/focus/active on the inner row */
+.inventory-item.item-private .item-row:hover,
+.inventory-item.item-private .item-row:focus-visible,
+.inventory-item.item-private .item-row.item-row-active {
+  background: var(--color-badge-personal-hover-bg);
+}
+
+.inventory-item.item-public .item-row:hover,
+.inventory-item.item-public .item-row:focus-visible,
+.inventory-item.item-public .item-row.item-row-active {
+  background: var(--color-badge-distribution-hover-bg);
+}
+
 /* Screen-reader-only utility — visually hidden, available to AT */
 .sr-only {
   position: absolute;

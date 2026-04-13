@@ -74,7 +74,7 @@ Pass A: metadata and pressing resolution
 
 - Prefer `Discogs#` as external identity key when present
 - Map metadata into `pressing` (title, artists_sort, year, country)
-- Label is stored in `pressing.label` (first label name from Discogs at acquire time); catalog number is stored in `pressing.catalog_number`. Both are nullable and populated on-demand when a Discogs release is linked. Legacy rows without a Discogs link will have NULL.
+- Label is stored in `pressing.label` (first label name); sourced from `label[0]` in the Discogs search result and optionally refined from `labels[0].name` via the full release fetch. Catalog number is stored in `pressing.catalog_number`; sourced from `catno` in the search result — the release fetch does not currently backfill `catalog_number`. Both fields are nullable; legacy rows without a Discogs link will have NULL.
 - Full artist text is not stored in `pressing`; it is available on demand from the Discogs API for linked releases and is preserved in import metadata for traceability
 - Retain legacy-only fields in import metadata for traceability
 
@@ -94,7 +94,7 @@ Pass B: inventory item and transaction creation
 | ArtistSort | `pressing.artists_sort` | preferred sort key |
 | Title | `pressing.title` | required for canonical display |
 | Label | `pressing.label` (first label name at acquire time) | Populated from Discogs `label[]` (search result) or `labels[].name` (release payload); local value wins on re-acquire conflict |
-| Number | `pressing.catalog_number` (catalog number at acquire time) | Populated from Discogs `catno` (search result) or `labels[].catno` (release payload); local value wins on re-acquire conflict |
+| Number | `pressing.catalog_number` (catalog number at acquire time) | Populated from Discogs `catno` (search result only); the release fetch does not currently backfill this field; local value wins on re-acquire conflict |
 | Discogs# | `pressing.discogs_release_id` | primary external key if valid |
 | Year | `pressing.year` | integer coercion with validation |
 | Value | import transaction metadata | estimated value, not guaranteed cost basis |

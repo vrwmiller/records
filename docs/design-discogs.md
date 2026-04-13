@@ -119,7 +119,7 @@ Only the fields stored in the lean `pressing` bookmark are listed. All other Dis
 | `artists_sort`     | `pressing.artists_sort`       | Search/sort                    |
 | `year`             | `pressing.year`               | Numeric year                   |
 | `country`          | `pressing.country`            | Country facet                  |
-| `catno` (search result) / `labels[].catno` (release) | `pressing.catalog_number` | First catalog number; local wins on conflict |
+| `catno` (search result) | `pressing.catalog_number` | Catalog number at acquire time; the release fetch does not currently backfill this field; local wins on re-acquire conflict |
 | `identifiers[]` where `type = 'Matrix / Runout'` | `pressing.matrix` | Sides joined with ` / `; local wins on conflict |
 | `label[]` (search result) / `labels[].name` (release) | `pressing.label` | First label name; local wins on conflict |
 
