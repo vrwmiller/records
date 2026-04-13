@@ -96,6 +96,7 @@ class TestPressingColumns:
         nullable_cols = [
             "discogs_release_id", "discogs_resource_url",
             "title", "artists_sort", "year", "country",
+            "catalog_number", "matrix", "label",
         ]
         for col_name in nullable_cols:
             assert _col(self.t, col_name).nullable, f"{col_name} should be nullable"
