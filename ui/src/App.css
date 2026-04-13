@@ -352,13 +352,36 @@ table.discogs-results thead th {
   text-transform: capitalize;
 }
 
-/* Collection-type color accent on tile left edge */
+/* Collection-type color accent — full tile tint */
 .inventory-item.item-private {
-  border-left: 3px solid var(--color-badge-personal-text);
+  background: var(--color-badge-personal-bg);
+  border-color: var(--color-badge-personal-text);
 }
 
 .inventory-item.item-public {
-  border-left: 3px solid var(--color-badge-distribution-text);
+  background: var(--color-badge-distribution-bg);
+  border-color: var(--color-badge-distribution-text);
+}
+
+/* Preserve collection tint through hover/focus/active on the inner row */
+.inventory-item.item-private .item-row:hover,
+.inventory-item.item-private .item-row:focus-visible,
+.inventory-item.item-private .item-row.item-row-active {
+  background: var(--color-badge-personal-hover-bg);
+}
+
+.inventory-item.item-public .item-row:hover,
+.inventory-item.item-public .item-row:focus-visible,
+.inventory-item.item-public .item-row.item-row-active {
+  background: var(--color-badge-distribution-hover-bg);
+}
+
+/* Detail and edit panels inside a collection tile inherit the tint */
+.inventory-item.item-private .item-detail-panel,
+.inventory-item.item-public .item-detail-panel,
+.inventory-item.item-private .edit-item-panel,
+.inventory-item.item-public .edit-item-panel {
+  background: transparent;
 }
 
 /* Screen-reader-only utility — visually hidden, available to AT */

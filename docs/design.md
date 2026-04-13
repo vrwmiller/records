@@ -21,7 +21,7 @@ Operational profile assumptions:
 
 ### Discogs Integration: Lean Schema and On-Demand Fetches (April 2026)
 
-**Decision:** `pressing` stores a lean eight-column bookmark (id, created_at, discogs_release_id, discogs_resource_url, title, artists_sort, year, country). All Discogs detail data — tracks, images, credits, labels, identifiers, market signals, community signals, raw payload — is fetched on demand via a proxy endpoint and is never stored locally.
+**Decision:** `pressing` stores a lean bookmark (id, created_at, discogs_release_id, discogs_resource_url, title, artists_sort, year, country, catalog_number, matrix, label). All Discogs detail data — tracks, images, credits, identifiers beyond matrix, market signals, community signals, raw payload — is fetched on demand via a proxy endpoint and is never stored locally.
 
 **Rationale:**
 
@@ -38,6 +38,16 @@ Operational profile assumptions:
 - Market signals are displayed in the release detail panel on user request; they are not shown in list views.
 
 See [design-discogs.md](design-discogs.md) for full integration design.
+
+### Local Database Precedence over Discogs (April 2026)
+
+**Decision:** When a local `pressing` row already holds a non-null value for any field, a subsequent acquire or re-link that supplies a different value from Discogs does **not** overwrite it. The local database always takes precedence over Discogs.
+
+**Rationale:**
+
+- A user or operator may have manually corrected a field (e.g. label, catalog number) that Discogs has wrong or ambiguous. Silent overwrites would destroy that correction without any audit trail.
+- Discogs data can change between the first acquire and a re-acquire; the local record reflects the owner's understanding of the pressing, which is more authoritative for this use case than the current Discogs state.
+- COALESCE order in `upsert_pressing`: `COALESCE(pressing.<col>, EXCLUDED.<col>)` — existing value wins; only NULL fields are filled in from the incoming record.
 
 ---
 

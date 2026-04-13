@@ -23,7 +23,7 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchSeq = useRef(0)
   const isMounted = useRef(true)
-  const matrixFetch = useRef<Promise<void> | null>(null)
+  const matrixFetch = useRef<Promise<DiscogsPressingIn | null> | null>(null)
 
   useEffect(() => {
     return () => {
@@ -39,6 +39,7 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
   function handleDiscogsQueryChange(q: string) {
     setDiscogsQuery(q)
     setSelectedPressing(null)
+    matrixFetch.current = null   // cancel any in-flight fetch for the old selection
     setDiscogsError(null)
     if (searchTimer.current) clearTimeout(searchTimer.current)
     const seq = ++searchSeq.current
@@ -77,6 +78,7 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
       country: result.country ?? null,
       catalog_number: result.catno ?? null,
       matrix: null,
+      label: result.label?.[0] ?? null,
     }
     setSelectedPressing(pressing)
     setDiscogsResults([])
@@ -91,13 +93,24 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
           ?.filter(i => i.type === 'Matrix / Runout')
           .map(i => i.value)
           .join(' / ') || null
-        if (matrix && isMounted.current) {
+        const label = release.labels?.[0]?.name ?? null
+        if ((matrix || label) && isMounted.current) {
+          // Compute patched pressing synchronously from the known closure value
+          // so the promise resolves to a reliable result regardless of when
+          // React schedules the functional updater below.
+          const patched: DiscogsPressingIn = {
+            ...pressing,
+            ...(matrix != null ? { matrix } : {}),
+            ...(label != null ? { label } : {}),
+          }
           setSelectedPressing(p =>
-            p && p.discogs_release_id === releaseId ? { ...p, matrix } : p
+            p && p.discogs_release_id === releaseId ? patched : p
           )
+          return patched
         }
+        return null
       })
-      .catch(() => { /* matrix stays null — non-critical */ })
+      .catch(() => null) // matrix/label stays null — non-critical
   }
 
   async function handleSave() {
@@ -106,13 +119,22 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
     setSaveError(null)
     try {
       // Await any in-flight matrix fetch so the pressing payload includes matrix
-      // if the user saves before the best-effort detail request has resolved.
+      // and label if the user saves before the best-effort detail request resolves.
+      // The promise resolves to the patched DiscogsPressingIn (or null), giving us
+      // the settled value without relying on React setState having committed yet.
+      let pressingForSave = selectedPressing
       if (matrixFetch.current) {
-        await matrixFetch.current
+        const patched = await matrixFetch.current
         matrixFetch.current = null
+        // Only use the patched value when the selection hasn't changed since the
+        // fetch was kicked off: guard against the user clearing/changing the
+        // selection while the Discogs fetch was in flight.
+        if (patched && selectedPressing && patched.discogs_release_id === selectedPressing.discogs_release_id) {
+          pressingForSave = patched
+        }
       }
       const request: UpdateRequest = {
-        ...(selectedPressing ? { pressing: selectedPressing } : {}),
+        ...(pressingForSave ? { pressing: pressingForSave } : {}),
         condition_media: conditionMedia || null,
         condition_sleeve: conditionSleeve || null,
         notes: notes || null,
@@ -180,6 +202,7 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
             aria-label="Clear selected pressing"
             onClick={() => {
               setSelectedPressing(null)
+              matrixFetch.current = null
               setDiscogsQuery(item.pressing?.title ?? '')
             }}
           >

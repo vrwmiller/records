@@ -165,6 +165,7 @@ describe('updateItem', () => {
       country: 'UK',
       catalog_number: null,
       matrix: null,
+      label: null,
     }
     await updateItem('item-1', { pressing })
     const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit]

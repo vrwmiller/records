@@ -28,20 +28,21 @@ def upsert_pressing(db: Session, pressing_in: DiscogsPressingIn) -> uuid.UUID:
         """
         INSERT INTO pressing
             (discogs_release_id, discogs_resource_url, title, artists_sort, year, country,
-             catalog_number, matrix)
+             catalog_number, matrix, label)
         VALUES
             (:discogs_release_id, :discogs_resource_url, :title, :artists_sort, :year, :country,
-             :catalog_number, :matrix)
+             :catalog_number, :matrix, :label)
         ON CONFLICT (discogs_release_id)
         WHERE discogs_release_id IS NOT NULL
         DO UPDATE SET
-            discogs_resource_url = EXCLUDED.discogs_resource_url,
-            title                = EXCLUDED.title,
-            artists_sort         = EXCLUDED.artists_sort,
-            year                 = EXCLUDED.year,
-            country              = EXCLUDED.country,
-            catalog_number       = COALESCE(EXCLUDED.catalog_number, pressing.catalog_number),
-            matrix               = COALESCE(EXCLUDED.matrix, pressing.matrix)
+            discogs_resource_url = COALESCE(pressing.discogs_resource_url, EXCLUDED.discogs_resource_url),
+            title                = COALESCE(pressing.title, EXCLUDED.title),
+            artists_sort         = COALESCE(pressing.artists_sort, EXCLUDED.artists_sort),
+            year                 = COALESCE(pressing.year, EXCLUDED.year),
+            country              = COALESCE(pressing.country, EXCLUDED.country),
+            catalog_number       = COALESCE(pressing.catalog_number, EXCLUDED.catalog_number),
+            matrix               = COALESCE(pressing.matrix, EXCLUDED.matrix),
+            label                = COALESCE(pressing.label, EXCLUDED.label)
         RETURNING id
         """
     )
@@ -56,6 +57,7 @@ def upsert_pressing(db: Session, pressing_in: DiscogsPressingIn) -> uuid.UUID:
             "country": pressing_in.country,
             "catalog_number": pressing_in.catalog_number,
             "matrix": pressing_in.matrix,
+            "label": pressing_in.label,
         },
     )
     return row.scalar_one()
