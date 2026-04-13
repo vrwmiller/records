@@ -376,12 +376,12 @@ table.discogs-results thead th {
   background: var(--color-badge-distribution-hover-bg);
 }
 
-/* Detail and edit panels inside a collection tile inherit the tint */
+/* Detail and edit panels sit on neutral surface, not the collection tint */
 .inventory-item.item-private .item-detail-panel,
 .inventory-item.item-public .item-detail-panel,
 .inventory-item.item-private .edit-item-panel,
 .inventory-item.item-public .edit-item-panel {
-  background: transparent;
+  background: var(--color-surface);
 }
 
 /* Screen-reader-only utility — visually hidden, available to AT */
