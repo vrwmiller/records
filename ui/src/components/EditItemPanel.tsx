@@ -202,6 +202,7 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
             aria-label="Clear selected pressing"
             onClick={() => {
               setSelectedPressing(null)
+              matrixFetch.current = null
               setDiscogsQuery(item.pressing?.title ?? '')
             }}
           >
