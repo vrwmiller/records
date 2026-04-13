@@ -94,6 +94,7 @@ export function ItemDetailPanel({ item, isAdmin, onTransferred, onClose }: Props
             {p.year != null && <><dt>Year</dt><dd>{p.year}</dd></>}
             {p.country && <><dt>Country</dt><dd>{p.country}</dd></>}
             {p.catalog_number && <><dt>Catalog</dt><dd>{p.catalog_number}</dd></>}
+            {p.label && <><dt>Label</dt><dd>{p.label}</dd></>}
             {p.matrix && <><dt>Matrix</dt><dd className="matrix-value">{p.matrix}</dd></>}
           </dl>
         </section>

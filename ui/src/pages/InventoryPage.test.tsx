@@ -653,6 +653,7 @@ describe('InventoryPage — item detail panel Discogs data', () => {
         id: 'pressing-rick',
         discogs_resource_url: null,
         matrix: null,
+        label: null,   // no stored label — only the Discogs section should show RCA
       },
     }
     mockListItems.mockResolvedValue([itemWithPressing])
