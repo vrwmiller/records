@@ -376,6 +376,14 @@ table.discogs-results thead th {
   background: var(--color-badge-distribution-hover-bg);
 }
 
+/* Detail and edit panels inside a collection tile inherit the tint */
+.inventory-item.item-private .item-detail-panel,
+.inventory-item.item-public .item-detail-panel,
+.inventory-item.item-private .edit-item-panel,
+.inventory-item.item-public .edit-item-panel {
+  background: transparent;
+}
+
 /* Screen-reader-only utility — visually hidden, available to AT */
 .sr-only {
   position: absolute;

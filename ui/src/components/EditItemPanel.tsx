@@ -94,16 +94,17 @@ export function EditItemPanel({ item, onSave, onCancel }: Props) {
           .join(' / ') || null
         const label = release.labels?.[0]?.name ?? null
         if ((matrix || label) && isMounted.current) {
-          // Resolve the promise to the patched pressing so handleSave can read
-          // it directly instead of relying on async setState having settled.
-          let patched: DiscogsPressingIn | null = null
-          setSelectedPressing(p => {
-            if (p && p.discogs_release_id === releaseId) {
-              patched = { ...p, ...(matrix != null ? { matrix } : {}), ...(label != null ? { label } : {}) }
-              return patched
-            }
-            return p
-          })
+          // Compute patched pressing synchronously from the known closure value
+          // so the promise resolves to a reliable result regardless of when
+          // React schedules the functional updater below.
+          const patched: DiscogsPressingIn = {
+            ...pressing,
+            ...(matrix != null ? { matrix } : {}),
+            ...(label != null ? { label } : {}),
+          }
+          setSelectedPressing(p =>
+            p && p.discogs_release_id === releaseId ? patched : p
+          )
           return patched
         }
         return null
